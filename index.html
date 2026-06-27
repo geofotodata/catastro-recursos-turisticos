@@ -84,7 +84,7 @@
 
     .brand-lockup img {
       width: 100%;
-      max-width: 210px;
+      max-width: 145px;
       height: auto;
       display: block;
       opacity: 0.92;
@@ -194,6 +194,19 @@
       background: #eff6ff;
       color: #1d4ed8;
       white-space: nowrap;
+    }
+
+    .section-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding-top: 14px;
+      margin-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .section-actions button {
+      min-width: 130px;
     }
 
     .grid {
@@ -467,6 +480,159 @@
     .sync-status.fail { background: #fee2e2; color: #991b1b; }
     .sync-status.busy { background: #dbeafe; color: #1d4ed8; }
 
+    .record-summary-panel,
+    .progress-panel {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid rgba(216, 223, 235, 0.95);
+    }
+
+    .summary-line,
+    .progress-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      font-size: 0.84rem;
+    }
+
+    .summary-line strong,
+    .progress-line strong {
+      text-align: right;
+      color: #0f3b4f;
+      word-break: break-word;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5edf7;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #2563eb);
+      transition: width .25s ease;
+    }
+
+    .section-status {
+      font-size: 0.78rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .section-status.complete {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .print-view-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      background: #eef2f7;
+      overflow: auto;
+      padding: 18px;
+    }
+
+    .print-view-toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      max-width: 1060px;
+      margin: 0 auto 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.96);
+      box-shadow: var(--shadow);
+    }
+
+    .print-view-frame {
+      max-width: 1060px;
+      margin: 0 auto;
+      border: 0;
+      border-radius: 12px;
+      background: #ffffff;
+      box-shadow: var(--shadow);
+      width: 100%;
+      min-height: calc(100vh - 110px);
+    }
+
+    @media print {
+      body.print-mode > *:not(.print-view-overlay) {
+        display: none !important;
+      }
+
+      .print-view-overlay {
+        position: static;
+        inset: auto;
+        padding: 0;
+        background: #ffffff;
+        overflow: visible;
+      }
+
+      .print-view-toolbar {
+        display: none !important;
+      }
+
+      .print-view-frame {
+        box-shadow: none;
+        border-radius: 0;
+        min-height: auto;
+      }
+    }
+
+    .id-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .id-actions button {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+    }
+
+    .lookup-panel {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    .lookup-panel input {
+      min-height: 40px;
+      font-size: 0.88rem;
+      border-radius: 10px;
+      padding: 9px 10px;
+    }
+
+    @media (max-width: 800px) {
+      .id-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 800px) {
       .floating-save {
         right: 14px;
@@ -624,7 +790,7 @@
       }
 
       .brand-lockup img {
-        max-width: 150px;
+        max-width: 112px;
       }
 
       .sidebar h2 {
@@ -704,6 +870,14 @@
 
       .section-badge {
         white-space: normal;
+      }
+
+      .section-actions {
+        flex-direction: column;
+      }
+
+      .section-actions button {
+        width: 100%;
       }
 
       label {
@@ -811,6 +985,18 @@
         </div>
       </div>
 
+      <div class="record-summary-panel" id="recordSummaryPanel">
+        <div class="summary-line"><span>Recurso</span><strong id="summaryNombre">Sin nombre</strong></div>
+        <div class="summary-line"><span>Territorio</span><strong id="summaryTerritorio">Sin territorio</strong></div>
+        <div class="summary-line"><span>Clasificación</span><strong id="summaryClasificacion">Sin clasificación</strong></div>
+      </div>
+
+      <div class="progress-panel" id="progressPanel">
+        <div class="progress-line"><span>Avance del formulario</span><strong id="progressPercent">0%</strong></div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-line"><span>Secciones completas</span><strong id="progressSections">0 / 17</strong></div>
+      </div>
+
       <div class="sync-panel" id="syncPanel">
         <div class="sync-row">
           <span class="small">ID único</span>
@@ -823,6 +1009,15 @@
         <div class="sync-row">
           <span class="small">Última sincronización</span>
           <span class="sync-value" id="lastSyncDisplay">—</span>
+        </div>
+        <div class="id-actions">
+          <button type="button" class="secondary" id="copyUniqueIdBtn">Copiar ID único</button>
+          <button type="button" class="ghost" id="newAttractionBtn">Nuevo atractivo</button>
+        </div>
+        <div class="lookup-panel">
+          <label for="lookupUniqueIdInput" class="small">Cargar registro por ID</label>
+          <input id="lookupUniqueIdInput" type="text" placeholder="Ej. R13-C13101-A8F3K2M">
+          <button type="button" class="secondary" id="loadByIdBtn">Buscar y cargar</button>
         </div>
       </div>
 
@@ -847,12 +1042,12 @@
           <h1>Formulario digital — Catastro nacional de recursos turísticos</h1>
           <p class="muted" style="margin-top:8px; max-width:900px;">Este prototipo se basa en los 17 ítems del formulario del manual 2026: datos generales, clasificación, administración, conectividad, experiencias, instalaciones, capital humano, operación, visitas, servicios, accesibilidad, reconocimientos, amenazas, planificación y promoción.</p>
           <div class="toolbar">
-            <button class="primary" id="saveBtn">Guardar borrador</button>
-            <button class="secondary" id="exportBtn">Exportar borrador</button>
-            <label class="button-like ghost" for="importFile">Importar borrador</label>
+            <button class="primary" id="saveBtn">Guardar registro</button>
+            <button class="secondary" id="exportBtn">Descargar borrador</button>
+            <label class="button-like ghost" for="importFile">Cargar borrador</label>
             <input id="importFile" type="file" accept="application/json" hidden>
             <button class="ghost" id="sampleBtn">Cargar ejemplo</button>
-            <button class="danger" id="resetBtn">Limpiar formulario</button>
+            <button class="ghost" id="resetBtn">Descartar cambios</button>
           </div>
         </div>
         <div class="panel" style="background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.18); color:white; min-width:280px;">
@@ -899,15 +1094,16 @@
           <h2 data-title></h2>
           <p class="small" data-description></p>
         </div>
-        <span class="section-badge" data-badge></span>
+        <span class="section-badge" data-badge></span><span class="section-status" data-section-status>Pendiente</span>
       </header>
       <div class="grid" data-content></div>
+      <div class="section-actions" data-section-actions></div>
     </section>
   </template>
 
-  <button type="button" class="floating-save" id="floatingSaveBtn" title="Guardar borrador y sincronizar con Google Sheets">
+  <button type="button" class="floating-save" id="floatingSaveBtn" title="Guardar registro y sincronizar con Google Sheets">
     <span class="icon">+</span>
-    <span>Guardar online</span>
+    <span>Guardar registro</span>
   </button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -1032,13 +1228,6 @@
           classificationSelect('subtipoRecurso', 'Subtipo de recurso turístico', 'subtipo', 'span-4'),
           textarea('descripcion', 'Descripción del recurso turístico', 'Considerar características y vocación turística. Máx. 255 caracteres.', 'span-12', 255)
         ]
-      },
-      {
-        id: 'fotos',
-        title: '3. Fotografías del recurso',
-        description: 'Adjunto local de 3 a 5 fotos con vista previa.',
-        badge: 'Adjuntos',
-        custom: renderPhotosSection
       },
       {
         id: 'administracion',
@@ -1234,8 +1423,16 @@
         ]
       },
       {
+        id: 'fotos',
+        title: '17. Fotografías del recurso',
+        description: 'Anexo fotográfico del levantamiento. Las fotos se guardan en Google Drive al sincronizar el registro.',
+        badge: 'Adjuntos',
+        custom: renderPhotosSection
+      },
+
+      {
         id: 'observaciones',
-        title: '17. Observaciones y cierre',
+        title: '18. Observaciones y cierre',
         description: 'Campo libre para antecedentes adicionales y validación local.',
         badge: 'Final',
         fields: [
@@ -1316,6 +1513,32 @@
         }
         if (section.custom) section.custom(content);
         if (section.footer) section.footer(content);
+
+        const actions = tpl.querySelector('[data-section-actions]');
+        if (actions) {
+          const prevBtn = document.createElement('button');
+          prevBtn.type = 'button';
+          prevBtn.className = 'ghost';
+          prevBtn.textContent = index === 0 ? 'Volver arriba' : 'Anterior';
+          prevBtn.addEventListener('click', () => {
+            const target = index === 0 ? document.body : document.getElementById(sections[index - 1].id);
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          });
+
+          const nextBtn = document.createElement('button');
+          nextBtn.type = 'button';
+          nextBtn.className = index === sections.length - 1 ? 'primary' : 'secondary';
+          nextBtn.textContent = index === sections.length - 1 ? 'Ir a guardar' : 'Siguiente';
+          nextBtn.addEventListener('click', () => {
+            const target = index === sections.length - 1
+              ? document.getElementById('downloadPayloadBtn')
+              : document.getElementById(sections[index + 1].id);
+            target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          });
+
+          actions.appendChild(prevBtn);
+          actions.appendChild(nextBtn);
+        }
 
         container.appendChild(tpl);
 
@@ -2003,12 +2226,17 @@
       block.innerHTML = `
         <label for="photoInput">Adjuntar fotografías (mínimo 3, máximo 5)</label>
         <input id="photoInput" type="file" accept="image/*" multiple>
-        <small class="hint">El prototipo almacena localmente las imágenes en este navegador. Una implementación real debería subirlas a un repositorio institucional.</small>
+        <small class="hint">Las imágenes se mantienen en este navegador. Usa el botón de subida cuando quieras guardarlas en Google Drive.</small>
+        <div class="toolbar" style="margin-top:12px;">
+          <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir fotos a Drive</button>
+        </div>
+        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Las fotos aún no han sido subidas a Google Drive.</div>
         <div class="photo-grid" id="photoGrid"></div>
       `;
       content.appendChild(block);
 
       block.querySelector('#photoInput').addEventListener('change', handlePhotoUpload);
+      block.querySelector('#uploadPhotosDriveBtn')?.addEventListener('click', uploadPhotosToDrive);
       renderPhotos();
     }
 
@@ -2020,15 +2248,17 @@
           <h3>Validación local del prototipo</h3>
           <p class="small" style="margin-top:8px;">Este botón no envía a ArcGIS ni a una base real. Puedes validar, descargar el JSON o abrir una versión imprimible para guardarla como PDF desde el navegador.</p>
           <div class="toolbar" style="margin-top:12px;">
-            <button type="button" class="secondary" id="validateBtn">Validar formulario</button>
-            <button type="button" class="ghost" id="exportPdfBtn">Imprimir / guardar PDF</button>
-            <button type="button" class="primary" id="downloadPayloadBtn">Descargar JSON del registro</button>
+            <button type="button" class="secondary" id="validateBtn">Revisar formulario</button>
+            <button type="button" class="primary" id="finalSaveBtn">Guardar registro</button>
+            <button type="button" class="ghost" id="exportPdfBtn">Guardar PDF</button>
+            <button type="button" class="ghost" id="downloadPayloadBtn">Descargar respaldo</button>
           </div>
           <div id="validationResult" class="footer-note" style="display:none; margin-top:12px;"></div>
         </div>
       `;
       content.appendChild(block);
       block.querySelector('#validateBtn').addEventListener('click', validateForm);
+      block.querySelector('#finalSaveBtn')?.addEventListener('click', saveDraftAndSyncOnline);
       block.querySelector('#exportPdfBtn').addEventListener('click', exportPdfView);
       block.querySelector('#downloadPayloadBtn').addEventListener('click', downloadPayload);
     }
@@ -2037,6 +2267,7 @@
       state.values[name] = value;
       autosave();
       renderAdmissibility();
+      updateUiSummary();
     }
 
     function toggleArrayValue(name, value, checked) {
@@ -2045,6 +2276,7 @@
       state.values[name] = Array.from(arr);
       autosave();
       renderAdmissibility();
+      updateUiSummary();
     }
 
     function handlePhotoUpload(event) {
@@ -2478,49 +2710,59 @@
     function exportPdfView() {
       const title = state.values.nombreRecurso || 'Catastro de recurso turístico';
       const printableHtml = buildPrintableHtml(title);
-
-      const existingFrame = document.getElementById('pdfPrintFrame');
-      if (existingFrame) existingFrame.remove();
-
-      const iframe = document.createElement('iframe');
-      iframe.id = 'pdfPrintFrame';
-      iframe.setAttribute('aria-hidden', 'true');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.style.visibility = 'hidden';
-      document.body.appendChild(iframe);
-
-      const frameWindow = iframe.contentWindow;
-      const frameDocument = frameWindow.document;
-      frameDocument.open();
-      frameDocument.write(printableHtml);
-      frameDocument.close();
-
-      iframe.onload = () => {
-        try { frameWindow.focus(); } catch (error) {}
-        setTimeout(() => {
-          const frame = document.getElementById('pdfPrintFrame');
-          if (!frame) return;
-          try {
-            frameWindow.print();
-          } catch (error) {
-            alert('No fue posible abrir la impresión directa. Revisa la configuración del navegador.');
-          }
-        }, 4200);
-      };
-
-      frameWindow.onafterprint = () => {
-        setTimeout(() => {
-          const frame = document.getElementById('pdfPrintFrame');
-          if (frame) frame.remove();
-        }, 300);
-      };
+      showPrintablePreview(printableHtml);
     }
 
+    function showPrintablePreview(printableHtml) {
+      const existing = document.getElementById('printViewOverlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'printViewOverlay';
+      overlay.className = 'print-view-overlay';
+      overlay.innerHTML = `
+        <div class="print-view-toolbar">
+          <button type="button" class="ghost" id="closePrintViewBtn">Volver al formulario</button>
+          <button type="button" class="primary" id="printFichaBtn">Imprimir / guardar PDF</button>
+        </div>
+        <iframe class="print-view-frame" id="printViewFrame" title="Ficha imprimible del atractivo"></iframe>
+      `;
+
+      document.body.appendChild(overlay);
+      document.body.classList.add('print-mode');
+
+      const frame = document.getElementById('printViewFrame');
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      doc.open();
+      doc.write(printableHtml);
+      doc.close();
+
+      const resizeFrame = () => {
+        try {
+          const height = doc.documentElement.scrollHeight || doc.body.scrollHeight || 900;
+          frame.style.height = Math.max(height + 40, window.innerHeight - 110) + 'px';
+        } catch (error) {
+          frame.style.height = '1200px';
+        }
+      };
+
+      frame.onload = () => setTimeout(resizeFrame, 250);
+      setTimeout(resizeFrame, 600);
+
+      document.getElementById('closePrintViewBtn').addEventListener('click', () => {
+        document.body.classList.remove('print-mode');
+        overlay.remove();
+      });
+
+      document.getElementById('printFichaBtn').addEventListener('click', () => {
+        try {
+          frame.contentWindow.focus();
+          frame.contentWindow.print();
+        } catch (error) {
+          window.print();
+        }
+      });
+    }
 
     function getPrintableSimpleValue(fieldName) {
       const value = state.values[fieldName];
@@ -2911,6 +3153,55 @@
       return state.values.id_unico;
     }
 
+    function buildPhotoUploadPayload() {
+      const id = ensureUniqueId();
+      return {
+        action: 'uploadPhotos',
+        id_unico: id,
+        values: {
+          ...state.values,
+          id_unico: id
+        },
+        photos: state.photos.map(photo => ({
+          name: photo.name,
+          size: photo.size,
+          type: photo.type || '',
+          dataUrl: photo.dataUrl || ''
+        })),
+        uploadedAt: new Date().toISOString()
+      };
+    }
+
+    async function uploadPhotosToDrive() {
+      const statusEl = document.getElementById('photoDriveStatus');
+      if (!state.photos.length) {
+        alert('Primero selecciona al menos una fotografía.');
+        return;
+      }
+
+      if (!confirm('Se subirán las fotografías seleccionadas a Google Drive en una carpeta asociada al ID único del registro. ¿Continuar?')) return;
+
+      try {
+        if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive...';
+        setSyncStatus('Subiendo fotos...', 'busy');
+
+        const payload = buildPhotoUploadPayload();
+        await submitPayloadToGoogleSheet(payload);
+
+        const when = new Date().toLocaleString('es-CL');
+        state.values.fecha_subida_fotos = when;
+        state.values.fotos_cantidad = state.photos.length;
+        saveState();
+
+        if (statusEl) statusEl.textContent = 'Fotos enviadas a Google Drive. Revisa los enlaces en Google Sheet.';
+        setSyncStatus('Fotos enviadas a Drive', 'ok');
+      } catch (error) {
+        if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
+        setSyncStatus('Error al subir fotos', 'fail');
+        alert('No fue posible subir las fotos: ' + String(error.message || error));
+      }
+    }
+
     function buildOnlinePayload() {
       const id = ensureUniqueId();
 
@@ -3008,6 +3299,84 @@
       return String(str).replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
     }
 
+    function googleScriptUrl(params = {}) {
+      const url = new URL(ONLINE_SYNC_URL);
+      Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+      return url.toString();
+    }
+
+    async function loadRecordByUniqueId() {
+      const input = document.getElementById('lookupUniqueIdInput');
+      const id = (input?.value || '').trim();
+      if (!id) {
+        alert('Ingresa un ID único para cargar el registro.');
+        return;
+      }
+
+      setSyncStatus('Buscando registro...', 'busy');
+
+      try {
+        const response = await fetch(googleScriptUrl({ action: 'get', id_unico: id }));
+        const data = await response.json();
+
+        if (!data.ok || !data.record) {
+          setSyncStatus('Registro no encontrado', 'fail');
+          alert(data.error || 'No se encontró un registro con ese ID.');
+          return;
+        }
+
+        state.values = Object.assign({}, data.record);
+        state.photos = [];
+        state.lastSavedAt = new Date().toISOString();
+        saveState();
+        renderForm();
+        setupMobileNavigation();
+        setupIdActions();
+        updateUniqueIdDisplay();
+        updateLastSyncDisplay(state.values.fecha_actualizacion || '—');
+        setSyncStatus('Registro cargado', 'ok');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (error) {
+        setSyncStatus('Error al cargar', 'fail');
+        alert('No fue posible cargar el registro: ' + String(error.message || error));
+      }
+    }
+
+    async function copyUniqueId() {
+      const id = state.values.id_unico || ensureUniqueId();
+      updateUniqueIdDisplay();
+
+      try {
+        await navigator.clipboard.writeText(id);
+        setSyncStatus('ID copiado', 'ok');
+      } catch (error) {
+        window.prompt('Copia el ID del atractivo:', id);
+      }
+    }
+
+    function startNewAttraction() {
+      if (!confirm('Se limpiará el formulario actual para crear un nuevo atractivo. Si no guardaste, perderás los cambios locales no sincronizados.')) return;
+      state.values = {};
+      state.photos = [];
+      state.lastSavedAt = null;
+      saveState();
+      renderForm();
+      setupMobileNavigation();
+      updateUniqueIdDisplay();
+      updateLastSyncDisplay('—');
+      setSyncStatus('Nuevo registro', 'warn');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function setupIdActions() {
+      document.getElementById('copyUniqueIdBtn')?.addEventListener('click', copyUniqueId);
+      document.getElementById('newAttractionBtn')?.addEventListener('click', startNewAttraction);
+      document.getElementById('loadByIdBtn')?.addEventListener('click', loadRecordByUniqueId);
+      document.getElementById('lookupUniqueIdInput')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') loadRecordByUniqueId();
+      });
+    }
+
     function setupMobileNavigation() {
       const toggle = document.getElementById('mobileNavToggle');
       const nav = document.getElementById('sectionNav');
@@ -3038,6 +3407,62 @@
         });
       }, { threshold: 0.2 });
       document.querySelectorAll('.section').forEach(section => observer.observe(section));
+    }
+
+    function getFieldHasValue(field) {
+      const value = state.values[field.name];
+      if (Array.isArray(value)) return value.length > 0;
+      return value !== undefined && value !== null && String(value).trim() !== '';
+    }
+
+    function getSectionProgress(section) {
+      const fields = section.fields || [];
+      if (!fields.length) return { filled: 0, total: 0, complete: true };
+      const filled = fields.filter(getFieldHasValue).length;
+      const minimum = Math.max(1, Math.ceil(fields.length * 0.35));
+      return { filled, total: fields.length, complete: filled >= minimum };
+    }
+
+    function updateRecordSummary() {
+      const nombreEl = document.getElementById('summaryNombre');
+      const territorioEl = document.getElementById('summaryTerritorio');
+      const clasificacionEl = document.getElementById('summaryClasificacion');
+      if (nombreEl) nombreEl.textContent = state.values.nombreRecurso || 'Sin nombre';
+      if (territorioEl) territorioEl.textContent = [state.values.region, state.values.provincia, state.values.comuna].filter(Boolean).join(' / ') || 'Sin territorio';
+      if (clasificacionEl) clasificacionEl.textContent = [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificación';
+    }
+
+    function updateFormProgress() {
+      let filled = 0;
+      let total = 0;
+      let completeSections = 0;
+
+      sections.forEach(section => {
+        const progress = getSectionProgress(section);
+        filled += progress.filled;
+        total += progress.total;
+        if (progress.complete) completeSections++;
+
+        const sectionEl = document.getElementById(section.id);
+        const statusEl = sectionEl?.querySelector('[data-section-status]');
+        if (statusEl) {
+          statusEl.textContent = progress.complete ? 'Con avance' : 'Pendiente';
+          statusEl.className = progress.complete ? 'section-status complete' : 'section-status';
+        }
+      });
+
+      const percent = total ? Math.round((filled / total) * 100) : 0;
+      const percentEl = document.getElementById('progressPercent');
+      const fillEl = document.getElementById('progressFill');
+      const sectionsEl = document.getElementById('progressSections');
+      if (percentEl) percentEl.textContent = percent + '%';
+      if (fillEl) fillEl.style.width = percent + '%';
+      if (sectionsEl) sectionsEl.textContent = completeSections + ' / ' + sections.length;
+    }
+
+    function updateUiSummary() {
+      updateRecordSummary();
+      updateFormProgress();
     }
 
     function setSyncStatus(text, status = 'warn') {
@@ -3094,14 +3519,14 @@
         await saveDraftAndSyncOnline();
       } finally {
         button.disabled = false;
-        button.querySelector('span:last-child').textContent = 'Guardar online';
+        button.querySelector('span:last-child').textContent = 'Guardar registro';
       }
     });
     document.getElementById('exportBtn').addEventListener('click', exportState);
     document.getElementById('importFile').addEventListener('change', e => e.target.files[0] && importState(e.target.files[0]));
     document.getElementById('sampleBtn').addEventListener('click', loadSample);
     document.getElementById('resetBtn').addEventListener('click', () => {
-      if (!confirm('Se eliminará el borrador actual de este navegador.')) return;
+      if (!confirm('Se descartarán los cambios del formulario actual en este navegador.')) return;
       state.values = {};
       state.photos = [];
       state.lastSavedAt = null;
@@ -3113,7 +3538,9 @@
     window.addEventListener('offline', updateOnlineStatus);
 
     renderForm();
+    updateUiSummary();
     setupMobileNavigation();
+    setupIdActions();
     updateUniqueIdDisplay();
     updateLastSyncDisplay();
     updateOnlineStatus();
