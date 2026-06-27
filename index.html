@@ -540,6 +540,58 @@
       align-items: center;
       gap: 12px;
     }
+    .draft-panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .draft-disclaimer {
+      margin-top: 10px;
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid #f7d889;
+      background: #fff8e6;
+      color: #7c4a03;
+      font-size: 0.86rem;
+      line-height: 1.42;
+    }
+
+    .draft-item {
+      align-items: stretch;
+    }
+
+    .draft-item-main {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .draft-item-main strong {
+      word-break: break-word;
+    }
+
+    .draft-actions {
+      display: grid;
+      gap: 8px;
+      min-width: 138px;
+    }
+
+    .draft-actions button {
+      width: 100%;
+      padding: 9px 10px;
+      border-radius: 10px;
+      font-size: 0.86rem;
+    }
+
+    .draft-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
 
     .footer-note {
       margin-top: 18px;
@@ -1182,6 +1234,9 @@
       .draft-item button {
         width: 100%;
       }
+      .draft-actions {
+        min-width: 0;
+      }
 
       .photo-grid {
         grid-template-columns: 1fr;
@@ -1340,9 +1395,17 @@
           <div class="admissibility" id="admissibilityGrid"></div>
         </div>
 
-        <div class="panel">
-          <h2>Borradores guardados</h2>
-          <p class="small" style="margin-top:6px;">Quedan almacenados en este navegador. Útil para trabajo en oficina o terreno.</p>
+        <div class="panel draft-panel">
+          <header class="draft-panel-head">
+            <div>
+              <h2>Borradores locales</h2>
+              <p class="small" style="margin-top:6px;">Copias temporales guardadas solo en este navegador.</p>
+            </div>
+            <span class="pill warn">No es respaldo online</span>
+          </header>
+          <div class="draft-disclaimer">
+            Estos borradores ayudan a retomar el trabajo, pero pueden perderse si se borra la caché, cambias de equipo o usas otro navegador. Para asegurar el registro, usa <strong>Guardar registro</strong> y verifica que aparezca en Google Sheet.
+          </div>
           <div class="draft-list" id="draftList"></div>
         </div>
       </section>
@@ -3046,35 +3109,54 @@
       const drafts = loadDrafts();
       container.innerHTML = '';
       if (!drafts.length) {
-        container.innerHTML = '<div class="small">Aún no hay borradores nombrados.</div>';
+        container.innerHTML = '<div class="small">Aún no hay borradores locales.</div>';
         return;
       }
       drafts.forEach(draft => {
         const el = document.createElement('div');
         el.className = 'draft-item';
-        el.innerHTML = `
-          <div>
-            <strong>${escapeHtml(draft.name)}</strong>
-            <div class="small">${new Date(draft.savedAt).toLocaleString('es-CL')}</div>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap;">
-            <button type="button" class="ghost" data-load="${draft.id}">Cargar</button>
-            <button type="button" class="danger" data-delete="${draft.id}">Eliminar</button>
-          </div>
-        `;
+        const syncedAt = draft.data?.values?.fecha_sincronizacion || draft.data?.values?.fecha_actualizacion || '';
+        const statusClass = syncedAt ? 'ok' : 'warn';
+        const statusText = syncedAt ? 'Sincronizado online' : 'Solo este navegador';
+        const detailText = syncedAt ? 'Última marca online: ' + escapeHtml(syncedAt) : 'Para asegurar este registro, cárgalo y sincronízalo online.';
+        el.innerHTML =
+          '<div class="draft-item-main">' +
+            '<strong>' + escapeHtml(draft.name) + '</strong>' +
+            '<div class="draft-meta-row">' +
+              '<span class="small">' + new Date(draft.savedAt).toLocaleString('es-CL') + '</span>' +
+              '<span class="pill ' + statusClass + '">' + statusText + '</span>' +
+            '</div>' +
+            '<div class="small">' + detailText + '</div>' +
+          '</div>' +
+          '<div class="draft-actions">' +
+            '<button type="button" class="ghost" data-load="' + draft.id + '">Cargar</button>' +
+            '<button type="button" class="secondary" data-sync="' + draft.id + '">Sincronizar online</button>' +
+            '<button type="button" class="danger" data-delete="' + draft.id + '">Eliminar</button>' +
+          '</div>';
         container.appendChild(el);
       });
 
       container.querySelectorAll('[data-load]').forEach(btn => btn.addEventListener('click', () => loadNamedDraft(btn.dataset.load)));
+      container.querySelectorAll('[data-sync]').forEach(btn => btn.addEventListener('click', () => syncNamedDraft(btn.dataset.sync)));
       container.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteNamedDraft(btn.dataset.delete)));
     }
 
     function loadNamedDraft(id) {
       const draft = loadDrafts().find(d => d.id === id);
-      if (!draft) return;
+      if (!draft) return false;
       Object.assign(state, normalizeState(JSON.parse(JSON.stringify(draft.data))));
       saveState();
       renderForm();
+      setSyncStatus('Borrador local cargado', 'warn');
+      return true;
+    }
+
+    async function syncNamedDraft(id) {
+      const loaded = loadNamedDraft(id);
+      if (!loaded) return;
+      const confirmed = confirm('Este borrador local se cargará y se intentará guardar online en Google Sheet. ¿Continuar?');
+      if (!confirmed) return;
+      await saveDraftAndSyncOnline();
     }
 
     function deleteNamedDraft(id) {
@@ -3729,19 +3811,20 @@
     function ensureUniqueId() {
       const codes = ensureTerritoryCodes();
 
+      // Regla clave: un registro ya creado conserva siempre su ID.
+      // Así el botón Guardar registro actualiza el mismo atractivo en Google Sheet.
       if (state.values.id_unico) {
-        const expectedPrefix = `R${codes.codigo_region}-C${codes.codigo_comuna}-`;
-        if (!state.values.id_unico.startsWith(expectedPrefix)) {
-          state.values.id_unico_anterior = state.values.id_unico;
-          state.values.id_unico = '';
+        if (!state.values.codigo_atractivo) {
+          const match = String(state.values.id_unico).match(/-A(.+)$/);
+          if (match) state.values.codigo_atractivo = match[1];
         }
+        autosave();
+        return state.values.id_unico;
       }
 
-      if (!state.values.id_unico) {
-        const attractionCode = state.values.codigo_atractivo || createAttractionCode();
-        state.values.codigo_atractivo = attractionCode;
-        state.values.id_unico = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
-      }
+      const attractionCode = state.values.codigo_atractivo || createAttractionCode();
+      state.values.codigo_atractivo = attractionCode;
+      state.values.id_unico = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
 
       autosave();
       return state.values.id_unico;
@@ -3796,14 +3879,40 @@
       }
     }
 
+    async function submitPayloadToGoogleSheet(payload) {
+      if (!ONLINE_SYNC_URL || ONLINE_SYNC_URL.includes('PEGAR_AQUI')) {
+        throw new Error('Falta configurar la URL de Apps Script.');
+      }
+
+      const body = new URLSearchParams();
+      body.set('action', payload.action || 'saveRecord');
+      body.set('id_unico', payload.id_unico || payload.values?.id_unico || '');
+      body.set('payload', JSON.stringify(payload));
+
+      await fetch(ONLINE_SYNC_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body: body.toString()
+      });
+
+      return { ok: true, message: 'Solicitud enviada a Google Sheet.' };
+    }
+
     function buildOnlinePayload() {
       const id = ensureUniqueId();
 
       return {
+        action: 'saveRecord',
         estado: 'borrador',
+        id_unico: id,
+        codigo_atractivo: state.values.codigo_atractivo || '',
         values: {
           ...state.values,
-          id_unico: id
+          id_unico: id,
+          codigo_atractivo: state.values.codigo_atractivo || ''
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
@@ -3812,43 +3921,6 @@
         })),
         syncedAt: new Date().toISOString()
       };
-    }
-
-    function submitPayloadToGoogleSheet(payload) {
-      return new Promise((resolve, reject) => {
-        try {
-          const iframeName = 'googleSheetSyncFrame';
-          let iframe = document.querySelector(`iframe[name="${iframeName}"]`);
-          if (!iframe) {
-            iframe = document.createElement('iframe');
-            iframe.name = iframeName;
-            iframe.style.display = 'none';
-            document.body.appendChild(iframe);
-          }
-
-          const form = document.createElement('form');
-          form.method = 'POST';
-          form.action = ONLINE_SYNC_URL;
-          form.target = iframeName;
-          form.style.display = 'none';
-
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = 'payload';
-          input.value = JSON.stringify(payload);
-          form.appendChild(input);
-
-          document.body.appendChild(form);
-          form.submit();
-
-          setTimeout(() => {
-            form.remove();
-            resolve({ ok: true });
-          }, 900);
-        } catch (error) {
-          reject(error);
-        }
-      });
     }
 
     async function syncDraftOnline() {
@@ -4084,6 +4156,7 @@
 
     async function saveDraftAndSyncOnline() {
       autosave();
+      ensureUniqueId();
       persistNamedDraft();
       setSyncStatus('Sincronizando...', 'busy');
       updateUniqueIdDisplay();
