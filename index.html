@@ -650,7 +650,7 @@
   <script>
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
-    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbwUBjQcNYUINY-ny_WL5HeCC6HKSLD6nksDfcWLaV-zYEM8D4MBy7cOOH0p7RdXpvj35Q/exec';
+    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
     const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
@@ -2607,6 +2607,43 @@
       };
     }
 
+    function submitPayloadToGoogleSheet(payload) {
+      return new Promise((resolve, reject) => {
+        try {
+          const iframeName = 'googleSheetSyncFrame';
+          let iframe = document.querySelector(`iframe[name="${iframeName}"]`);
+          if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.name = iframeName;
+            iframe.style.display = 'none';
+            document.body.appendChild(iframe);
+          }
+
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = ONLINE_SYNC_URL;
+          form.target = iframeName;
+          form.style.display = 'none';
+
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'payload';
+          input.value = JSON.stringify(payload);
+          form.appendChild(input);
+
+          document.body.appendChild(form);
+          form.submit();
+
+          setTimeout(() => {
+            form.remove();
+            resolve({ ok: true });
+          }, 900);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+
     async function syncDraftOnline() {
       if (!navigator.onLine) {
         return { ok: false, error: 'Sin conexión a internet.' };
@@ -2615,14 +2652,7 @@
       try {
         const payload = buildOnlinePayload();
 
-        await fetch(ONLINE_SYNC_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        });
+        await submitPayloadToGoogleSheet(payload);
 
         return {
           ok: true,
