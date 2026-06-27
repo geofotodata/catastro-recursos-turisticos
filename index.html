@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -606,6 +607,7 @@
   <script>
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
+    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbwUBjQcNYUINY-ny_WL5HeCC6HKSLD6nksDfcWLaV-zYEM8D4MBy7cOOH0p7RdXpvj35Q/exec';
     const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
@@ -2525,6 +2527,72 @@
       return parts.length ? parts.join(' / ') : 'Sin informar';
     }
 
+    function ensureUniqueId() {
+      if (state.values.id_unico) return state.values.id_unico;
+
+      const parts = [
+        state.values.region || 'sin-region',
+        state.values.provincia || 'sin-provincia',
+        state.values.comuna || 'sin-comuna',
+        state.values.nombreRecurso || 'sin-nombre'
+      ];
+
+      const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+      const id = `${parts.map(slugify).join('-')}-${code}`;
+
+      state.values.id_unico = id;
+      autosave();
+
+      return id;
+    }
+
+    function buildOnlinePayload() {
+      const id = ensureUniqueId();
+
+      return {
+        estado: 'borrador',
+        values: {
+          ...state.values,
+          id_unico: id
+        },
+        photos: state.photos.map(photo => ({
+          name: photo.name,
+          size: photo.size,
+          type: photo.type || ''
+        })),
+        syncedAt: new Date().toISOString()
+      };
+    }
+
+    async function syncDraftOnline() {
+      if (!navigator.onLine) {
+        return { ok: false, error: 'Sin conexión a internet.' };
+      }
+
+      try {
+        const payload = buildOnlinePayload();
+
+        await fetch(ONLINE_SYNC_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        return {
+          ok: true,
+          id_unico: payload.values.id_unico
+        };
+      } catch (error) {
+        return {
+          ok: false,
+          error: String(error.message || error)
+        };
+      }
+    }
+
     function formatBytes(bytes) {
       if (!bytes && bytes !== 0) return '';
       const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -2563,7 +2631,18 @@
       document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
     }
 
-    document.getElementById('saveBtn').addEventListener('click', () => { autosave(); persistNamedDraft(); alert('Borrador guardado en este navegador.'); });
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      autosave();
+      persistNamedDraft();
+
+      const result = await syncDraftOnline();
+
+      if (result.ok) {
+        alert(`Borrador guardado en este navegador y sincronizado online.\nID: ${result.id_unico}`);
+      } else {
+        alert(`Borrador guardado en este navegador.\nNo se pudo sincronizar online: ${result.error}`);
+      }
+    });
     document.getElementById('exportBtn').addEventListener('click', exportState);
     document.getElementById('importFile').addEventListener('change', e => e.target.files[0] && importState(e.target.files[0]));
     document.getElementById('sampleBtn').addEventListener('click', loadSample);
