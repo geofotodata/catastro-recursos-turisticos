@@ -379,6 +379,44 @@
 
     .banner.show { display: block; }
 
+    .floating-save {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 1200;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 16px;
+      border-radius: 999px;
+      background: #0f766e;
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.24);
+      box-shadow: 0 14px 36px rgba(15, 35, 58, 0.22);
+      font-weight: 800;
+    }
+
+    .floating-save:hover {
+      background: #0b5f59;
+      transform: translateY(-2px);
+    }
+
+    .floating-save:disabled {
+      opacity: 0.72;
+      cursor: wait;
+      transform: none;
+    }
+
+    .floating-save .icon {
+      width: 18px;
+      height: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      line-height: 1;
+    }
+
     .small { font-size: 0.84rem; color: var(--muted); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
@@ -601,6 +639,11 @@
       <div class="grid" data-content></div>
     </section>
   </template>
+
+  <button type="button" class="floating-save" id="floatingSaveBtn" title="Guardar borrador y sincronizar con Google Sheets">
+    <span class="icon">+</span>
+    <span>Guardar online</span>
+  </button>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.19.10/proj4.js"></script>
@@ -2631,7 +2674,7 @@
       document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
     }
 
-    document.getElementById('saveBtn').addEventListener('click', async () => {
+    async function saveDraftAndSyncOnline() {
       autosave();
       persistNamedDraft();
 
@@ -2641,6 +2684,19 @@
         alert(`Borrador guardado en este navegador y sincronizado online.\nID: ${result.id_unico}`);
       } else {
         alert(`Borrador guardado en este navegador.\nNo se pudo sincronizar online: ${result.error}`);
+      }
+    }
+
+    document.getElementById('saveBtn').addEventListener('click', saveDraftAndSyncOnline);
+    document.getElementById('floatingSaveBtn')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.querySelector('span:last-child').textContent = 'Guardando...';
+      try {
+        await saveDraftAndSyncOnline();
+      } finally {
+        button.disabled = false;
+        button.querySelector('span:last-child').textContent = 'Guardar online';
       }
     });
     document.getElementById('exportBtn').addEventListener('click', exportState);
