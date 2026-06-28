@@ -936,6 +936,146 @@
       }
     }
 
+    .start-guide {
+      margin-bottom: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .start-guide-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .start-guide h2 {
+      font-size: 1.18rem;
+      margin-bottom: 6px;
+    }
+
+    .start-guide-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .guide-step {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fbfdff;
+      display: grid;
+      gap: 6px;
+      min-height: 114px;
+    }
+
+    .guide-step strong {
+      color: #0f3b4f;
+      line-height: 1.2;
+    }
+
+    .guide-num {
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      background: #e6fffb;
+      color: #0f766e;
+      font-weight: 900;
+      font-size: 0.82rem;
+    }
+
+    .start-guide-note {
+      padding: 12px 14px;
+      border: 1px solid #f7d889;
+      background: #fff8e6;
+      color: #7c4a03;
+      border-radius: 12px;
+      font-size: 0.9rem;
+    }
+
+    .review-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2500;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 35, 58, 0.46);
+    }
+
+    .review-overlay.open { display: flex; }
+
+    .review-dialog {
+      width: min(760px, 100%);
+      max-height: min(780px, calc(100vh - 36px));
+      overflow: auto;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      box-shadow: 0 26px 70px rgba(15, 35, 58, 0.28);
+      padding: 18px;
+    }
+
+    .review-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .review-card {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      background: #fbfdff;
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .review-card span {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .review-card strong {
+      word-break: break-word;
+    }
+
+    .review-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+      color: #7c4a03;
+    }
+
+    .review-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      padding-top: 14px;
+      margin-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+
     .small { font-size: 0.84rem; color: var(--muted); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
 
@@ -1242,6 +1382,19 @@
         grid-template-columns: 1fr;
       }
 
+      .start-guide-head {
+        flex-direction: column;
+      }
+
+      .start-guide-grid,
+      .review-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .guide-step {
+        min-height: auto;
+      }
+
       .floating-save {
         left: 12px;
         right: 12px;
@@ -1332,7 +1485,7 @@
         </div>
         <div class="id-actions">
           <button type="button" class="secondary" id="copyUniqueIdBtn">Copiar ID</button>
-          <button type="button" class="ghost" id="newAttractionBtn">Nuevo</button>
+          <button type="button" class="ghost" id="newAttractionBtn">Nuevo recurso</button>
         </div>
         <div class="lookup-panel">
           <label for="lookupUniqueIdInput" class="small">Cargar registro por ID</label>
@@ -1346,13 +1499,14 @@
       <div class="navlist" id="sectionNav"></div>
 
       <details class="footer-note">
-        <summary>Qué incluye este prototipo</summary>
+        <summary>Funciones disponibles</summary>
         <div>
           • guardado automático local<br>
-          • exportar/importar borrador JSON<br>
-          • adjuntar hasta 5 fotos<br>
-          • chequeo básico de admisibilidad<br>
-          • edición sin conexión; mapa y búsqueda requieren internet o caché
+          • recuperación y actualización mediante ID único<br>
+          • respaldo online en Google Sheet<br>
+          • carga de fotografías asociadas al recurso<br>
+          • revisión previa antes de guardar<br>
+          • exportación de ficha en PDF
         </div>
       </details>
     </aside>
@@ -1360,11 +1514,29 @@
     <main>
       <div id="offlineBanner" class="banner">Estás trabajando sin conexión. Puedes seguir editando y guardar localmente. El mapa y la búsqueda pueden no estar disponibles.</div>
 
+      <section class="panel start-guide" id="startGuide">
+        <div class="start-guide-head">
+          <div>
+            <span class="sidebar-kicker">Antes de iniciar</span>
+            <h2>Levantamiento guiado del recurso turístico</h2>
+            <p class="small">Este formulario está pensado para trabajo de oficina o terreno, permitiendo levantar, revisar, guardar y actualizar información de cada recurso turístico.</p>
+          </div>
+          <span class="pill warn">Prototipo editable</span>
+        </div>
+        <div class="start-guide-grid">
+          <div class="guide-step"><span class="guide-num">1</span><strong>Identifica el recurso</strong><span class="small">Nombre, región, provincia, comuna y punto geográfico.</span></div>
+          <div class="guide-step"><span class="guide-num">2</span><strong>Clasifica con precisión</strong><span class="small">Categoría, tipo, subtipo y descripción breve.</span></div>
+          <div class="guide-step"><span class="guide-num">3</span><strong>Completa operación</strong><span class="small">Acceso, servicios, visitas, promoción y antecedentes de gestión.</span></div>
+          <div class="guide-step"><span class="guide-num">4</span><strong>Guarda y actualiza</strong><span class="small">El ID único permite retomar y actualizar el mismo registro.</span></div>
+        </div>
+        <div class="start-guide-note">Los borradores locales ayudan a continuar en este navegador, pero el respaldo real ocurre al usar <strong>Guardar registro</strong> y verificar la fila en Google Sheet.</div>
+      </section>
+
       <section class="hero hero-compact">
         <div class="hero-main">
           <span class="sidebar-kicker">Formulario digital</span>
           <h1>Catastro nacional de recursos turísticos</h1>
-          <p class="muted">Levantamiento, guardado y edición de registros turísticos con validación local, mapa y respaldo.</p>
+          <p class="muted">Levantamiento, revisión, guardado y actualización de recursos turísticos con ID único, mapa y respaldo online.</p>
         </div>
         <div class="hero-actions-wrap">
           <div class="toolbar hero-actions">
@@ -1377,7 +1549,7 @@
             <summary>Más acciones</summary>
             <div class="toolbar">
               <button class="ghost" id="sampleBtn">Cargar ejemplo</button>
-              <button class="ghost" id="resetBtn">Descartar cambios</button>
+              <button class="danger" id="clearFormBtn">Limpiar formulario completo</button>
             </div>
           </details>
         </div>
@@ -1441,6 +1613,23 @@
       <button type="button" class="ghost" id="closeFloatingIndexBtn">Cerrar</button>
     </div>
     <div class="floating-index-list" id="floatingSectionNav"></div>
+  </div>
+
+  <div class="review-overlay" id="saveReviewOverlay" aria-hidden="true">
+    <div class="review-dialog" role="dialog" aria-modal="true" aria-labelledby="saveReviewTitle">
+      <div class="review-head">
+        <div>
+          <h2 id="saveReviewTitle">Revisión antes de guardar</h2>
+          <p class="small">Confirma los datos principales antes de enviarlos a Google Sheet.</p>
+        </div>
+        <button type="button" class="ghost" id="closeSaveReviewBtn">Cerrar</button>
+      </div>
+      <div id="saveReviewContent"></div>
+      <div class="review-actions">
+        <button type="button" class="ghost" id="cancelSaveReviewBtn">Seguir editando</button>
+        <button type="button" class="primary" id="confirmSaveReviewBtn">Confirmar y guardar online</button>
+      </div>
+    </div>
   </div>
 
   <button type="button" class="floating-save" id="floatingSaveBtn" title="Guardar registro y sincronizar con Google Sheets">
@@ -3141,13 +3330,33 @@
       container.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteNamedDraft(btn.dataset.delete)));
     }
 
+    function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
+      Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
+      state.lastSavedAt = new Date().toISOString();
+      saveState();
+      renderForm();
+      setupMobileNavigation();
+      setupIdActions();
+      updateUniqueIdDisplay();
+      updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
+      updateUiSummary();
+      setSyncStatus(statusText, status);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function findLocalDraftByUniqueId(id) {
+      const target = String(id || '').trim();
+      if (!target) return null;
+      return loadDrafts().find(draft => {
+        const values = draft?.data?.values || {};
+        return String(values.id_unico || '').trim() === target;
+      }) || null;
+    }
+
     function loadNamedDraft(id) {
       const draft = loadDrafts().find(d => d.id === id);
       if (!draft) return false;
-      Object.assign(state, normalizeState(JSON.parse(JSON.stringify(draft.data))));
-      saveState();
-      renderForm();
-      setSyncStatus('Borrador local cargado', 'warn');
+      applyLoadedState(draft.data, 'Borrador local cargado', 'warn');
       return true;
     }
 
@@ -3431,11 +3640,17 @@
       });
 
       document.getElementById('printFichaBtn').addEventListener('click', () => {
+        resizeFrame();
         try {
-          frame.contentWindow.focus();
-          frame.contentWindow.print();
-        } catch (error) {
+          window.focus();
           window.print();
+        } catch (error) {
+          try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+          } catch (innerError) {
+            alert('No fue posible abrir la impresión automáticamente. Usa Ctrl + P para guardar la ficha como PDF.');
+          }
         }
       });
     }
@@ -3537,11 +3752,11 @@
     * { box-sizing:border-box; }
     body { margin:0; font-family: Inter, Arial, sans-serif; color:var(--text); background:#eef3f8; }
     .page { max-width: 1080px; margin:0 auto; padding: 26px; }
-    .hero { background:linear-gradient(135deg, #11324f 0%, #1a456b 100%); color:#fff; border-radius:18px; padding:26px 28px; box-shadow:0 10px 28px rgba(16,52,85,.18); margin-bottom:18px; }
+    .hero { position:relative; background:linear-gradient(135deg, #11324f 0%, #1a456b 100%); color:#fff; border-radius:18px; padding:26px 28px; box-shadow:0 10px 28px rgba(16,52,85,.18); margin-bottom:18px; }
     .top { display:flex; justify-content:space-between; gap:24px; align-items:flex-start; }
-    .top-copy { flex:1 1 auto; min-width:0; }
-    .top-brand { flex:0 0 180px; text-align:right; }
-    .top-brand img { max-width:170px; width:100%; height:auto; opacity:.95; }
+    .top-copy { flex:1 1 auto; min-width:0; padding-right:118px; }
+    .top-brand { position:absolute; top:24px; right:28px; width:92px; text-align:right; }
+    .top-brand img { max-width:92px; width:100%; height:auto; opacity:.95; display:block; }
     .eyebrow { display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.12); padding:7px 12px; border-radius:999px; font-size:12px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:12px; }
     .top h1 { margin:0; font-size:30px; line-height:1.15; }
     .top p { margin:8px 0 0; color:rgba(255,255,255,.82); max-width:760px; }
@@ -3594,8 +3809,9 @@
     }
     @media (max-width: 960px) {
       .summary-grid, .meta, .map-grid { grid-template-columns: 1fr 1fr; }
-      .top { flex-direction:column; }
-      .top-brand { text-align:left; }
+      .top-copy { padding-right:112px; }
+      .top-brand { top:22px; right:24px; width:86px; }
+      .top-brand img { max-width:86px; }
     }
   </style>
 </head>
@@ -3981,30 +4197,28 @@
 
       setSyncStatus('Buscando registro...', 'busy');
 
+      const localDraft = findLocalDraftByUniqueId(id);
+      if (localDraft) {
+        applyLoadedState(localDraft.data, 'Borrador local cargado por ID', 'warn');
+        return;
+      }
+
       try {
         const response = await fetch(googleScriptUrl({ action: 'get', id_unico: id }));
         const data = await response.json();
 
-        if (!data.ok || !data.record) {
+        const record = data.record || data.values || data.data || null;
+        if (!data.ok || !record) {
           setSyncStatus('Registro no encontrado', 'fail');
-          alert(data.error || 'No se encontró un registro con ese ID.');
+          alert(data.message || data.error || 'No se encontró un registro con ese ID. Si es un borrador local, revisa la lista de Borradores locales.');
           return;
         }
 
-        state.values = Object.assign({}, data.record);
-        state.photos = [];
-        state.lastSavedAt = new Date().toISOString();
-        saveState();
-        renderForm();
-        setupMobileNavigation();
-        setupIdActions();
-        updateUniqueIdDisplay();
-        updateLastSyncDisplay(state.values.fecha_actualizacion || '—');
-        setSyncStatus('Registro cargado', 'ok');
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        const loaded = record.values ? record : { values: record, photos: [] };
+        applyLoadedState(loaded, 'Registro online cargado', 'ok');
       } catch (error) {
         setSyncStatus('Error al cargar', 'fail');
-        alert('No fue posible cargar el registro: ' + String(error.message || error));
+        alert('No fue posible cargar el registro online. Revisa que el ID exista en Google Sheet y que Apps Script esté implementado. Detalle: ' + String(error.message || error));
       }
     }
 
@@ -4020,18 +4234,35 @@
       }
     }
 
-    function startNewAttraction() {
-      if (!confirm('Se limpiará el formulario actual para crear un nuevo atractivo. Si no guardaste, perderás los cambios locales no sincronizados.')) return;
+    function resetFormState() {
       state.values = {};
       state.photos = [];
       state.lastSavedAt = null;
       saveState();
       renderForm();
       setupMobileNavigation();
+      setupIdActions();
       updateUniqueIdDisplay();
       updateLastSyncDisplay('—');
-      setSyncStatus('Nuevo registro', 'warn');
+      updateUiSummary();
+      setSyncStatus('Formulario limpio', 'warn');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function clearCurrentForm() {
+      const firstConfirm = confirm('Esta acción limpiará todos los campos y fotografías del formulario actual en este navegador. No elimina registros ya guardados en Google Sheet. ¿Continuar?');
+      if (!firstConfirm) return;
+
+      const secondConfirm = confirm('Confirmación final: se perderán los cambios locales no guardados online.');
+      if (!secondConfirm) return;
+
+      resetFormState();
+    }
+
+    function startNewAttraction() {
+      if (!confirm('Se iniciará un nuevo recurso y se limpiará el formulario actual. No elimina registros ya guardados online. ¿Continuar?')) return;
+      resetFormState();
+      setSyncStatus('Nuevo recurso', 'warn');
     }
 
     function setupIdActions() {
@@ -4154,7 +4385,56 @@
       document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
     }
 
-    async function saveDraftAndSyncOnline() {
+    function buildSaveReviewHtml() {
+      const validation = validateRecord();
+      const id = state.values.id_unico || 'Se generará al confirmar';
+      const rows = [
+        ['ID único', id],
+        ['Nombre', state.values.nombreRecurso || 'Sin nombre'],
+        ['Territorio', [state.values.region, state.values.provincia, state.values.comuna].filter(Boolean).join(' / ') || 'Sin territorio'],
+        ['Clasificación', [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificación'],
+        ['Coordenadas', [state.values.latitud, state.values.longitud].filter(Boolean).join(', ') || 'Sin coordenadas'],
+        ['Fotos adjuntas', String(state.photos.length) + ' / 5']
+      ];
+
+      const cards = rows.map(([label, value]) => '<div class="review-card"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>').join('');
+      const missing = validation.missing.length
+        ? '<div class="start-guide-note"><strong>Campos críticos pendientes:</strong><ul class="review-list">' + validation.missing.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
+        : '<div class="criterion ok"><div><strong>Campos críticos completos</strong><div class="small">El registro tiene la información mínima para enviarse.</div></div><span class="pill ok">Listo</span></div>';
+      const warnings = validation.warnings.length
+        ? '<div class="conditional-note"><strong>Advertencias:</strong><ul class="review-list">' + validation.warnings.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
+        : '';
+
+      return '<div class="review-grid">' + cards + '</div>' + missing + warnings;
+    }
+
+    function openSaveReview() {
+      autosave();
+      ensureUniqueId();
+      persistNamedDraft();
+      updateUniqueIdDisplay();
+      const content = document.getElementById('saveReviewContent');
+      const overlay = document.getElementById('saveReviewOverlay');
+      if (!content || !overlay) return;
+      content.innerHTML = buildSaveReviewHtml();
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSaveReview() {
+      const overlay = document.getElementById('saveReviewOverlay');
+      if (!overlay) return;
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
+    async function saveDraftAndSyncOnline(options = {}) {
+      if (!options.skipReview) {
+        openSaveReview();
+        return;
+      }
+
+      closeSaveReview();
       autosave();
       ensureUniqueId();
       persistNamedDraft();
@@ -4181,10 +4461,19 @@
       document.getElementById('floatingIndexPanel')?.classList.toggle('open');
     });
     document.getElementById('closeFloatingIndexBtn')?.addEventListener('click', closeFloatingIndex);
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') closeFloatingIndex();
+    document.getElementById('closeSaveReviewBtn')?.addEventListener('click', closeSaveReview);
+    document.getElementById('cancelSaveReviewBtn')?.addEventListener('click', closeSaveReview);
+    document.getElementById('confirmSaveReviewBtn')?.addEventListener('click', () => saveDraftAndSyncOnline({ skipReview: true }));
+    document.getElementById('saveReviewOverlay')?.addEventListener('click', (event) => {
+      if (event.target.id === 'saveReviewOverlay') closeSaveReview();
     });
-    document.getElementById('saveBtn').addEventListener('click', saveDraftAndSyncOnline);
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeFloatingIndex();
+        closeSaveReview();
+      }
+    });
+    document.getElementById('saveBtn').addEventListener('click', () => saveDraftAndSyncOnline());
     document.getElementById('floatingSaveBtn')?.addEventListener('click', async (event) => {
       const button = event.currentTarget;
       button.disabled = true;
@@ -4199,14 +4488,7 @@
     document.getElementById('exportBtn').addEventListener('click', exportState);
     document.getElementById('importFile').addEventListener('change', e => e.target.files[0] && importState(e.target.files[0]));
     document.getElementById('sampleBtn').addEventListener('click', loadSample);
-    document.getElementById('resetBtn').addEventListener('click', () => {
-      if (!confirm('Se descartarán los cambios del formulario actual en este navegador.')) return;
-      state.values = {};
-      state.photos = [];
-      state.lastSavedAt = null;
-      saveState();
-      renderForm();
-    });
+    document.getElementById('clearFormBtn')?.addEventListener('click', clearCurrentForm);
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
