@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard Catastro de Recursos Turísticos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --line:#d8e0ec; --text:#14304a; --muted:#5c728a; --accent:#0f766e; --blue:#2563eb; --warn:#b45309; --shadow:0 10px 28px rgba(15,35,58,.08); --radius:14px; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
+    .shell { max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; }
+    .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); }
+    .topbar h1 { margin:6px 0 4px; font-size:1.55rem; line-height:1.2; }
+    .topbar p { margin:0; color:rgba(255,255,255,.88); max-width:760px; }
+    .kicker { display:inline-flex; width:fit-content; border-radius:999px; padding:5px 9px; background:rgba(255,255,255,.14); font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    button, .button { border:0; border-radius:10px; padding:10px 13px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; color:var(--text); background:#eef4ff; }
+    .primary { background:#fff; color:#0f3b4f; }
+    .secondary { background:#dbeafe; color:#1d4ed8; }
+    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+    .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-4 { grid-column:span 4; }
+    .cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .card { border:1px solid var(--line); border-radius:12px; background:#fbfdff; padding:14px; display:grid; gap:4px; min-height:88px; }
+    .card span { color:var(--muted); font-size:.78rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .card strong { font-size:1.45rem; line-height:1.1; }
+    .filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; align-items:end; }
+    .filter-search { grid-column:1 / -1; }
+    label { display:grid; gap:5px; font-size:.82rem; font-weight:800; color:#284760; }
+    select, input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 11px; font:inherit; color:var(--text); background:#fff; }
+    #map { height:560px; border-radius:12px; border:1px solid var(--line); background:#e9f0f7; }
+    table { width:100%; border-collapse:collapse; font-size:.92rem; }
+    th, td { padding:10px 9px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
+    th { color:#284760; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; background:#f8fbfe; }
+    tr:hover td { background:#fbfdff; }
+    .muted { color:var(--muted); }
+    .status { display:inline-flex; border-radius:999px; padding:5px 8px; font-size:.78rem; font-weight:800; background:#fef3c7; color:#92400e; }
+    .status.ok { background:#dcfce7; color:#166534; }
+    .list { max-height:560px; overflow:auto; }
+    .bar-row { display:grid; grid-template-columns:minmax(120px,1fr) 80px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #edf2f7; }
+    .bar { height:10px; border-radius:999px; background:#e5edf7; overflow:hidden; margin-top:5px; }
+    .bar-fill { height:100%; background:linear-gradient(90deg,#0f766e,#2563eb); border-radius:inherit; }
+    .notice { border:1px solid #f7d889; background:#fff8e6; color:#7c4a03; border-radius:12px; padding:12px 14px; }
+    @media (max-width:1000px) { .grid { grid-template-columns:1fr; } .span-8,.span-4,.span-12 { grid-column:span 1; } .cards,.filters { grid-template-columns:1fr 1fr; } .filter-search { grid-column:1 / -1; } .topbar { flex-direction:column; } .actions { justify-content:flex-start; } }
+    @media (max-width:640px) { .shell { padding:12px; } .cards,.filters { grid-template-columns:1fr; } #map { height:420px; } .topbar h1 { font-size:1.28rem; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <span class="kicker">Dashboard territorial</span>
+        <h1>Catastro nacional de recursos turísticos</h1>
+        <p>Resumen de registros por comuna, distribución territorial y mapa georreferenciado de recursos guardados en Google Sheet.</p>
+      </div>
+      <div class="actions">
+        <a class="button primary" href="index.html">Volver al formulario</a>
+        <button class="secondary" id="refreshBtn">Actualizar datos</button>
+      </div>
+    </header>
+
+    <section class="panel span-12">
+      <div class="filters">
+        <label>Región<select id="regionFilter"><option value="">Todas</option></select></label>
+        <label>Provincia<select id="provinceFilter"><option value="">Todas</option></select></label>
+        <label>Comuna<select id="communeFilter"><option value="">Todas</option></select></label>
+        <label>Categoría<select id="categoryFilter"><option value="">Todas</option></select></label>
+        <label class="filter-search">Buscar<input id="searchInput" type="search" list="searchSuggestions" placeholder="Buscar por nombre, ID único, región, provincia, comuna, categoría, tipo o subtipo"><datalist id="searchSuggestions"></datalist></label>
+      </div>
+    </section>
+
+    <section class="cards span-12" id="statsCards">
+      <div class="card"><span>Total registros</span><strong id="totalRecords">0</strong></div>
+      <div class="card"><span>Con coordenadas</span><strong id="geoRecords">0</strong></div>
+      <div class="card"><span>Comunas cubiertas</span><strong id="communesCount">0</strong></div>
+      <div class="card"><span>Categorías</span><strong id="categoriesCount">0</strong></div>
+    </section>
+
+    <section class="grid">
+      <div class="panel span-8">
+        <h2>Mapa georreferenciado</h2>
+        <p class="muted">Los puntos se muestran cuando el registro tiene latitud y longitud válidas.</p>
+        <div id="map"></div>
+      </div>
+      <aside class="panel span-4">
+        <h2>Recursos por comuna</h2>
+        <p class="muted">Ranking según los registros filtrados.</p>
+        <div id="communeBars" class="list"></div>
+      </aside>
+    </section>
+
+    <section class="panel span-12">
+      <h2>Tabla de registros</h2>
+      <p class="muted">Listado de recursos filtrados. Útil para revisar avance territorial y detectar registros sin coordenadas.</p>
+      <div class="list">
+        <table>
+          <thead><tr><th>Recurso</th><th>Comuna</th><th>Categoría</th><th>ID único</th><th>Coordenadas</th><th>Actualización</th></tr></thead>
+          <tbody id="recordsTable"><tr><td colspan="6" class="muted">Cargando datos...</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="notice" id="statusBox">Conectando con Google Sheet...</div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
+    const CHILE_TERRITORY = [{"nombre":"Región de Arica y Parinacota","provincias":[{"nombre":"Arica","comunas":["Arica","Camarones"]},{"nombre":"Parinacota","comunas":["Putre","General Lagos"]}]},{"nombre":"Región de Tarapacá","provincias":[{"nombre":"Iquique","comunas":["Iquique","Alto Hospicio"]},{"nombre":"Del Tamarugal","comunas":["Pozo Almonte","Camiña","Colchane","Huara","Pica"]}]},{"nombre":"Región de Antofagasta","provincias":[{"nombre":"Antofagasta","comunas":["Antofagasta","Mejillones","Sierra Gorda","Taltal"]},{"nombre":"El Loa","comunas":["Calama","Ollagüe","San Pedro de Atacama"]},{"nombre":"Tocopilla","comunas":["Tocopilla","María Elena"]}]},{"nombre":"Región de Atacama","provincias":[{"nombre":"Copiapó","comunas":["Copiapó","Caldera","Tierra Amarilla"]},{"nombre":"Chañaral","comunas":["Chañaral","Diego de Almagro"]},{"nombre":"Huasco","comunas":["Vallenar","Alto del Carmen","Freirina","Huasco"]}]},{"nombre":"Región de Coquimbo","provincias":[{"nombre":"Elqui","comunas":["La Serena","Coquimbo","Andacollo","La Higuera","Paihuano","Vicuña"]},{"nombre":"Choapa","comunas":["Illapel","Canela","Los Vilos","Salamanca"]},{"nombre":"Limarí","comunas":["Ovalle","Combarbalá","Monte Patria","Punitaqui","Río Hurtado"]}]},{"nombre":"Región de Valparaíso","provincias":[{"nombre":"Valparaíso","comunas":["Valparaíso","Casablanca","Concón","Juan Fernández","Puchuncaví","Quintero","Viña del Mar"]},{"nombre":"Isla de Pascua","comunas":["Isla de Pascua"]},{"nombre":"Los Andes","comunas":["Los Andes","Calle Larga","Rinconada","San Esteban"]},{"nombre":"Petorca","comunas":["La Ligua","Cabildo","Papudo","Petorca","Zapallar"]},{"nombre":"Quillota","comunas":["Quillota","La Calera","Hijuelas","La Cruz","Nogales"]},{"nombre":"San Antonio","comunas":["San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo"]},{"nombre":"San Felipe de Aconcagua","comunas":["San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa María"]},{"nombre":"Marga Marga","comunas":["Quilpué","Limache","Olmué","Villa Alemana"]}]},{"nombre":"Región Metropolitana de Santiago","provincias":[{"nombre":"Santiago","comunas":["Santiago","Cerrillos","Cerro Navia","Conchalí","El Bosque","Estación Central","Huechuraba","Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","Ñuñoa","Pedro Aguirre Cerda","Peñalolén","Providencia","Pudahuel","Quilicura","Quinta Normal","Recoleta","Renca","San Joaquín","San Miguel","San Ramón","Vitacura"]},{"nombre":"Cordillera","comunas":["Puente Alto","Pirque","San José de Maipo"]},{"nombre":"Chacabuco","comunas":["Colina","Lampa","Tiltil"]},{"nombre":"Maipo","comunas":["San Bernardo","Buin","Calera de Tango","Paine"]},{"nombre":"Melipilla","comunas":["Melipilla","Alhué","Curacaví","María Pinto","San Pedro"]},{"nombre":"Talagante","comunas":["Talagante","El Monte","Isla de Maipo","Padre Hurtado","Peñaflor"]}]},{"nombre":"Región del Libertador General Bernardo O'Higgins","provincias":[{"nombre":"Cachapoal","comunas":["Rancagua","Codegua","Coinco","Coltauco","Doñihue","Graneros","Las Cabras","Machalí","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","Requínoa","San Vicente"]},{"nombre":"Cardenal Caro","comunas":["Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones"]},{"nombre":"Colchagua","comunas":["San Fernando","Chépica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"]}]},{"nombre":"Región del Maule","provincias":[{"nombre":"Talca","comunas":["Talca","Constitución","Curepto","Empedrado","Maule","Pelarco","Pencahue","Río Claro","San Clemente","San Rafael"]},{"nombre":"Cauquenes","comunas":["Cauquenes","Chanco","Pelluhue"]},{"nombre":"Curicó","comunas":["Curicó","Hualañé","Licantén","Molina","Rauco","Romeral","Sagrada Familia","Teno","Vichuquén"]},{"nombre":"Linares","comunas":["Linares","Colbún","Longaví","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"]}]},{"nombre":"Región de Ñuble","provincias":[{"nombre":"Diguillín","comunas":["Bulnes","Chillán","Chillán Viejo","El Carmen","Pemuco","Pinto","Quillón","San Ignacio","Yungay"]},{"nombre":"Itata","comunas":["Cobquecura","Coelemu","Ninhue","Portezuelo","Quirihue","Ránquil","Treguaco"]},{"nombre":"Punilla","comunas":["Coihueco","Ñiquén","San Carlos","San Fabián","San Nicolás"]}]},{"nombre":"Región del Biobío","provincias":[{"nombre":"Concepción","comunas":["Concepción","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","Tomé","Hualpén"]},{"nombre":"Arauco","comunas":["Lebu","Arauco","Cañete","Contulmo","Curanilahue","Los Álamos","Tirúa"]},{"nombre":"Biobío","comunas":["Los Ángeles","Antuco","Cabrero","Laja","Mulchén","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa Bárbara","Tucapel","Yumbel","Alto Biobío"]}]},{"nombre":"Región de La Araucanía","provincias":[{"nombre":"Cautín","comunas":["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Saavedra","Teodoro Schmidt","Toltén","Vilcún","Villarrica","Cholchol"]},{"nombre":"Malleco","comunas":["Angol","Collipulli","Curacautín","Ercilla","Lonquimay","Los Sauces","Lumaco","Purén","Renaico","Traiguén","Victoria"]}]},{"nombre":"Región de Los Ríos","provincias":[{"nombre":"Valdivia","comunas":["Valdivia","Corral","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli"]},{"nombre":"Ranco","comunas":["La Unión","Futrono","Lago Ranco","Río Bueno"]}]},{"nombre":"Región de Los Lagos","provincias":[{"nombre":"Llanquihue","comunas":["Puerto Montt","Calbuco","Cochamó","Fresia","Frutillar","Los Muermos","Llanquihue","Maullín","Puerto Varas"]},{"nombre":"Chiloé","comunas":["Castro","Ancud","Chonchi","Curaco de Vélez","Dalcahue","Puqueldón","Queilén","Quellón","Quemchi","Quinchao"]},{"nombre":"Osorno","comunas":["Osorno","Puerto Octay","Purranque","Puyehue","Río Negro","San Juan de la Costa","San Pablo"]},{"nombre":"Palena","comunas":["Chaitén","Futaleufú","Hualaihué","Palena"]}]},{"nombre":"Región de Aysén del General Carlos Ibáñez del Campo","provincias":[{"nombre":"Coyhaique","comunas":["Coyhaique","Lago Verde"]},{"nombre":"Aysén","comunas":["Aysén","Cisnes","Guaitecas"]},{"nombre":"Capitán Pratt","comunas":["Cochrane","O’Higgins","Tortel"]},{"nombre":"General Carrera","comunas":["Chile Chico","Río Ibáñez"]}]},{"nombre":"Región de Magallanes y de la Antártica Chilena","provincias":[{"nombre":"Magallanes","comunas":["Punta Arenas","Laguna Blanca","Río Verde","San Gregorio"]},{"nombre":"Antártica Chilena","comunas":["Cabo de Hornos","Antártica"]},{"nombre":"Tierra del Fuego","comunas":["Porvenir","Primavera","Timaukel"]},{"nombre":"Última Esperanza","comunas":["Natales","Torres del Paine"]}]}];
+    const CATASTRO_CATEGORIES = ["Recurso Natural","Recurso Cultural"];
+
+    let records = [];
+    let filtered = [];
+    let map;
+    let markersLayer;
+
+    const els = {
+      region: document.getElementById('regionFilter'), province: document.getElementById('provinceFilter'), commune: document.getElementById('communeFilter'), category: document.getElementById('categoryFilter'), search: document.getElementById('searchInput'), status: document.getElementById('statusBox')
+    };
+
+    function initMap() {
+      map = L.map('map').setView([-35.6751, -71.5430], 4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+      markersLayer = L.layerGroup().addTo(map);
+    }
+
+    function asText(value) { return value === undefined || value === null ? '' : String(value).trim(); }
+    function normalizeSearch(value) { return asText(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    function asNumber(value) { const n = Number(String(value || '').replace(',', '.')); return Number.isFinite(n) ? n : null; }
+    function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+
+    function normalizeRecord(row) {
+      const lat = asNumber(row.latitud);
+      const lng = asNumber(row.longitud);
+      return { ...row, lat, lng, hasGeo: lat !== null && lng !== null && lat >= -56.5 && lat <= -17 && lng >= -76.5 && lng <= -66 };
+    }
+
+    async function loadData() {
+      els.status.textContent = 'Cargando registros desde Google Sheet...';
+      try {
+        const response = await fetch(API_URL + '?action=list');
+        const data = await response.json();
+        if (!data.ok) throw new Error(data.message || 'No fue posible leer registros.');
+        records = (data.records || []).map(normalizeRecord);
+        els.status.textContent = 'Datos cargados: ' + records.length + ' registro(s).';
+        populateFilters();
+        applyFilters();
+      } catch (error) {
+        els.status.textContent = 'No fue posible cargar el dashboard. Revisa que Apps Script tenga la acción list implementada y una nueva versión publicada. Detalle: ' + String(error.message || error);
+        records = [];
+        applyFilters();
+      }
+    }
+
+    function uniqueValues(field, source = records) {
+      return Array.from(new Set(source.map(r => asText(r[field])).filter(Boolean))).sort((a,b) => a.localeCompare(b, 'es'));
+    }
+
+    function catalogRegions() {
+      return CHILE_TERRITORY.map(region => region.nombre);
+    }
+
+    function selectedRegionObj() {
+      return CHILE_TERRITORY.find(region => region.nombre === els.region.value) || null;
+    }
+
+    function catalogProvinces() {
+      const region = selectedRegionObj();
+      const provinces = region
+        ? region.provincias.map(province => province.nombre)
+        : CHILE_TERRITORY.flatMap(regionItem => regionItem.provincias.map(province => province.nombre));
+      return Array.from(new Set(provinces)).sort((a, b) => a.localeCompare(b, 'es'));
+    }
+
+    function selectedProvinceObj() {
+      const region = selectedRegionObj();
+      const provinces = region
+        ? region.provincias
+        : CHILE_TERRITORY.flatMap(regionItem => regionItem.provincias);
+      return provinces.find(province => province.nombre === els.province.value) || null;
+    }
+
+    function catalogCommunes() {
+      const province = selectedProvinceObj();
+      if (province) return province.comunas.slice().sort((a, b) => a.localeCompare(b, 'es'));
+      const region = selectedRegionObj();
+      const communes = region
+        ? region.provincias.flatMap(provinceItem => provinceItem.comunas)
+        : CHILE_TERRITORY.flatMap(regionItem => regionItem.provincias.flatMap(provinceItem => provinceItem.comunas));
+      return Array.from(new Set(communes)).sort((a, b) => a.localeCompare(b, 'es'));
+    }
+
+    function fillSelect(select, values, allLabel = 'Todas') {
+      const current = select.value;
+      select.innerHTML = '<option value="">' + allLabel + '</option>' + values.map(v => '<option value="' + escapeHtml(v) + '">' + escapeHtml(v) + '</option>').join('');
+      if (values.includes(current)) select.value = current;
+    }
+
+    function populateFilters() {
+      fillSelect(els.region, catalogRegions());
+      updateTerritoryFilters(false);
+      fillSelect(els.category, CATASTRO_CATEGORIES);
+      populateSearchSuggestions();
+    }
+
+    function updateTerritoryFilters(resetChildren = true) {
+      const currentProvince = resetChildren ? '' : els.province.value;
+      const currentCommune = resetChildren ? '' : els.commune.value;
+
+      fillSelect(els.province, catalogProvinces());
+      if (currentProvince && Array.from(els.province.options).some(option => option.value === currentProvince)) {
+        els.province.value = currentProvince;
+      } else if (resetChildren) {
+        els.province.value = '';
+      }
+
+      fillSelect(els.commune, catalogCommunes());
+      if (currentCommune && Array.from(els.commune.options).some(option => option.value === currentCommune)) {
+        els.commune.value = currentCommune;
+      } else if (resetChildren) {
+        els.commune.value = '';
+      }
+    }
+
+    function populateSearchSuggestions() {
+      const list = document.getElementById('searchSuggestions');
+      if (!list) return;
+      const fields = ['nombreRecurso', 'id_unico', 'region', 'provincia', 'comuna', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      const values = Array.from(new Set(records.flatMap(record => fields.map(field => asText(record[field])).filter(Boolean)))).sort((a, b) => a.localeCompare(b, 'es'));
+      list.innerHTML = values.slice(0, 350).map(value => '<option value="' + escapeHtml(value) + '"></option>').join('');
+    }
+
+    function applyFilters() {
+      const q = normalizeSearch(els.search.value);
+      filtered = records.filter(r => {
+        if (els.region.value && asText(r.region) !== els.region.value) return false;
+        if (els.province.value && asText(r.provincia) !== els.province.value) return false;
+        if (els.commune.value && asText(r.comuna) !== els.commune.value) return false;
+        if (els.category.value && asText(r.categoria) !== els.category.value) return false;
+        if (q) {
+          const haystack = [r.nombreRecurso, r.id_unico, r.region, r.provincia, r.comuna, r.categoria, r.tipoRecurso, r.subtipoRecurso].map(normalizeSearch).join(' ');
+          if (!haystack.includes(q)) return false;
+        }
+        return true;
+      });
+      renderStats(); renderMap(); renderCommuneBars(); renderTable();
+    }
+
+    function renderStats() {
+      document.getElementById('totalRecords').textContent = filtered.length;
+      document.getElementById('geoRecords').textContent = filtered.filter(r => r.hasGeo).length;
+      document.getElementById('communesCount').textContent = new Set(filtered.map(r => asText(r.comuna)).filter(Boolean)).size;
+      document.getElementById('categoriesCount').textContent = new Set(filtered.map(r => asText(r.categoria)).filter(Boolean)).size;
+    }
+
+    function renderMap() {
+      if (!map) return;
+      markersLayer.clearLayers();
+      const bounds = [];
+      filtered.filter(r => r.hasGeo).forEach(r => {
+        const marker = L.circleMarker([r.lat, r.lng], { radius: 7, color: '#0f766e', weight: 2, fillColor: '#14b8a6', fillOpacity: .82 });
+        marker.bindPopup('<strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br>' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '<br>' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br><span style="font-size:12px">' + escapeHtml(asText(r.id_unico)) + '</span>');
+        marker.addTo(markersLayer);
+        bounds.push([r.lat, r.lng]);
+      });
+      if (bounds.length) map.fitBounds(bounds, { padding: [30, 30], maxZoom: 12 });
+    }
+
+    function groupByCommune() {
+      const counts = new Map();
+      filtered.forEach(r => {
+        const key = asText(r.comuna) || 'Sin comuna';
+        counts.set(key, (counts.get(key) || 0) + 1);
+      });
+      return Array.from(counts.entries()).sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0], 'es'));
+    }
+
+    function renderCommuneBars() {
+      const rows = groupByCommune();
+      const max = Math.max(1, ...rows.map(r => r[1]));
+      document.getElementById('communeBars').innerHTML = rows.length ? rows.map(([name,count]) => '<div class="bar-row"><div><strong>' + escapeHtml(name) + '</strong><div class="bar"><div class="bar-fill" style="width:' + Math.round((count/max)*100) + '%"></div></div></div><strong>' + count + '</strong></div>').join('') : '<p class="muted">Sin registros para mostrar.</p>';
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('recordsTable');
+      if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="6" class="muted">Sin registros para los filtros seleccionados.</td></tr>'; return; }
+      tbody.innerHTML = filtered.map(r => {
+        const coords = r.hasGeo ? r.lat.toFixed(6) + ', ' + r.lng.toFixed(6) : '<span class="status">Sin punto</span>';
+        return '<tr><td><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td>' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td>' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '</td><td><span class="muted">' + escapeHtml(asText(r.id_unico) || 'Sin ID') + '</span></td><td>' + coords + '</td><td>' + escapeHtml(asText(r.fecha_actualizacion || r.fecha_sincronizacion || '')) + '</td></tr>';
+      }).join('');
+    }
+
+    els.region.addEventListener('change', () => { updateTerritoryFilters(true); applyFilters(); });
+    els.province.addEventListener('change', () => {
+      const currentCommune = els.commune.value;
+      fillSelect(els.commune, catalogCommunes());
+      if (currentCommune && Array.from(els.commune.options).some(option => option.value === currentCommune)) els.commune.value = currentCommune;
+      applyFilters();
+    });
+    els.commune.addEventListener('change', applyFilters);
+    els.category.addEventListener('change', applyFilters);
+    els.search.addEventListener('input', applyFilters);
+    document.getElementById('refreshBtn').addEventListener('click', loadData);
+    initMap();
+    loadData();
+  </script>
+</body>
+</html>
