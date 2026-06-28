@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manual - Catastro Nacional de Recursos Turísticos</title>
+  <style>
+    :root { --bg:#f4f7fb; --panel:#fff; --line:#d8e0ec; --text:#14304a; --muted:#5c728a; --accent:#0f766e; --blue:#2563eb; --shadow:0 10px 28px rgba(15,35,58,.08); --radius:14px; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
+    .shell { max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; min-height:100vh; }
+    .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); }
+    .topbar h1 { margin:6px 0 4px; font-size:1.55rem; line-height:1.2; }
+    .topbar p { margin:0; color:rgba(255,255,255,.88); max-width:780px; }
+    .kicker { display:inline-flex; width:fit-content; border-radius:999px; padding:5px 9px; background:rgba(255,255,255,.14); font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+    .button { border:0; border-radius:10px; padding:10px 13px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; color:var(--text); background:#eef4ff; }
+    .primary { background:#fff; color:#0f3b4f; }
+    .secondary { background:#dbeafe; color:#1d4ed8; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
+    .manual-tools { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+    .manual-tools h2 { margin:0; font-size:1.05rem; }
+    .manual-tools p { margin:4px 0 0; color:var(--muted); }
+    .viewer { height:calc(100vh - 230px); min-height:620px; overflow:hidden; padding:0; }
+    iframe { width:100%; height:100%; border:0; display:block; border-radius:12px; background:#eef2f7; }
+    .notice { padding:12px 14px; border:1px solid #f7d889; background:#fff8e6; color:#7c4a03; border-radius:12px; }
+    @media (max-width:760px) { .shell { padding:12px; } .topbar { flex-direction:column; } .actions { justify-content:flex-start; } .viewer { height:70vh; min-height:480px; } .topbar h1 { font-size:1.28rem; } }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div>
+        <span class="kicker">Manual de referencia</span>
+        <h1>Manual para la elaboración del Catastro Nacional de Recursos Turísticos</h1>
+        <p>Consulta el documento técnico mientras completas el formulario o revisas el avance territorial del dashboard.</p>
+      </div>
+      <nav class="actions" aria-label="Navegación principal">
+        <a class="button primary" href="index.html">Formulario</a>
+        <a class="button secondary" href="dashboard.html">Dashboard</a>
+        <a class="button secondary" href="manual-catastro-recursos-turisticos.pdf" download>Descargar PDF</a>
+      </nav>
+    </header>
+
+    <section class="panel manual-tools">
+      <div>
+        <h2>Visualizador del manual</h2>
+        <p>Si el PDF no carga en el navegador, usa el botón Descargar PDF.</p>
+      </div>
+      <a class="button secondary" href="manual-catastro-recursos-turisticos.pdf" target="_blank" rel="noopener">Abrir en pestaña nueva</a>
+    </section>
+
+    <section class="panel viewer">
+      <iframe src="manual-catastro-recursos-turisticos.pdf" title="Manual para la elaboración del Catastro Nacional de Recursos Turísticos"></iframe>
+    </section>
+
+    <div class="notice">Para publicar esta página en GitHub, sube <strong>manual.html</strong> y <strong>manual-catastro-recursos-turisticos.pdf</strong> en la raíz del repositorio, junto a index.html y dashboard.html.</div>
+  </div>
+</body>
+</html>
