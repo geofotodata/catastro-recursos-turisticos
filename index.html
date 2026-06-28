@@ -4189,9 +4189,10 @@
       return url.toString();
     }
 
-    async function loadRecordByUniqueId() {
+    async function loadRecordByUniqueId(idOverride = '') {
       const input = document.getElementById('lookupUniqueIdInput');
-      const id = (input?.value || '').trim();
+      const id = (idOverride || input?.value || '').trim();
+      if (idOverride && input) input.value = id;
       if (!id) {
         alert('Ingresa un ID único para cargar el registro.');
         return;
@@ -4502,6 +4503,12 @@
     updateUniqueIdDisplay();
     updateLastSyncDisplay();
     updateOnlineStatus();
+
+    const initialParams = new URLSearchParams(window.location.search);
+    const initialEditId = initialParams.get('id_unico') || initialParams.get('edit') || initialParams.get('id') || '';
+    if (initialEditId) {
+      setTimeout(() => loadRecordByUniqueId(initialEditId), 250);
+    }
   </script>
 </body>
 </html>
