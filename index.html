@@ -2271,18 +2271,27 @@
     function normalizeState(data) {
       return {
         values: data && typeof data.values === 'object' && data.values !== null ? data.values : {},
-        photos: Array.isArray(data?.photos) ? data.photos : [],
+        photos: Array.isArray(data?.photos) ? data.photos.filter(photo => photo && photo.dataUrl) : [],
         lastSavedAt: data?.lastSavedAt || null
+      };
+    }
+
+    function buildStorageSafeState(source = state) {
+      const values = JSON.parse(JSON.stringify(source.values || {}));
+      return {
+        values,
+        photos: [],
+        lastSavedAt: source.lastSavedAt || null
       };
     }
 
     function saveState() {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(buildStorageSafeState(state)));
       } catch (error) {
         if (!storageWarningShown) {
           storageWarningShown = true;
-          alert('No fue posible guardar localmente. Es probable que el navegador haya alcanzado el límite de almacenamiento; elimine o reduzca fotografías adjuntas.');
+          alert('No fue posible guardar localmente. El formulario sigue abierto, pero el navegador no pudo almacenar el borrador. Sube las fotos a Drive y elimina borradores locales antiguos.');
         }
       } finally {
         renderStatus();
@@ -2548,6 +2557,7 @@
         state.values.region = regionSelect.value || '';
         state.values.provincia = '';
         state.values.comuna = '';
+        refreshDraftTerritoryId();
         autosave();
         syncProvinceSelect();
         syncComunaSelect();
@@ -2557,12 +2567,14 @@
       provinceSelect.addEventListener('change', () => {
         state.values.provincia = provinceSelect.value || '';
         state.values.comuna = '';
+        refreshDraftTerritoryId();
         autosave();
         syncComunaSelect();
       });
 
       comunaSelect.addEventListener('change', () => {
         state.values.comuna = comunaSelect.value || '';
+        refreshDraftTerritoryId();
         autosave();
         renderAdmissibility();
       });
@@ -3153,11 +3165,11 @@
       block.innerHTML = `
         <label for="photoInput">Adjuntar fotografías (mínimo 3, máximo 5)</label>
         <input id="photoInput" type="file" accept="image/*" multiple>
-        <small class="hint">Las imágenes se mantienen en este navegador. Usa el botón de subida cuando quieras guardarlas en Google Drive.</small>
+        <small class="hint">Las imágenes se mantienen temporalmente en este navegador. Al subirlas, se guardarán en Google Drive dentro de una carpeta con el ID único del registro.</small>
         <div class="toolbar" style="margin-top:12px;">
-          <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir fotos a Drive</button>
+          <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
         </div>
-        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Las fotos aún no han sido subidas a Google Drive.</div>
+        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
         <div class="photo-grid" id="photoGrid"></div>
       `;
       content.appendChild(block);
@@ -3275,12 +3287,15 @@
       state.photos.forEach((photo, idx) => {
         const card = document.createElement('div');
         card.className = 'photo-card';
+        const preview = photo.dataUrl
+          ? '<img src="' + photo.dataUrl + '" alt="' + escapeHtml(photo.name) + '">'
+          : '<div class="coord-note">Foto no disponible en este navegador. Vuelve a adjuntarla si necesitas subirla a Drive.</div>';
         card.innerHTML = `
-          <img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">
+          ${preview}
           <div class="meta">
-            <strong>${escapeHtml(photo.name)}</strong>
+            <strong>${escapeHtml(photo.name || 'Fotografía')}</strong>
             <span>${formatBytes(photo.size)}</span>
-            <span>${new Date(photo.uploadedAt).toLocaleString('es-CL')}</span>
+            <span>${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString('es-CL') : 'Sin fecha local'}</span>
             <button type="button" class="danger" data-remove-photo="${idx}">Eliminar</button>
           </div>
         `;
@@ -3396,7 +3411,7 @@
         id: currentDraft?.id || idUnico || crypto.randomUUID(),
         name,
         savedAt: new Date().toISOString(),
-        data: JSON.parse(JSON.stringify(state))
+        data: buildStorageSafeState(state)
       };
       const nextDrafts = normalizeDraftList([
         payload,
@@ -3409,7 +3424,7 @@
       try {
         localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts.slice(0, 10)));
       } catch (error) {
-        alert('No fue posible guardar el borrador nombrado. Reduzca fotografías adjuntas o elimine borradores antiguos.');
+        alert('No fue posible guardar el borrador local. Elimina borradores antiguos del navegador. Las fotos deben respaldarse en Google Drive, no en el borrador offline.');
       }
       renderDrafts();
     }
@@ -4165,23 +4180,38 @@
       return Math.random().toString(36).slice(2, 8).toUpperCase();
     }
 
-    function ensureUniqueId() {
-      const codes = ensureTerritoryCodes();
-
-      // Regla clave: un registro ya creado conserva siempre su ID.
-      // Así el botón Guardar registro actualiza el mismo atractivo en Google Sheet.
-      if (state.values.id_unico) {
-        if (!state.values.codigo_atractivo) {
-          const match = String(state.values.id_unico).match(/-A(.+)$/);
-          if (match) state.values.codigo_atractivo = match[1];
-        }
-        autosave();
-        return state.values.id_unico;
+    function refreshDraftTerritoryId() {
+      if (!state.values.id_unico) {
+        ensureTerritoryCodes();
+        updateUniqueIdDisplay();
+        return;
       }
 
-      const attractionCode = state.values.codigo_atractivo || createAttractionCode();
+      const before = state.values.id_unico;
+      ensureUniqueId();
+      if (state.values.id_unico !== before) {
+        updateUniqueIdDisplay();
+        updateUiSummary();
+      }
+    }
+
+    function ensureUniqueId() {
+      const codes = ensureTerritoryCodes();
+      const existingId = String(state.values.id_unico || '').trim();
+      const existingCode = String(state.values.codigo_atractivo || '').trim();
+      const idCodeMatch = existingId.match(/-A(.+)$/);
+      const attractionCode = existingCode || (idCodeMatch ? idCodeMatch[1] : createAttractionCode());
+      const territorialId = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
+      const hasCompleteTerritory = codes.codigo_region !== '00' && !String(codes.codigo_comuna).endsWith('00');
+      const isPlaceholderId = /^R00-C0+-A/.test(existingId) || existingId.includes('-C00000-A');
+      const territoryDoesNotMatch = hasCompleteTerritory && existingId && !existingId.startsWith(`R${codes.codigo_region}-C${codes.codigo_comuna}-A`);
+      const alreadySyncedOnline = Boolean(state.values.fecha_sincronizacion || state.values.fotos_carpeta_drive || state.values.fotos_links);
+
       state.values.codigo_atractivo = attractionCode;
-      state.values.id_unico = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
+
+      if (!existingId || isPlaceholderId || (territoryDoesNotMatch && !alreadySyncedOnline)) {
+        state.values.id_unico = territorialId;
+      }
 
       autosave();
       return state.values.id_unico;
@@ -4202,7 +4232,8 @@
           type: photo.type || '',
           dataUrl: photo.dataUrl || ''
         })),
-        uploadedAt: new Date().toISOString()
+        uploadedAt: new Date().toISOString(),
+        replaceExistingPhotos: true
       };
     }
 
@@ -4213,22 +4244,50 @@
         return;
       }
 
-      if (!confirm('Se subirán las fotografías seleccionadas a Google Drive en una carpeta asociada al ID único del registro. ¿Continuar?')) return;
+      const id = ensureUniqueId();
+      updateUniqueIdDisplay();
+      const message = 'Se subirán las fotografías seleccionadas a Google Drive. Si ya existían fotos para este ID, serán reemplazadas dentro de la carpeta ' + id + '. ¿Continuar?';
+      if (!confirm(message)) return;
 
       try {
-        if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive...';
+        if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         setSyncStatus('Subiendo fotos...', 'busy');
 
         const payload = buildPhotoUploadPayload();
         await submitPayloadToGoogleSheet(payload);
+        await sleep(2500);
+
+        let verifiedRecord = null;
+        try {
+          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: payload.id_unico, t: Date.now() }));
+          const data = await response.json();
+          if (data.ok && data.record) verifiedRecord = data.record;
+        } catch (verifyError) {
+          verifiedRecord = null;
+        }
 
         const when = new Date().toLocaleString('es-CL');
-        state.values.fecha_subida_fotos = when;
-        state.values.fotos_cantidad = state.photos.length;
+        state.values.fecha_subida_fotos = verifiedRecord?.fecha_subida_fotos || when;
+        state.values.fotos_cantidad = Number(verifiedRecord?.fotos_cantidad || state.photos.length);
+        if (verifiedRecord?.fotos_carpeta_drive) state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive;
+        if (verifiedRecord?.fotos_links) state.values.fotos_links = verifiedRecord.fotos_links;
+        state.values.fecha_sincronizacion = verifiedRecord?.fecha_sincronizacion || when;
         saveState();
+        persistNamedDraft();
+        updateLastSyncDisplay(state.values.fecha_sincronizacion);
 
-        if (statusEl) statusEl.textContent = 'Fotos enviadas a Google Drive. Revisa los enlaces en Google Sheet.';
-        setSyncStatus('Fotos enviadas a Drive', 'ok');
+        if (verifiedRecord?.fotos_links || verifiedRecord?.fotos_carpeta_drive) {
+          const folderLink = verifiedRecord.fotos_carpeta_drive
+            ? ' Carpeta: ' + verifiedRecord.fotos_carpeta_drive
+            : '';
+          if (statusEl) statusEl.textContent = 'Fotos guardadas en Google Drive y enlazadas en Google Sheet.' + folderLink;
+          setSyncStatus('Fotos respaldadas online', 'ok');
+          alert('Listo: las fotos quedaron guardadas en Drive y los enlaces quedaron en Google Sheet.');
+        } else {
+          if (statusEl) statusEl.textContent = 'Solicitud enviada. Si no aparecen enlaces en Google Sheet, revisa permisos de Drive en Apps Script.';
+          setSyncStatus('Verificar en Google Sheet', 'warn');
+          alert('La solicitud fue enviada. Verifica en Google Sheet si aparecieron las columnas fotos_carpeta_drive y fotos_links. Si no aparecen, falta autorizar Drive en Apps Script.');
+        }
       } catch (error) {
         if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
         setSyncStatus('Error al subir fotos', 'fail');
@@ -4320,6 +4379,10 @@
 
     function escapeHtml(str) {
       return String(str).replace(/[&<>"]/g, s => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[s]));
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     function googleScriptUrl(params = {}) {
