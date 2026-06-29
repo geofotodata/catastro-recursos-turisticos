@@ -95,20 +95,48 @@
     }
 
     .hero-actions-wrap {
-      flex: 0 1 540px;
+      flex: 0 1 620px;
       display: grid;
-      gap: 8px;
+      gap: 10px;
       justify-items: end;
     }
 
-    .hero-actions {
+    .hero-action-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
       justify-content: flex-end;
-      margin-top: 0;
+      align-items: center;
     }
 
-    .hero-actions .primary {
+    .hero-action-group.primary-actions button {
+      min-width: 150px;
+    }
+
+    .hero-action-group .button-like,
+    .hero-action-group button {
+      min-height: 44px;
+    }
+
+    .hero-action-group .offline-action {
       background: #ffffff;
       color: #0f3b4f;
+    }
+
+    .hero-action-group .online-action {
+      background: #1d4ed8;
+      color: #ffffff;
+    }
+
+    .hero-action-label {
+      width: 100%;
+      margin: 0 0 -2px;
+      color: rgba(255,255,255,0.86);
+      font-size: 0.76rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      text-align: right;
     }
 
     .hero-more-actions {
@@ -555,7 +583,7 @@
       border: 1px solid #f7d889;
       background: #fff8e6;
       color: #7c4a03;
-      font-size: 0.86rem;
+      font-size: 0.84rem;
       line-height: 1.42;
     }
 
@@ -573,17 +601,33 @@
       word-break: break-word;
     }
 
+    .draft-unique-id {
+      display: inline-flex;
+      width: fit-content;
+      max-width: 100%;
+      border-radius: 999px;
+      padding: 4px 8px;
+      background: #eef4ff;
+      color: #31516f;
+      font-size: 0.76rem;
+      font-weight: 800;
+      word-break: break-all;
+    }
+
     .draft-actions {
       display: grid;
-      gap: 8px;
-      min-width: 138px;
+      gap: 7px;
+      min-width: 112px;
+      align-content: center;
     }
 
     .draft-actions button {
       width: 100%;
-      padding: 9px 10px;
-      border-radius: 10px;
-      font-size: 0.86rem;
+      min-height: 38px;
+      padding: 8px 10px;
+      border-radius: 9px;
+      font-size: 0.82rem;
+      font-weight: 800;
     }
 
     .draft-meta-row {
@@ -629,14 +673,22 @@
       font-size: 0.88rem;
     }
 
-    .floating-save {
+    .floating-save-group {
       position: fixed;
       right: 22px;
       bottom: 22px;
       z-index: 1200;
       display: flex;
-      align-items: center;
       gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .floating-save {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       padding: 13px 16px;
       border-radius: 999px;
       background: #0f766e;
@@ -646,9 +698,17 @@
       font-weight: 800;
     }
 
+    .floating-save.online {
+      background: #1d4ed8;
+    }
+
     .floating-save:hover {
       background: #0b5f59;
       transform: translateY(-2px);
+    }
+
+    .floating-save.online:hover {
+      background: #1e40af;
     }
 
     .floating-save:disabled {
@@ -918,10 +978,13 @@
     }
 
     @media (max-width: 800px) {
-      .floating-save {
+      .floating-save-group {
         right: 14px;
         bottom: 14px;
         max-width: calc(100vw - 28px);
+      }
+
+      .floating-save {
         padding: 12px 14px;
       }
 
@@ -936,58 +999,62 @@
       }
     }
 
-    .start-guide {
-      margin-bottom: 18px;
-      display: grid;
-      gap: 14px;
+    .start-disclaimer-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 35, 58, 0.48);
     }
 
-    .start-guide-head {
+    .start-disclaimer-overlay.open {
       display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 14px;
     }
 
-    .start-guide h2 {
-      font-size: 1.18rem;
-      margin-bottom: 6px;
+    .start-disclaimer-dialog {
+      width: min(720px, 100%);
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.52);
+      background: #ffffff;
+      box-shadow: 0 24px 64px rgba(15,35,58,0.28);
+      padding: 22px;
     }
 
-    .start-guide-grid {
+    .start-disclaimer-dialog h2 {
+      margin: 10px 0 8px;
+      color: #0f3b4f;
+      font-size: 1.35rem;
+    }
+
+    .start-disclaimer-dialog p {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .start-disclaimer-steps {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 10px;
+      margin: 16px 0;
     }
 
-    .guide-step {
+    .start-disclaimer-step {
       border: 1px solid var(--line);
       border-radius: 12px;
       padding: 12px;
-      background: #fbfdff;
-      display: grid;
-      gap: 6px;
-      min-height: 114px;
+      background: #f8fbff;
     }
 
-    .guide-step strong {
+    .start-disclaimer-step strong {
+      display: block;
       color: #0f3b4f;
-      line-height: 1.2;
+      margin-bottom: 4px;
     }
 
-    .guide-num {
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 999px;
-      background: #e6fffb;
-      color: #0f766e;
-      font-weight: 900;
-      font-size: 0.82rem;
-    }
-
+    .start-disclaimer-note,
     .start-guide-note {
       padding: 12px 14px;
       border: 1px solid #f7d889;
@@ -995,6 +1062,13 @@
       color: #7c4a03;
       border-radius: 12px;
       font-size: 0.9rem;
+    }
+
+    .start-disclaimer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 16px;
     }
 
     .review-overlay {
@@ -1263,13 +1337,21 @@
         font-size: 0.86rem;
       }
 
-      .hero .toolbar {
-        width: 100%;
-      }
-
       .hero-actions-wrap {
         width: 100%;
         justify-items: stretch;
+      }
+
+      .hero-action-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 100%;
+        justify-content: stretch;
+      }
+
+      .hero-action-label {
+        grid-column: 1 / -1;
+        text-align: left;
       }
 
       .hero-more-actions summary {
@@ -1281,7 +1363,9 @@
       }
 
       .toolbar button,
-      .toolbar .button-like {
+      .toolbar .button-like,
+      .hero-action-group button,
+      .hero-action-group .button-like {
         width: 100%;
         text-align: center;
       }
@@ -1382,25 +1466,33 @@
         grid-template-columns: 1fr;
       }
 
-      .start-guide-head {
-        flex-direction: column;
+      .start-disclaimer-dialog {
+        padding: 16px;
+        border-radius: 14px;
       }
 
-      .start-guide-grid,
+      .start-disclaimer-steps,
       .review-grid {
         grid-template-columns: 1fr;
       }
 
-      .guide-step {
-        min-height: auto;
+      .start-disclaimer-actions {
+        display: grid;
       }
 
-      .floating-save {
+      .floating-save-group {
         left: 12px;
         right: 12px;
         bottom: 12px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .floating-save {
         justify-content: center;
         border-radius: 14px;
+        width: 100%;
+        padding: 12px 10px;
       }
 
       .floating-index {
@@ -1514,24 +1606,6 @@
     <main>
       <div id="offlineBanner" class="banner">Estás trabajando sin conexión. Puedes seguir editando y guardar localmente. El mapa y la búsqueda pueden no estar disponibles.</div>
 
-      <section class="panel start-guide" id="startGuide">
-        <div class="start-guide-head">
-          <div>
-            <span class="sidebar-kicker">Antes de iniciar</span>
-            <h2>Levantamiento guiado del recurso turístico</h2>
-            <p class="small">Este formulario está pensado para trabajo de oficina o terreno, permitiendo levantar, revisar, guardar y actualizar información de cada recurso turístico.</p>
-          </div>
-          <span class="pill warn">Prototipo editable</span>
-        </div>
-        <div class="start-guide-grid">
-          <div class="guide-step"><span class="guide-num">1</span><strong>Identifica el recurso</strong><span class="small">Nombre, región, provincia, comuna y punto geográfico.</span></div>
-          <div class="guide-step"><span class="guide-num">2</span><strong>Clasifica con precisión</strong><span class="small">Categoría, tipo, subtipo y descripción breve.</span></div>
-          <div class="guide-step"><span class="guide-num">3</span><strong>Completa operación</strong><span class="small">Acceso, servicios, visitas, promoción y antecedentes de gestión.</span></div>
-          <div class="guide-step"><span class="guide-num">4</span><strong>Guarda y actualiza</strong><span class="small">El ID único permite retomar y actualizar el mismo registro.</span></div>
-        </div>
-        <div class="start-guide-note">Los borradores locales ayudan a continuar en este navegador, pero el respaldo real ocurre al usar <strong>Guardar registro</strong> y verificar la fila en Google Sheet.</div>
-      </section>
-
       <section class="hero hero-compact">
         <div class="hero-main">
           <span class="sidebar-kicker">Formulario digital</span>
@@ -1539,19 +1613,23 @@
           <p class="muted">Levantamiento, revisión, guardado y actualización de recursos turísticos con ID único, mapa y respaldo online.</p>
         </div>
         <div class="hero-actions-wrap">
-          <div class="toolbar hero-actions">
-            <button class="primary" id="saveBtn">Guardar registro</button>
-            <a class="button-like secondary" href="dashboard.html">Ver dashboard</a>
-            <a class="button-like ghost" href="manual.html">Ver manual</a>
-            <button class="secondary" id="exportBtn">Descargar borrador</button>
-            <label class="button-like ghost" for="importFile">Cargar borrador</label>
+          <div class="hero-action-group" aria-label="Formulario">
+            <div class="hero-action-label">Formulario</div>
+            <button class="primary" id="newResourceBtn">Nuevo recurso</button>
+            <a class="button-like secondary" href="dashboard.html">Dashboard</a>
+            <a class="button-like ghost" href="manual.html">Manual</a>
+          </div>
+          <div class="hero-action-group" aria-label="Borradores JSON">
+            <div class="hero-action-label">Borrador JSON</div>
+            <button class="secondary" id="exportBtn">Descargar JSON</button>
+            <label class="button-like ghost" for="importFile">Cargar JSON</label>
             <input id="importFile" type="file" accept="application/json" hidden>
           </div>
           <details class="hero-more-actions">
             <summary>Más acciones</summary>
             <div class="toolbar">
+              <button class="ghost" id="showStartDisclaimerBtn">Ver aviso inicial</button>
               <button class="ghost" id="sampleBtn">Cargar ejemplo</button>
-              <button class="danger" id="clearFormBtn">Limpiar formulario completo</button>
             </div>
           </details>
         </div>
@@ -1578,7 +1656,7 @@
             <span class="pill warn">No es respaldo online</span>
           </header>
           <div class="draft-disclaimer">
-            Estos borradores ayudan a retomar el trabajo, pero pueden perderse si se borra la caché, cambias de equipo o usas otro navegador. Para asegurar el registro, usa <strong>Guardar registro</strong> y verifica que aparezca en Google Sheet.
+            Estos son borradores <strong>offline</strong> guardados solo en este equipo y navegador. <strong>Cargar</strong> recupera ese borrador para seguir editando. <strong>Eliminar</strong> lo quita solo de esta lista local; no borra registros ya sincronizados en Google Sheet.
           </div>
           <div class="draft-list" id="draftList"></div>
         </div>
@@ -1617,6 +1695,23 @@
     <div class="floating-index-list" id="floatingSectionNav"></div>
   </div>
 
+  <div class="start-disclaimer-overlay" id="startDisclaimerOverlay" aria-hidden="true">
+    <div class="start-disclaimer-dialog" role="dialog" aria-modal="true" aria-labelledby="startDisclaimerTitle">
+      <span class="sidebar-kicker">Antes de iniciar</span>
+      <h2 id="startDisclaimerTitle">Levantamiento guiado del recurso turístico</h2>
+      <p>Este formulario permite levantar, revisar y actualizar información de cada recurso turístico. Puedes trabajar offline en terreno y sincronizar online cuando tengas conexión.</p>
+      <div class="start-disclaimer-steps">
+        <div class="start-disclaimer-step"><strong>1. Identifica</strong><span class="small">Nombre, territorio y punto geográfico.</span></div>
+        <div class="start-disclaimer-step"><strong>2. Completa</strong><span class="small">Clasificación, operación, servicios y antecedentes.</span></div>
+        <div class="start-disclaimer-step"><strong>3. Respalda</strong><span class="small">Guarda offline o sincroniza en Google Sheet.</span></div>
+      </div>
+      <div class="start-disclaimer-note"><strong>Importante:</strong> Guardar offline conserva el borrador solo en este navegador. Para respaldo institucional, usa Guardar online y verifica el registro en Google Sheet.</div>
+      <div class="start-disclaimer-actions">
+        <button type="button" class="primary" id="acceptStartDisclaimerBtn">Aceptar e iniciar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="review-overlay" id="saveReviewOverlay" aria-hidden="true">
     <div class="review-dialog" role="dialog" aria-modal="true" aria-labelledby="saveReviewTitle">
       <div class="review-head">
@@ -1634,10 +1729,16 @@
     </div>
   </div>
 
-  <button type="button" class="floating-save" id="floatingSaveBtn" title="Guardar registro y sincronizar con Google Sheets">
-    <span class="icon">+</span>
-    <span>Guardar registro</span>
-  </button>
+  <div class="floating-save-group" aria-label="Acciones rápidas de guardado">
+    <button type="button" class="floating-save offline" id="floatingSaveOfflineBtn" title="Guardar borrador local en este navegador">
+      <span class="icon">+</span>
+      <span>Guardar offline</span>
+    </button>
+    <button type="button" class="floating-save online" id="floatingSaveOnlineBtn" title="Guardar y sincronizar con Google Sheet">
+      <span class="icon">↑</span>
+      <span>Guardar online</span>
+    </button>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.19.10/proj4.js"></script>
@@ -3075,7 +3176,7 @@
           <p class="small" style="margin-top:8px;">Este botón no envía a ArcGIS ni a una base real. Puedes validar, descargar el JSON o abrir una versión imprimible para guardarla como PDF desde el navegador.</p>
           <div class="toolbar" style="margin-top:12px;">
             <button type="button" class="secondary" id="validateBtn">Revisar formulario</button>
-            <button type="button" class="primary" id="finalSaveBtn">Guardar registro</button>
+            <button type="button" class="primary" id="finalSaveBtn">Guardar online</button>
             <button type="button" class="ghost" id="exportPdfBtn">Guardar PDF</button>
             <button type="button" class="ghost" id="downloadPayloadBtn">Descargar respaldo</button>
           </div>
@@ -3268,18 +3369,45 @@
       document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
     }
 
+    function getDraftKey(draft) {
+      const uniqueId = String(draft?.data?.values?.id_unico || '').trim();
+      return uniqueId ? 'id:' + uniqueId : 'draft:' + String(draft?.id || '').trim();
+    }
+
+    function normalizeDraftList(drafts) {
+      const seen = new Set();
+      return (Array.isArray(drafts) ? drafts : [])
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))
+        .filter(draft => {
+          const key = getDraftKey(draft);
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
     function persistNamedDraft() {
       const drafts = loadDrafts();
+      const idUnico = String(state.values.id_unico || '').trim();
       const name = state.values.nombreRecurso || 'Borrador sin nombre';
+      const currentDraft = idUnico ? findLocalDraftByUniqueId(idUnico) : null;
       const payload = {
-        id: crypto.randomUUID(),
+        id: currentDraft?.id || idUnico || crypto.randomUUID(),
         name,
         savedAt: new Date().toISOString(),
         data: JSON.parse(JSON.stringify(state))
       };
-      drafts.unshift(payload);
+      const nextDrafts = normalizeDraftList([
+        payload,
+        ...drafts.filter(draft => {
+          if (currentDraft && draft.id === currentDraft.id) return false;
+          const values = draft?.data?.values || {};
+          return !idUnico || String(values.id_unico || '').trim() !== idUnico;
+        })
+      ]);
       try {
-        localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts.slice(0, 10)));
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts.slice(0, 10)));
       } catch (error) {
         alert('No fue posible guardar el borrador nombrado. Reduzca fotografías adjuntas o elimine borradores antiguos.');
       }
@@ -3288,7 +3416,7 @@
 
     function loadDrafts() {
       try {
-        return JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+        return normalizeDraftList(JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]'));
       } catch {
         return [];
       }
@@ -3306,13 +3434,16 @@
       drafts.forEach(draft => {
         const el = document.createElement('div');
         el.className = 'draft-item';
-        const syncedAt = draft.data?.values?.fecha_sincronizacion || draft.data?.values?.fecha_actualizacion || '';
+        const values = draft.data?.values || {};
+        const uniqueId = String(values.id_unico || '').trim();
+        const syncedAt = values.fecha_sincronizacion || values.fecha_actualizacion || '';
         const statusClass = syncedAt ? 'ok' : 'warn';
         const statusText = syncedAt ? 'Sincronizado online' : 'Solo este navegador';
-        const detailText = syncedAt ? 'Última marca online: ' + escapeHtml(syncedAt) : 'Para asegurar este registro, cárgalo y sincronízalo online.';
+        const detailText = syncedAt ? 'Última sincronización: ' + escapeHtml(syncedAt) : 'Disponible offline en este equipo.';
         el.innerHTML =
           '<div class="draft-item-main">' +
             '<strong>' + escapeHtml(draft.name) + '</strong>' +
+            '<span class="draft-unique-id">ID: ' + escapeHtml(uniqueId || 'pendiente') + '</span>' +
             '<div class="draft-meta-row">' +
               '<span class="small">' + new Date(draft.savedAt).toLocaleString('es-CL') + '</span>' +
               '<span class="pill ' + statusClass + '">' + statusText + '</span>' +
@@ -3320,15 +3451,13 @@
             '<div class="small">' + detailText + '</div>' +
           '</div>' +
           '<div class="draft-actions">' +
-            '<button type="button" class="ghost" data-load="' + draft.id + '">Cargar</button>' +
-            '<button type="button" class="secondary" data-sync="' + draft.id + '">Sincronizar online</button>' +
-            '<button type="button" class="danger" data-delete="' + draft.id + '">Eliminar</button>' +
+            '<button type="button" class="ghost" title="Cargar este borrador offline para seguir editando" data-load="' + draft.id + '">Cargar</button>' +
+            '<button type="button" class="danger" title="Eliminar este borrador offline de este navegador" data-delete="' + draft.id + '">Eliminar</button>' +
           '</div>';
         container.appendChild(el);
       });
 
       container.querySelectorAll('[data-load]').forEach(btn => btn.addEventListener('click', () => loadNamedDraft(btn.dataset.load)));
-      container.querySelectorAll('[data-sync]').forEach(btn => btn.addEventListener('click', () => syncNamedDraft(btn.dataset.sync)));
       container.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteNamedDraft(btn.dataset.delete)));
     }
 
@@ -3362,15 +3491,12 @@
       return true;
     }
 
-    async function syncNamedDraft(id) {
-      const loaded = loadNamedDraft(id);
-      if (!loaded) return;
-      const confirmed = confirm('Este borrador local se cargará y se intentará guardar online en Google Sheet. ¿Continuar?');
-      if (!confirmed) return;
-      await saveDraftAndSyncOnline();
-    }
 
     function deleteNamedDraft(id) {
+      const draft = loadDrafts().find(d => d.id === id);
+      const name = draft?.name || 'este borrador';
+      const confirmed = confirm('Eliminará el borrador offline "' + name + '" de este navegador. No borra registros sincronizados en Google Sheet. ¿Continuar?');
+      if (!confirmed) return;
       const drafts = loadDrafts().filter(d => d.id !== id);
       try {
         localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
@@ -3386,6 +3512,11 @@
     }
 
     function importState(file) {
+      if (!file) return;
+      if (!/\.json$/i.test(file.name || '')) {
+        alert('Selecciona un archivo de borrador en formato JSON.');
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         try {
@@ -3394,8 +3525,16 @@
           Object.assign(state, normalizeState(data));
           saveState();
           renderForm();
+          setupMobileNavigation();
+          setupIdActions();
+          updateUniqueIdDisplay();
+          updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
+          updateUiSummary();
+          setSyncStatus('Borrador JSON cargado', 'warn');
+          persistNamedDraft();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
         } catch {
-          alert('No fue posible importar el borrador.');
+          alert('No fue posible importar el borrador. Verifica que sea un archivo JSON generado por este formulario.');
         }
       };
       reader.readAsText(file);
@@ -4263,9 +4402,9 @@
     }
 
     function startNewAttraction() {
-      if (!confirm('Se iniciará un nuevo recurso y se limpiará el formulario actual. No elimina registros ya guardados online. ¿Continuar?')) return;
+      if (!confirm('Se iniciará una nueva ficha de recurso turístico. El formulario actual se limpiará en este navegador, pero no se eliminan borradores guardados ni registros sincronizados en Google Sheet. ¿Continuar?')) return;
       resetFormState();
-      setSyncStatus('Nuevo recurso', 'warn');
+      setSyncStatus('Nueva ficha iniciada', 'warn');
     }
 
     function setupIdActions() {
@@ -4388,6 +4527,23 @@
       document.getElementById('offlineBanner').classList.toggle('show', !navigator.onLine);
     }
 
+    function openStartDisclaimer(options = {}) {
+      const overlay = document.getElementById('startDisclaimerOverlay');
+      if (!overlay) return;
+      const acceptedThisSession = sessionStorage.getItem('catastro_start_disclaimer_ok') === '1';
+      if (acceptedThisSession && !options.force) return;
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeStartDisclaimer() {
+      const overlay = document.getElementById('startDisclaimerOverlay');
+      if (!overlay) return;
+      sessionStorage.setItem('catastro_start_disclaimer_ok', '1');
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+
     function buildSaveReviewHtml() {
       const validation = validateRecord();
       const id = state.values.id_unico || 'Se generará al confirmar';
@@ -4431,7 +4587,33 @@
       overlay.setAttribute('aria-hidden', 'true');
     }
 
+    function saveDraftOffline(options = {}) {
+      autosave();
+      ensureUniqueId();
+      persistNamedDraft();
+      updateUniqueIdDisplay();
+      updateUiSummary();
+      setSyncStatus('Guardado local en este navegador', 'warn');
+      if (!options.silent) {
+        alert('Registro guardado como borrador local en este navegador. Para respaldo online, usa Guardar online cuando tengas conexión.');
+      }
+    }
+
     async function saveDraftAndSyncOnline(options = {}) {
+      if (!navigator.onLine) {
+        saveDraftOffline({ silent: true });
+        setSyncStatus('Sin conexión: guardado offline', 'fail');
+        alert('No hay conexión a internet. El registro quedó guardado offline en este navegador. Intenta guardar online cuando vuelva la conexión.');
+        return;
+      }
+
+      if (!ONLINE_SYNC_URL || ONLINE_SYNC_URL.includes('PEGAR_AQUI')) {
+        saveDraftOffline({ silent: true });
+        setSyncStatus('Falta URL de Apps Script', 'fail');
+        alert('Falta conectar la URL de Apps Script. El registro quedó guardado offline.');
+        return;
+      }
+
       if (!options.skipReview) {
         openSaveReview();
         return;
@@ -4450,6 +4632,7 @@
         const when = new Date().toLocaleString('es-CL');
         state.values.fecha_sincronizacion = when;
         saveState();
+        persistNamedDraft();
         updateUniqueIdDisplay();
         updateLastSyncDisplay(when);
         setSyncStatus('Sincronizado online', 'ok');
@@ -4476,22 +4659,39 @@
         closeSaveReview();
       }
     });
-    document.getElementById('saveBtn').addEventListener('click', () => saveDraftAndSyncOnline());
-    document.getElementById('floatingSaveBtn')?.addEventListener('click', async (event) => {
+    document.getElementById('acceptStartDisclaimerBtn')?.addEventListener('click', closeStartDisclaimer);
+    document.getElementById('showStartDisclaimerBtn')?.addEventListener('click', () => openStartDisclaimer({ force: true }));
+    document.getElementById('floatingSaveOfflineBtn')?.addEventListener('click', (event) => {
       const button = event.currentTarget;
       button.disabled = true;
       button.querySelector('span:last-child').textContent = 'Guardando...';
       try {
+        saveDraftOffline();
+      } finally {
+        button.disabled = false;
+        button.querySelector('span:last-child').textContent = 'Guardar offline';
+      }
+    });
+
+    document.getElementById('floatingSaveOnlineBtn')?.addEventListener('click', async (event) => {
+      const button = event.currentTarget;
+      button.disabled = true;
+      button.querySelector('span:last-child').textContent = 'Revisando...';
+      try {
         await saveDraftAndSyncOnline();
       } finally {
         button.disabled = false;
-        button.querySelector('span:last-child').textContent = 'Guardar registro';
+        button.querySelector('span:last-child').textContent = 'Guardar online';
       }
     });
     document.getElementById('exportBtn').addEventListener('click', exportState);
-    document.getElementById('importFile').addEventListener('change', e => e.target.files[0] && importState(e.target.files[0]));
+    document.getElementById('importFile').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (file) importState(file);
+      e.target.value = '';
+    });
+    document.getElementById('newResourceBtn')?.addEventListener('click', startNewAttraction);
     document.getElementById('sampleBtn').addEventListener('click', loadSample);
-    document.getElementById('clearFormBtn')?.addEventListener('click', clearCurrentForm);
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
@@ -4503,6 +4703,7 @@
     updateUniqueIdDisplay();
     updateLastSyncDisplay();
     updateOnlineStatus();
+    openStartDisclaimer();
 
     const initialParams = new URLSearchParams(window.location.search);
     const initialEditId = initialParams.get('id_unico') || initialParams.get('edit') || initialParams.get('id') || '';
