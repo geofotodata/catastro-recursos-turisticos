@@ -4,21 +4,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard Catastro de Recursos Turísticos</title>
+  <title>Dashboard - Catastro Nacional de Recursos Turísticos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     :root { --bg:#f4f7fb; --panel:#fff; --line:#d8e0ec; --text:#14304a; --muted:#5c728a; --accent:#0f766e; --blue:#2563eb; --warn:#b45309; --shadow:0 10px 28px rgba(15,35,58,.08); --radius:14px; }
     * { box-sizing:border-box; }
     body { margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
     .shell { max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; }
-    .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); }
+    .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); overflow:hidden; }
     .topbar h1 { margin:6px 0 4px; font-size:1.55rem; line-height:1.2; }
     .topbar p { margin:0; color:rgba(255,255,255,.88); max-width:760px; }
     .kicker { display:inline-flex; width:fit-content; border-radius:999px; padding:5px 9px; background:rgba(255,255,255,.14); font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
-    .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-    button, .button { border:0; border-radius:10px; padding:10px 13px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; color:var(--text); background:#eef4ff; }
+    .actions { display:grid; gap:10px; justify-items:end; }
+    .action-group { display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; align-items:center; }
+    .action-label { width:100%; margin:0 0 -2px; color:rgba(255,255,255,.86); font-size:.76rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; text-align:right; }
+    button, .button { border:0; border-radius:10px; padding:10px 13px; min-height:42px; font-weight:800; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; color:var(--text); background:#eef4ff; }
     .primary { background:#fff; color:#0f3b4f; }
     .secondary { background:#dbeafe; color:#1d4ed8; }
+    .online { background:#1d4ed8; color:#fff; }
     .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
     .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
     .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-4 { grid-column:span 4; }
@@ -45,12 +48,20 @@
     .edit-link:hover { background:#bfdbfe; }
     .status.ok { background:#dcfce7; color:#166534; }
     .list { max-height:560px; overflow:auto; }
+    .table-scroll { width:100%; overflow:auto; border:1px solid var(--line); border-radius:12px; }
+    .table-scroll table { min-width:860px; }
+    .section-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
+    .section-head h2 { margin:0; }
+    .section-head p { margin:4px 0 0; }
+    .mobile-hint { display:none; color:var(--muted); font-size:.84rem; font-weight:700; }
+    .empty-row td { text-align:center; padding:18px; }
     .bar-row { display:grid; grid-template-columns:minmax(120px,1fr) 80px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #edf2f7; }
     .bar { height:10px; border-radius:999px; background:#e5edf7; overflow:hidden; margin-top:5px; }
     .bar-fill { height:100%; background:linear-gradient(90deg,#0f766e,#2563eb); border-radius:inherit; }
     .notice { border:1px solid #f7d889; background:#fff8e6; color:#7c4a03; border-radius:12px; padding:12px 14px; }
-    @media (max-width:1000px) { .grid { grid-template-columns:1fr; } .span-8,.span-4,.span-12 { grid-column:span 1; } .cards,.filters { grid-template-columns:1fr 1fr; } .filter-search { grid-column:1 / -1; } .topbar { flex-direction:column; } .actions { justify-content:flex-start; } }
-    @media (max-width:640px) { .shell { padding:12px; } .cards,.filters,.sort-controls { grid-template-columns:1fr; } .table-tools { align-items:stretch; } #map { height:420px; } .topbar h1 { font-size:1.28rem; } }
+    @media (max-width:1000px) { .grid { grid-template-columns:1fr; } .span-8,.span-4,.span-12 { grid-column:span 1; } .cards,.filters { grid-template-columns:1fr 1fr; } .filter-search { grid-column:1 / -1; } .topbar { flex-direction:column; } .actions { justify-items:stretch; width:100%; } .action-group { justify-content:flex-start; } .action-label { text-align:left; } #map { height:480px; } }
+    @media (max-width:760px) { .shell { padding:14px; gap:14px; } .panel { padding:14px; } .topbar { padding:16px; border-radius:12px; } .topbar h1 { font-size:1.32rem; } .topbar p { font-size:.92rem; } .cards { grid-template-columns:1fr 1fr; gap:10px; } .card { min-height:76px; padding:12px; } .card strong { font-size:1.26rem; } .filters,.sort-controls { grid-template-columns:1fr; } .table-tools { align-items:stretch; } .visible-count { width:100%; } #map { height:380px; } .action-group { display:grid; grid-template-columns:1fr 1fr; width:100%; } .action-label { grid-column:1 / -1; } .action-group .button, .action-group button { width:100%; } .mobile-hint { display:block; } .list { max-height:none; overflow:visible; } .table-scroll { overflow:visible; border:0; } .table-scroll table { min-width:0; } table, thead, tbody, tr, td { display:block; width:100%; } thead { display:none; } tbody { display:grid; gap:10px; } tr { border:1px solid var(--line); border-radius:12px; background:#fbfdff; padding:10px; } tr:hover td { background:transparent; } td { display:grid; grid-template-columns:112px 1fr; gap:10px; align-items:start; border-bottom:1px solid #edf2f7; padding:8px 2px; } td:last-child { border-bottom:0; } td::before { content:attr(data-label); color:#5c728a; font-size:.75rem; font-weight:900; text-transform:uppercase; letter-spacing:.04em; } .table-action { white-space:normal; } .edit-link { width:100%; min-height:38px; } }
+    @media (max-width:440px) { .shell { padding:10px; } .cards { grid-template-columns:1fr; } .action-group { grid-template-columns:1fr; } td { grid-template-columns:1fr; gap:4px; } #map { height:340px; } }
   </style>
 </head>
 <body>
@@ -61,11 +72,17 @@
         <h1>Catastro nacional de recursos turísticos</h1>
         <p>Resumen de registros por comuna, distribución territorial y mapa georreferenciado de recursos guardados en Google Sheet.</p>
       </div>
-      <div class="actions">
-        <a class="button primary" href="index.html">Volver al formulario</a>
-        <a class="button secondary" href="manual.html">Ver manual</a>
-        <button class="secondary" id="refreshBtn">Actualizar datos</button>
-      </div>
+      <nav class="actions" aria-label="Navegación del dashboard">
+        <div class="action-group" aria-label="Consulta">
+          <div class="action-label">Consulta</div>
+          <a class="button primary" href="index.html">Formulario</a>
+          <a class="button secondary" href="manual.html">Manual</a>
+        </div>
+        <div class="action-group" aria-label="Datos">
+          <div class="action-label">Datos</div>
+          <button class="online" id="refreshBtn">Actualizar datos</button>
+        </div>
+      </nav>
     </header>
 
     <section class="panel span-12">
@@ -99,8 +116,13 @@
     </section>
 
     <section class="panel span-12">
-      <h2>Tabla de registros</h2>
-      <p class="muted">Listado de recursos filtrados. Útil para revisar avance territorial y detectar registros sin coordenadas.</p>
+      <div class="section-head">
+        <div>
+          <h2>Tabla de registros</h2>
+          <p class="muted">Listado de recursos filtrados. Útil para revisar avance territorial y detectar registros sin coordenadas.</p>
+        </div>
+        <div class="mobile-hint">En móvil cada registro se muestra como tarjeta.</div>
+      </div>
       <div class="table-tools">
         <div class="sort-controls">
           <label>Ordenar por
@@ -122,7 +144,7 @@
         </div>
         <div class="visible-count" id="visibleCount">0 registros visibles</div>
       </div>
-      <div class="list">
+      <div class="list table-scroll">
         <table>
           <thead><tr><th>Recurso</th><th>Comuna</th><th>Categoría</th><th>ID único</th><th>Coordenadas</th><th>Actualización</th><th>Acción</th></tr></thead>
           <tbody id="recordsTable"><tr><td colspan="7" class="muted">Cargando datos...</td></tr></tbody>
@@ -333,13 +355,13 @@
     function renderTable() {
       const tbody = document.getElementById('recordsTable');
       if (els.visibleCount) els.visibleCount.textContent = filtered.length + (filtered.length === 1 ? ' registro visible' : ' registros visibles');
-      if (!filtered.length) { tbody.innerHTML = '<tr><td colspan="7" class="muted">Sin registros para los filtros seleccionados.</td></tr>'; return; }
+      if (!filtered.length) { tbody.innerHTML = '<tr class="empty-row"><td data-label="Estado" colspan="7" class="muted">Sin registros para los filtros seleccionados.</td></tr>'; return; }
       tbody.innerHTML = filtered.map(r => {
         const coords = r.hasGeo ? r.lat.toFixed(6) + ', ' + r.lng.toFixed(6) : '<span class="status">Sin punto</span>';
         const id = asText(r.id_unico);
         const editUrl = id ? 'index.html?id_unico=' + encodeURIComponent(id) : 'index.html';
         const action = id ? '<a class="edit-link" href="' + editUrl + '">Editar</a>' : '<span class="muted">Sin ID</span>';
-        return '<tr><td><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td>' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td>' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '</td><td><span class="muted">' + escapeHtml(id || 'Sin ID') + '</span></td><td>' + coords + '</td><td>' + escapeHtml(asText(r.fecha_actualizacion || r.fecha_sincronizacion || '')) + '</td><td class="table-action">' + action + '</td></tr>';
+        return '<tr><td data-label="Recurso"><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td data-label="Comuna">' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td data-label="Categoría">' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '</td><td data-label="ID único"><span class="muted">' + escapeHtml(id || 'Sin ID') + '</span></td><td data-label="Coordenadas">' + coords + '</td><td data-label="Actualización">' + escapeHtml(asText(r.fecha_actualizacion || r.fecha_sincronizacion || '')) + '</td><td data-label="Acción" class="table-action">' + action + '</td></tr>';
       }).join('');
     }
 
