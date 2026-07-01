@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -517,6 +516,20 @@
       display: grid;
       gap: 5px;
       font-size: 0.82rem;
+    }
+
+    .photo-card .photo-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: fit-content;
+      min-height: 36px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-weight: 800;
+      text-decoration: none;
     }
 
     .photo-dropzone {
@@ -3719,6 +3732,23 @@
       return type === 'image/jpeg' || extension === 'jpg' || extension === 'jpeg';
     }
 
+    function parseStoredPhotoLinks(value) {
+      const raw = String(value || '').trim();
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
+      } catch {
+        // En registros anteriores puede venir como texto separado por saltos de línea, comas o punto y coma.
+      }
+      return raw.split(/[\n,;]+/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function getStoredPhotoLinks() {
+      const links = parseStoredPhotoLinks(state.values.fotos_links);
+      return Array.from(new Set(links.filter(link => /^https?:\/\//i.test(link))));
+    }
+
     function handlePhotoUpload(event) {
       addPhotoFiles(event.target.files, event.target);
     }
@@ -3786,6 +3816,20 @@
         grid.appendChild(card);
       });
 
+      getStoredPhotoLinks().forEach((link, idx) => {
+        const card = document.createElement('div');
+        card.className = 'photo-card drive-photo';
+        card.innerHTML = `
+          <div class="coord-note">Foto respaldada en Google Drive.</div>
+          <div class="meta">
+            <strong>Foto Drive ${idx + 1}</strong>
+            <span>Archivo asociado al registro cargado.</span>
+            <a class="photo-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Abrir foto</a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+
       grid.querySelectorAll('[data-remove-photo]').forEach(btn => {
         btn.addEventListener('click', () => {
           const idx = Number(btn.dataset.removePhoto);
@@ -3802,8 +3846,7 @@
     function getStoredPhotoCount() {
       const count = Number(state.values.fotos_cantidad || 0);
       if (Number.isFinite(count) && count > 0) return count;
-      const links = String(state.values.fotos_links || '').split(/[\n,;]+/).map(item => item.trim()).filter(Boolean);
-      return links.length;
+      return getStoredPhotoLinks().length;
     }
 
     function updatePhotoStorageStatus() {
@@ -4773,14 +4816,15 @@
       return state.values.id_unico;
     }
 
-    function buildPhotoUploadPayload() {
+    function buildPhotoUploadPayload(photos = state.photos, options = {}) {
       if (!validateTerritoryBeforeSave()) {
         throw new Error('Falta completar Nombre del recurso, Región, Provincia y Comuna.');
       }
       const id = ensureUniqueId();
       const localTimestamp = applyLocalRecordTimestamps();
+      const selectedPhotos = Array.isArray(photos) ? photos : [];
       return {
-        action: 'uploadPhotos',
+        action: options.action || 'uploadPhotos',
         id_unico: id,
         values: {
           ...state.values,
@@ -4789,14 +4833,16 @@
           fecha_actualizacion: state.values.fecha_actualizacion,
           zona_horaria_usuario: state.values.zona_horaria_usuario
         },
-        photos: state.photos.map(photo => ({
+        photos: selectedPhotos.map(photo => ({
           name: photo.name,
           size: photo.size,
           type: photo.type || '',
           dataUrl: photo.dataUrl || ''
         })),
         uploadedAt: localTimestamp,
-        replaceExistingPhotos: true
+        photoIndex: Number.isFinite(options.photoIndex) ? options.photoIndex : null,
+        photoTotal: Number.isFinite(options.photoTotal) ? options.photoTotal : selectedPhotos.length,
+        replaceExistingPhotos: Boolean(options.replaceExistingPhotos)
       };
     }
 
@@ -4833,15 +4879,26 @@
         if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         setSyncStatus('Subiendo fotos...', 'busy');
 
-        const payload = buildPhotoUploadPayload();
-        setPhotoUploadProgress(35, 'Enviando solicitud a Google Drive...');
-        await submitPayloadToGoogleSheet(payload);
-        setPhotoUploadProgress(70, 'Solicitud enviada. Verificando enlaces en Google Sheet...');
+        const idForVerification = state.values.id_unico;
+        for (let index = 0; index < state.photos.length; index += 1) {
+          const photo = state.photos[index];
+          const progress = 15 + Math.round(((index + 1) / state.photos.length) * 60);
+          setPhotoUploadProgress(progress, `Subiendo foto ${index + 1} de ${state.photos.length} a Google Drive...`);
+          const payload = buildPhotoUploadPayload([photo], {
+            action: 'uploadPhoto',
+            photoIndex: index + 1,
+            photoTotal: state.photos.length,
+            replaceExistingPhotos: index === 0
+          });
+          await submitPayloadToGoogleSheet(payload);
+          await sleep(700);
+        }
+        setPhotoUploadProgress(80, 'Fotos enviadas. Verificando enlaces en Google Sheet...');
         await sleep(2500);
 
         let verifiedRecord = null;
         try {
-          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: payload.id_unico, t: Date.now() }));
+          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: idForVerification, t: Date.now() }));
           const data = await response.json();
           if (data.ok && data.record) verifiedRecord = data.record;
         } catch (verifyError) {
@@ -4859,7 +4916,7 @@
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
-        updatePhotoStorageStatus();
+        renderPhotos();
 
         if (verifiedRecord?.fotos_links || verifiedRecord?.fotos_carpeta_drive) {
           const folderLink = verifiedRecord.fotos_carpeta_drive
