@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Prototipo Catastro de Recursos TurÃ­sticos</title>
+  <title>Prototipo Catastro de Recursos Turísticos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     :root {
@@ -516,6 +517,71 @@
       display: grid;
       gap: 5px;
       font-size: 0.82rem;
+    }
+
+    .photo-dropzone {
+      margin-top: 10px;
+      padding: 18px;
+      border: 2px dashed #93c5fd;
+      border-radius: 14px;
+      background: #f8fbff;
+      color: #1e3a8a;
+      display: grid;
+      gap: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    }
+
+    .photo-dropzone strong {
+      font-size: 0.96rem;
+    }
+
+    .photo-dropzone span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .photo-dropzone.is-dragover {
+      border-color: #0f766e;
+      background: #ecfdf5;
+      transform: translateY(-1px);
+    }
+
+    .photo-upload-progress {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    .photo-upload-progress.show {
+      display: block;
+    }
+
+    .photo-upload-bar {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5edf7;
+    }
+
+    .photo-upload-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #2563eb);
+      transition: width .25s ease;
+    }
+
+    .photo-upload-label {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
     }
 
     .photo-storage-status {
@@ -1577,7 +1643,7 @@
       </div>
         <span class="sidebar-kicker">Panel de control</span>
         <div>
-          <h2 class="sidebar-title">Catastro Nacional de Recursos TurÃ­sticos</h2>
+          <h2 class="sidebar-title">Catastro Nacional de Recursos Turísticos</h2>
           <p class="small" style="margin-top:6px;">Guarda, revisa avance y navega el levantamiento.</p>
         </div>
       </div>
@@ -1601,7 +1667,7 @@
       <div class="record-summary-panel" id="recordSummaryPanel">
         <div class="summary-line"><span>Recurso</span><strong id="summaryNombre">Sin nombre</strong></div>
         <div class="summary-line"><span>Territorio</span><strong id="summaryTerritorio">Sin territorio</strong></div>
-        <div class="summary-line"><span>ClasificaciÃ³n</span><strong id="summaryClasificacion">Sin clasificaciÃ³n</strong></div>
+        <div class="summary-line"><span>Clasificación</span><strong id="summaryClasificacion">Sin clasificación</strong></div>
       </div>
 
       <div class="sidebar-section-title">Avance</div>
@@ -1611,10 +1677,10 @@
         <div class="progress-line"><span>Secciones completas</span><strong id="progressSections">0 / 17</strong></div>
       </div>
 
-      <div class="sidebar-section-title">SincronizaciÃ³n</div>
+      <div class="sidebar-section-title">Sincronización</div>
       <div class="sync-panel" id="syncPanel">
         <div class="sync-row">
-          <span class="small">ID Ãºnico</span>
+          <span class="small">ID único</span>
           <span class="sync-value mono" id="uniqueIdDisplay">Pendiente</span>
         </div>
         <div class="sync-row">
@@ -1622,8 +1688,8 @@
           <span class="sync-status warn" id="syncStatusDisplay">No sincronizado</span>
         </div>
         <div class="sync-row">
-          <span class="small">Ãšltima sincronizaciÃ³n</span>
-          <span class="sync-value" id="lastSyncDisplay">â€”</span>
+          <span class="small">Última sincronización</span>
+          <span class="sync-value" id="lastSyncDisplay">—</span>
         </div>
         <div class="id-actions">
           <button type="button" class="secondary" id="copyUniqueIdBtn">Copiar ID</button>
@@ -1636,31 +1702,31 @@
         </div>
       </div>
 
-      <div class="sidebar-section-title">NavegaciÃ³n</div>
+      <div class="sidebar-section-title">Navegación</div>
       <button type="button" class="mobile-nav-toggle" id="mobileNavToggle">Ver secciones</button>
       <div class="navlist" id="sectionNav"></div>
 
       <details class="footer-note">
         <summary>Funciones disponibles</summary>
         <div>
-          â€¢ guardado automÃ¡tico local<br>
-          â€¢ recuperaciÃ³n y actualizaciÃ³n mediante ID Ãºnico<br>
-          â€¢ respaldo online en Google Sheet<br>
-          â€¢ carga de fotografÃ­as asociadas al recurso<br>
-          â€¢ revisiÃ³n previa antes de guardar<br>
-          â€¢ exportaciÃ³n de ficha en PDF
+          • guardado automático local<br>
+          • recuperación y actualización mediante ID único<br>
+          • respaldo online en Google Sheet<br>
+          • carga de fotografías asociadas al recurso<br>
+          • revisión previa antes de guardar<br>
+          • exportación de ficha en PDF
         </div>
       </details>
     </aside>
 
     <main>
-      <div id="offlineBanner" class="banner">EstÃ¡s trabajando sin conexiÃ³n. Puedes seguir editando y guardar localmente. El mapa y la bÃºsqueda pueden no estar disponibles.</div>
+      <div id="offlineBanner" class="banner">Estás trabajando sin conexión. Puedes seguir editando y guardar localmente. El mapa y la búsqueda pueden no estar disponibles.</div>
 
       <section class="hero hero-compact">
         <div class="hero-main">
           <span class="sidebar-kicker">Formulario digital</span>
-          <h1>Catastro nacional de recursos turÃ­sticos</h1>
-          <p class="muted">Levantamiento, revisiÃ³n, guardado y actualizaciÃ³n de recursos turÃ­sticos con ID Ãºnico, mapa y respaldo online.</p>
+          <h1>Catastro nacional de recursos turísticos</h1>
+          <p class="muted">Levantamiento, revisión, guardado y actualización de recursos turísticos con ID único, mapa y respaldo online.</p>
         </div>
         <div class="hero-actions-wrap">
           <div class="hero-action-group" aria-label="Formulario">
@@ -1676,7 +1742,7 @@
             <input id="importFile" type="file" accept="application/json" hidden>
           </div>
           <details class="hero-more-actions">
-            <summary>MÃ¡s acciones</summary>
+            <summary>Más acciones</summary>
             <div class="toolbar">
               <button class="ghost" id="showStartDisclaimerBtn">Ver aviso inicial</button>
               <button class="ghost" id="sampleBtn">Cargar ejemplo</button>
@@ -1690,7 +1756,7 @@
           <header style="display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px;">
             <div>
               <h2>Chequeo de admisibilidad</h2>
-              <p class="small">Se evalÃºan los mÃ­nimos seÃ±alados por el manual antes de continuar.</p>
+              <p class="small">Se evalúan los mínimos señalados por el manual antes de continuar.</p>
             </div>
             <span id="admissibilityBadge" class="pill warn">Pendiente</span>
           </header>
@@ -1732,14 +1798,14 @@
     </section>
   </template>
 
-  <button type="button" class="floating-index" id="floatingIndexBtn" title="Ver Ã­ndice de secciones">
-    <span aria-hidden="true">â˜°</span>
+  <button type="button" class="floating-index" id="floatingIndexBtn" title="Ver índice de secciones">
+    <span aria-hidden="true">☰</span>
     <span>Secciones</span>
   </button>
 
-  <div class="floating-index-panel" id="floatingIndexPanel" aria-label="Ãndice de secciones">
+  <div class="floating-index-panel" id="floatingIndexPanel" aria-label="Índice de secciones">
     <div class="floating-index-title">
-      <span>Ir a secciÃ³n</span>
+      <span>Ir a sección</span>
       <button type="button" class="ghost" id="closeFloatingIndexBtn">Cerrar</button>
     </div>
     <div class="floating-index-list" id="floatingSectionNav"></div>
@@ -1748,11 +1814,11 @@
   <div class="start-disclaimer-overlay" id="startDisclaimerOverlay" aria-hidden="true">
     <div class="start-disclaimer-dialog" role="dialog" aria-modal="true" aria-labelledby="startDisclaimerTitle">
       <span class="sidebar-kicker">Antes de iniciar</span>
-      <h2 id="startDisclaimerTitle">Levantamiento guiado del recurso turÃ­stico</h2>
-      <p>Este formulario permite levantar, revisar y actualizar informaciÃ³n de cada recurso turÃ­stico. Puedes trabajar offline en terreno y sincronizar online cuando tengas conexiÃ³n.</p>
+      <h2 id="startDisclaimerTitle">Levantamiento guiado del recurso turístico</h2>
+      <p>Este formulario permite levantar, revisar y actualizar información de cada recurso turístico. Puedes trabajar offline en terreno y sincronizar online cuando tengas conexión.</p>
       <div class="start-disclaimer-steps">
-        <div class="start-disclaimer-step"><strong>1. Identifica</strong><span class="small">Nombre, territorio y punto geogrÃ¡fico.</span></div>
-        <div class="start-disclaimer-step"><strong>2. Completa</strong><span class="small">ClasificaciÃ³n, operaciÃ³n, servicios y antecedentes.</span></div>
+        <div class="start-disclaimer-step"><strong>1. Identifica</strong><span class="small">Nombre, territorio y punto geográfico.</span></div>
+        <div class="start-disclaimer-step"><strong>2. Completa</strong><span class="small">Clasificación, operación, servicios y antecedentes.</span></div>
         <div class="start-disclaimer-step"><strong>3. Respalda</strong><span class="small">Guarda offline o sincroniza en Google Sheet.</span></div>
       </div>
       <div class="start-disclaimer-note"><strong>Importante:</strong> Guardar offline conserva el borrador solo en este navegador. Para respaldo institucional, usa Guardar online y verifica el registro en Google Sheet.</div>
@@ -1766,7 +1832,7 @@
     <div class="review-dialog" role="dialog" aria-modal="true" aria-labelledby="saveReviewTitle">
       <div class="review-head">
         <div>
-          <h2 id="saveReviewTitle">RevisiÃ³n antes de guardar</h2>
+          <h2 id="saveReviewTitle">Revisión antes de guardar</h2>
           <p class="small">Confirma los datos principales antes de enviarlos a Google Sheet.</p>
         </div>
         <button type="button" class="ghost" id="closeSaveReviewBtn">Cerrar</button>
@@ -1779,13 +1845,13 @@
     </div>
   </div>
 
-  <div class="floating-save-group" aria-label="Acciones rÃ¡pidas de guardado">
+  <div class="floating-save-group" aria-label="Acciones rápidas de guardado">
     <button type="button" class="floating-save offline" id="floatingSaveOfflineBtn" title="Guardar borrador local en este navegador">
       <span class="icon">+</span>
       <span>Guardar offline</span>
     </button>
     <button type="button" class="floating-save online" id="floatingSaveOnlineBtn" title="Guardar y sincronizar con Google Sheet">
-      <span class="icon">â†‘</span>
+      <span class="icon">↑</span>
       <span>Guardar online</span>
     </button>
   </div>
@@ -1796,72 +1862,74 @@
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
     const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
-    const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+    const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+    const ACCEPTED_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'heic', 'heif'];
+    const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/heic', 'image/heif'];
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
     const COMMUNAL_CAPITAL_CACHE_KEY = 'catastro_communal_capital_coords_v1';
     const REGIONAL_CAPITAL_COORDS = {
-      'RegiÃ³n de Arica y Parinacota': { lat: -18.478253, lng: -70.312599, name: 'Arica' },
-      'RegiÃ³n de TarapacÃ¡': { lat: -20.213262, lng: -70.150268, name: 'Iquique' },
-      'RegiÃ³n de Antofagasta': { lat: -23.650928, lng: -70.397502, name: 'Antofagasta' },
-      'RegiÃ³n de Atacama': { lat: -27.366793, lng: -70.331398, name: 'CopiapÃ³' },
-      'RegiÃ³n de Coquimbo': { lat: -29.902669, lng: -71.251937, name: 'La Serena' },
-      'RegiÃ³n de ValparaÃ­so': { lat: -33.047238, lng: -71.612688, name: 'ValparaÃ­so' },
-      'RegiÃ³n Metropolitana de Santiago': { lat: -33.448891, lng: -70.669266, name: 'Santiago' },
-      "RegiÃ³n del Libertador General Bernardo O'Higgins": { lat: -34.170132, lng: -70.740625, name: 'Rancagua' },
-      'RegiÃ³n del Maule': { lat: -35.426400, lng: -71.655420, name: 'Talca' },
-      'RegiÃ³n de Ã‘uble': { lat: -36.606261, lng: -72.103440, name: 'ChillÃ¡n' },
-      'RegiÃ³n del BiobÃ­o': { lat: -36.826992, lng: -73.049774, name: 'ConcepciÃ³n' },
-      'RegiÃ³n de La AraucanÃ­a': { lat: -38.735902, lng: -72.590374, name: 'Temuco' },
-      'RegiÃ³n de Los RÃ­os': { lat: -39.814224, lng: -73.245891, name: 'Valdivia' },
-      'RegiÃ³n de Los Lagos': { lat: -41.471812, lng: -72.939621, name: 'Puerto Montt' },
-      'RegiÃ³n de AysÃ©n del General Carlos IbÃ¡Ã±ez del Campo': { lat: -45.571225, lng: -72.068266, name: 'Coyhaique' },
-      'RegiÃ³n de Magallanes y de la AntÃ¡rtica Chilena': { lat: -53.163833, lng: -70.917068, name: 'Punta Arenas' }
+      'Región de Arica y Parinacota': { lat: -18.478253, lng: -70.312599, name: 'Arica' },
+      'Región de Tarapacá': { lat: -20.213262, lng: -70.150268, name: 'Iquique' },
+      'Región de Antofagasta': { lat: -23.650928, lng: -70.397502, name: 'Antofagasta' },
+      'Región de Atacama': { lat: -27.366793, lng: -70.331398, name: 'Copiapó' },
+      'Región de Coquimbo': { lat: -29.902669, lng: -71.251937, name: 'La Serena' },
+      'Región de Valparaíso': { lat: -33.047238, lng: -71.612688, name: 'Valparaíso' },
+      'Región Metropolitana de Santiago': { lat: -33.448891, lng: -70.669266, name: 'Santiago' },
+      "Región del Libertador General Bernardo O'Higgins": { lat: -34.170132, lng: -70.740625, name: 'Rancagua' },
+      'Región del Maule': { lat: -35.426400, lng: -71.655420, name: 'Talca' },
+      'Región de Ñuble': { lat: -36.606261, lng: -72.103440, name: 'Chillán' },
+      'Región del Biobío': { lat: -36.826992, lng: -73.049774, name: 'Concepción' },
+      'Región de La Araucanía': { lat: -38.735902, lng: -72.590374, name: 'Temuco' },
+      'Región de Los Ríos': { lat: -39.814224, lng: -73.245891, name: 'Valdivia' },
+      'Región de Los Lagos': { lat: -41.471812, lng: -72.939621, name: 'Puerto Montt' },
+      'Región de Aysén del General Carlos Ibáñez del Campo': { lat: -45.571225, lng: -72.068266, name: 'Coyhaique' },
+      'Región de Magallanes y de la Antártica Chilena': { lat: -53.163833, lng: -70.917068, name: 'Punta Arenas' }
     };
     let storageWarningShown = false;
 
 
     const REGION_CODES = {
-      'RegiÃ³n de Arica y Parinacota': '15',
-      'RegiÃ³n de TarapacÃ¡': '01',
-      'RegiÃ³n de Antofagasta': '02',
-      'RegiÃ³n de Atacama': '03',
-      'RegiÃ³n de Coquimbo': '04',
-      'RegiÃ³n de ValparaÃ­so': '05',
-      'RegiÃ³n Metropolitana de Santiago': '13',
-      "RegiÃ³n del Libertador General Bernardo O'Higgins": '06',
-      'RegiÃ³n del Maule': '07',
-      'RegiÃ³n de Ã‘uble': '16',
-      'RegiÃ³n del BiobÃ­o': '08',
-      'RegiÃ³n de La AraucanÃ­a': '09',
-      'RegiÃ³n de Los RÃ­os': '14',
-      'RegiÃ³n de Los Lagos': '10',
-      'RegiÃ³n de AysÃ©n del General Carlos IbÃ¡Ã±ez del Campo': '11',
-      'RegiÃ³n de Magallanes y de la AntÃ¡rtica Chilena': '12'
+      'Región de Arica y Parinacota': '15',
+      'Región de Tarapacá': '01',
+      'Región de Antofagasta': '02',
+      'Región de Atacama': '03',
+      'Región de Coquimbo': '04',
+      'Región de Valparaíso': '05',
+      'Región Metropolitana de Santiago': '13',
+      "Región del Libertador General Bernardo O'Higgins": '06',
+      'Región del Maule': '07',
+      'Región de Ñuble': '16',
+      'Región del Biobío': '08',
+      'Región de La Araucanía': '09',
+      'Región de Los Ríos': '14',
+      'Región de Los Lagos': '10',
+      'Región de Aysén del General Carlos Ibáñez del Campo': '11',
+      'Región de Magallanes y de la Antártica Chilena': '12'
     };
 
-    const CHILE_TERRITORY = [{"nombre":"RegiÃ³n de Arica y Parinacota","provincias":[{"nombre":"Arica","comunas":["Arica","Camarones"]},{"nombre":"Parinacota","comunas":["Putre","General Lagos"]}]},{"nombre":"RegiÃ³n de TarapacÃ¡","provincias":[{"nombre":"Iquique","comunas":["Iquique","Alto Hospicio"]},{"nombre":"Del Tamarugal","comunas":["Pozo Almonte","CamiÃ±a","Colchane","Huara","Pica"]}]},{"nombre":"RegiÃ³n de Antofagasta","provincias":[{"nombre":"Antofagasta","comunas":["Antofagasta","Mejillones","Sierra Gorda","Taltal"]},{"nombre":"El Loa","comunas":["Calama","OllagÃ¼e","San Pedro de Atacama"]},{"nombre":"Tocopilla","comunas":["Tocopilla","MarÃ­a Elena"]}]},{"nombre":"RegiÃ³n de Atacama","provincias":[{"nombre":"CopiapÃ³","comunas":["CopiapÃ³","Caldera","Tierra Amarilla"]},{"nombre":"ChaÃ±aral","comunas":["ChaÃ±aral","Diego de Almagro"]},{"nombre":"Huasco","comunas":["Vallenar","Alto del Carmen","Freirina","Huasco"]}]},{"nombre":"RegiÃ³n de Coquimbo","provincias":[{"nombre":"Elqui","comunas":["La Serena","Coquimbo","Andacollo","La Higuera","Paihuano","VicuÃ±a"]},{"nombre":"Choapa","comunas":["Illapel","Canela","Los Vilos","Salamanca"]},{"nombre":"LimarÃ­","comunas":["Ovalle","CombarbalÃ¡","Monte Patria","Punitaqui","RÃ­o Hurtado"]}]},{"nombre":"RegiÃ³n de ValparaÃ­so","provincias":[{"nombre":"ValparaÃ­so","comunas":["ValparaÃ­so","Casablanca","ConcÃ³n","Juan FernÃ¡ndez","PuchuncavÃ­","Quintero","ViÃ±a del Mar"]},{"nombre":"Isla de Pascua","comunas":["Isla de Pascua"]},{"nombre":"Los Andes","comunas":["Los Andes","Calle Larga","Rinconada","San Esteban"]},{"nombre":"Petorca","comunas":["La Ligua","Cabildo","Papudo","Petorca","Zapallar"]},{"nombre":"Quillota","comunas":["Quillota","La Calera","Hijuelas","La Cruz","Nogales"]},{"nombre":"San Antonio","comunas":["San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo"]},{"nombre":"San Felipe de Aconcagua","comunas":["San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa MarÃ­a"]},{"nombre":"Marga Marga","comunas":["QuilpuÃ©","Limache","OlmuÃ©","Villa Alemana"]}]},{"nombre":"RegiÃ³n Metropolitana de Santiago","provincias":[{"nombre":"Santiago","comunas":["Santiago","Cerrillos","Cerro Navia","ConchalÃ­","El Bosque","EstaciÃ³n Central","Huechuraba","Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","MaipÃº","Ã‘uÃ±oa","Pedro Aguirre Cerda","PeÃ±alolÃ©n","Providencia","Pudahuel","Quilicura","Quinta Normal","Recoleta","Renca","San JoaquÃ­n","San Miguel","San RamÃ³n","Vitacura"]},{"nombre":"Cordillera","comunas":["Puente Alto","Pirque","San JosÃ© de Maipo"]},{"nombre":"Chacabuco","comunas":["Colina","Lampa","Tiltil"]},{"nombre":"Maipo","comunas":["San Bernardo","Buin","Calera de Tango","Paine"]},{"nombre":"Melipilla","comunas":["Melipilla","AlhuÃ©","CuracavÃ­","MarÃ­a Pinto","San Pedro"]},{"nombre":"Talagante","comunas":["Talagante","El Monte","Isla de Maipo","Padre Hurtado","PeÃ±aflor"]}]},{"nombre":"RegiÃ³n del Libertador General Bernardo O'Higgins","provincias":[{"nombre":"Cachapoal","comunas":["Rancagua","Codegua","Coinco","Coltauco","DoÃ±ihue","Graneros","Las Cabras","MachalÃ­","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","RequÃ­noa","San Vicente"]},{"nombre":"Cardenal Caro","comunas":["Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones"]},{"nombre":"Colchagua","comunas":["San Fernando","ChÃ©pica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"]}]},{"nombre":"RegiÃ³n del Maule","provincias":[{"nombre":"Talca","comunas":["Talca","ConstituciÃ³n","Curepto","Empedrado","Maule","Pelarco","Pencahue","RÃ­o Claro","San Clemente","San Rafael"]},{"nombre":"Cauquenes","comunas":["Cauquenes","Chanco","Pelluhue"]},{"nombre":"CuricÃ³","comunas":["CuricÃ³","HualaÃ±Ã©","LicantÃ©n","Molina","Rauco","Romeral","Sagrada Familia","Teno","VichuquÃ©n"]},{"nombre":"Linares","comunas":["Linares","ColbÃºn","LongavÃ­","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"]}]},{"nombre":"RegiÃ³n de Ã‘uble","provincias":[{"nombre":"DiguillÃ­n","comunas":["Bulnes","ChillÃ¡n","ChillÃ¡n Viejo","El Carmen","Pemuco","Pinto","QuillÃ³n","San Ignacio","Yungay"]},{"nombre":"Itata","comunas":["Cobquecura","Coelemu","Ninhue","Portezuelo","Quirihue","RÃ¡nquil","Treguaco"]},{"nombre":"Punilla","comunas":["Coihueco","Ã‘iquÃ©n","San Carlos","San FabiÃ¡n","San NicolÃ¡s"]}]},{"nombre":"RegiÃ³n del BiobÃ­o","provincias":[{"nombre":"ConcepciÃ³n","comunas":["ConcepciÃ³n","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","TomÃ©","HualpÃ©n"]},{"nombre":"Arauco","comunas":["Lebu","Arauco","CaÃ±ete","Contulmo","Curanilahue","Los Ãlamos","TirÃºa"]},{"nombre":"BiobÃ­o","comunas":["Los Ãngeles","Antuco","Cabrero","Laja","MulchÃ©n","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa BÃ¡rbara","Tucapel","Yumbel","Alto BiobÃ­o"]}]},{"nombre":"RegiÃ³n de La AraucanÃ­a","provincias":[{"nombre":"CautÃ­n","comunas":["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","PitrufquÃ©n","PucÃ³n","Saavedra","Teodoro Schmidt","ToltÃ©n","VilcÃºn","Villarrica","Cholchol"]},{"nombre":"Malleco","comunas":["Angol","Collipulli","CuracautÃ­n","Ercilla","Lonquimay","Los Sauces","Lumaco","PurÃ©n","Renaico","TraiguÃ©n","Victoria"]}]},{"nombre":"RegiÃ³n de Los RÃ­os","provincias":[{"nombre":"Valdivia","comunas":["Valdivia","Corral","Lanco","Los Lagos","MÃ¡fil","Mariquina","Paillaco","Panguipulli"]},{"nombre":"Ranco","comunas":["La UniÃ³n","Futrono","Lago Ranco","RÃ­o Bueno"]}]},{"nombre":"RegiÃ³n de Los Lagos","provincias":[{"nombre":"Llanquihue","comunas":["Puerto Montt","Calbuco","CochamÃ³","Fresia","Frutillar","Los Muermos","Llanquihue","MaullÃ­n","Puerto Varas"]},{"nombre":"ChiloÃ©","comunas":["Castro","Ancud","Chonchi","Curaco de VÃ©lez","Dalcahue","PuqueldÃ³n","QueilÃ©n","QuellÃ³n","Quemchi","Quinchao"]},{"nombre":"Osorno","comunas":["Osorno","Puerto Octay","Purranque","Puyehue","RÃ­o Negro","San Juan de la Costa","San Pablo"]},{"nombre":"Palena","comunas":["ChaitÃ©n","FutaleufÃº","HualaihuÃ©","Palena"]}]},{"nombre":"RegiÃ³n de AysÃ©n del General Carlos IbÃ¡Ã±ez del Campo","provincias":[{"nombre":"Coyhaique","comunas":["Coyhaique","Lago Verde"]},{"nombre":"AysÃ©n","comunas":["AysÃ©n","Cisnes","Guaitecas"]},{"nombre":"CapitÃ¡n Pratt","comunas":["Cochrane","Oâ€™Higgins","Tortel"]},{"nombre":"General Carrera","comunas":["Chile Chico","RÃ­o IbÃ¡Ã±ez"]}]},{"nombre":"RegiÃ³n de Magallanes y de la AntÃ¡rtica Chilena","provincias":[{"nombre":"Magallanes","comunas":["Punta Arenas","Laguna Blanca","RÃ­o Verde","San Gregorio"]},{"nombre":"AntÃ¡rtica Chilena","comunas":["Cabo de Hornos","AntÃ¡rtica"]},{"nombre":"Tierra del Fuego","comunas":["Porvenir","Primavera","Timaukel"]},{"nombre":"Ãšltima Esperanza","comunas":["Natales","Torres del Paine"]}]}];
+    const CHILE_TERRITORY = [{"nombre":"Región de Arica y Parinacota","provincias":[{"nombre":"Arica","comunas":["Arica","Camarones"]},{"nombre":"Parinacota","comunas":["Putre","General Lagos"]}]},{"nombre":"Región de Tarapacá","provincias":[{"nombre":"Iquique","comunas":["Iquique","Alto Hospicio"]},{"nombre":"Del Tamarugal","comunas":["Pozo Almonte","Camiña","Colchane","Huara","Pica"]}]},{"nombre":"Región de Antofagasta","provincias":[{"nombre":"Antofagasta","comunas":["Antofagasta","Mejillones","Sierra Gorda","Taltal"]},{"nombre":"El Loa","comunas":["Calama","Ollagüe","San Pedro de Atacama"]},{"nombre":"Tocopilla","comunas":["Tocopilla","María Elena"]}]},{"nombre":"Región de Atacama","provincias":[{"nombre":"Copiapó","comunas":["Copiapó","Caldera","Tierra Amarilla"]},{"nombre":"Chañaral","comunas":["Chañaral","Diego de Almagro"]},{"nombre":"Huasco","comunas":["Vallenar","Alto del Carmen","Freirina","Huasco"]}]},{"nombre":"Región de Coquimbo","provincias":[{"nombre":"Elqui","comunas":["La Serena","Coquimbo","Andacollo","La Higuera","Paihuano","Vicuña"]},{"nombre":"Choapa","comunas":["Illapel","Canela","Los Vilos","Salamanca"]},{"nombre":"Limarí","comunas":["Ovalle","Combarbalá","Monte Patria","Punitaqui","Río Hurtado"]}]},{"nombre":"Región de Valparaíso","provincias":[{"nombre":"Valparaíso","comunas":["Valparaíso","Casablanca","Concón","Juan Fernández","Puchuncaví","Quintero","Viña del Mar"]},{"nombre":"Isla de Pascua","comunas":["Isla de Pascua"]},{"nombre":"Los Andes","comunas":["Los Andes","Calle Larga","Rinconada","San Esteban"]},{"nombre":"Petorca","comunas":["La Ligua","Cabildo","Papudo","Petorca","Zapallar"]},{"nombre":"Quillota","comunas":["Quillota","La Calera","Hijuelas","La Cruz","Nogales"]},{"nombre":"San Antonio","comunas":["San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo"]},{"nombre":"San Felipe de Aconcagua","comunas":["San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa María"]},{"nombre":"Marga Marga","comunas":["Quilpué","Limache","Olmué","Villa Alemana"]}]},{"nombre":"Región Metropolitana de Santiago","provincias":[{"nombre":"Santiago","comunas":["Santiago","Cerrillos","Cerro Navia","Conchalí","El Bosque","Estación Central","Huechuraba","Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","Ñuñoa","Pedro Aguirre Cerda","Peñalolén","Providencia","Pudahuel","Quilicura","Quinta Normal","Recoleta","Renca","San Joaquín","San Miguel","San Ramón","Vitacura"]},{"nombre":"Cordillera","comunas":["Puente Alto","Pirque","San José de Maipo"]},{"nombre":"Chacabuco","comunas":["Colina","Lampa","Tiltil"]},{"nombre":"Maipo","comunas":["San Bernardo","Buin","Calera de Tango","Paine"]},{"nombre":"Melipilla","comunas":["Melipilla","Alhué","Curacaví","María Pinto","San Pedro"]},{"nombre":"Talagante","comunas":["Talagante","El Monte","Isla de Maipo","Padre Hurtado","Peñaflor"]}]},{"nombre":"Región del Libertador General Bernardo O'Higgins","provincias":[{"nombre":"Cachapoal","comunas":["Rancagua","Codegua","Coinco","Coltauco","Doñihue","Graneros","Las Cabras","Machalí","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","Requínoa","San Vicente"]},{"nombre":"Cardenal Caro","comunas":["Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones"]},{"nombre":"Colchagua","comunas":["San Fernando","Chépica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"]}]},{"nombre":"Región del Maule","provincias":[{"nombre":"Talca","comunas":["Talca","Constitución","Curepto","Empedrado","Maule","Pelarco","Pencahue","Río Claro","San Clemente","San Rafael"]},{"nombre":"Cauquenes","comunas":["Cauquenes","Chanco","Pelluhue"]},{"nombre":"Curicó","comunas":["Curicó","Hualañé","Licantén","Molina","Rauco","Romeral","Sagrada Familia","Teno","Vichuquén"]},{"nombre":"Linares","comunas":["Linares","Colbún","Longaví","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"]}]},{"nombre":"Región de Ñuble","provincias":[{"nombre":"Diguillín","comunas":["Bulnes","Chillán","Chillán Viejo","El Carmen","Pemuco","Pinto","Quillón","San Ignacio","Yungay"]},{"nombre":"Itata","comunas":["Cobquecura","Coelemu","Ninhue","Portezuelo","Quirihue","Ránquil","Treguaco"]},{"nombre":"Punilla","comunas":["Coihueco","Ñiquén","San Carlos","San Fabián","San Nicolás"]}]},{"nombre":"Región del Biobío","provincias":[{"nombre":"Concepción","comunas":["Concepción","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","Tomé","Hualpén"]},{"nombre":"Arauco","comunas":["Lebu","Arauco","Cañete","Contulmo","Curanilahue","Los Álamos","Tirúa"]},{"nombre":"Biobío","comunas":["Los Ángeles","Antuco","Cabrero","Laja","Mulchén","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa Bárbara","Tucapel","Yumbel","Alto Biobío"]}]},{"nombre":"Región de La Araucanía","provincias":[{"nombre":"Cautín","comunas":["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Saavedra","Teodoro Schmidt","Toltén","Vilcún","Villarrica","Cholchol"]},{"nombre":"Malleco","comunas":["Angol","Collipulli","Curacautín","Ercilla","Lonquimay","Los Sauces","Lumaco","Purén","Renaico","Traiguén","Victoria"]}]},{"nombre":"Región de Los Ríos","provincias":[{"nombre":"Valdivia","comunas":["Valdivia","Corral","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli"]},{"nombre":"Ranco","comunas":["La Unión","Futrono","Lago Ranco","Río Bueno"]}]},{"nombre":"Región de Los Lagos","provincias":[{"nombre":"Llanquihue","comunas":["Puerto Montt","Calbuco","Cochamó","Fresia","Frutillar","Los Muermos","Llanquihue","Maullín","Puerto Varas"]},{"nombre":"Chiloé","comunas":["Castro","Ancud","Chonchi","Curaco de Vélez","Dalcahue","Puqueldón","Queilén","Quellón","Quemchi","Quinchao"]},{"nombre":"Osorno","comunas":["Osorno","Puerto Octay","Purranque","Puyehue","Río Negro","San Juan de la Costa","San Pablo"]},{"nombre":"Palena","comunas":["Chaitén","Futaleufú","Hualaihué","Palena"]}]},{"nombre":"Región de Aysén del General Carlos Ibáñez del Campo","provincias":[{"nombre":"Coyhaique","comunas":["Coyhaique","Lago Verde"]},{"nombre":"Aysén","comunas":["Aysén","Cisnes","Guaitecas"]},{"nombre":"Capitán Pratt","comunas":["Cochrane","O’Higgins","Tortel"]},{"nombre":"General Carrera","comunas":["Chile Chico","Río Ibáñez"]}]},{"nombre":"Región de Magallanes y de la Antártica Chilena","provincias":[{"nombre":"Magallanes","comunas":["Punta Arenas","Laguna Blanca","Río Verde","San Gregorio"]},{"nombre":"Antártica Chilena","comunas":["Cabo de Hornos","Antártica"]},{"nombre":"Tierra del Fuego","comunas":["Porvenir","Primavera","Timaukel"]},{"nombre":"Última Esperanza","comunas":["Natales","Torres del Paine"]}]}];
 
     
 
     const CLASSIFICATION_HIERARCHY = {
       'Recurso Natural': {
-        'Ãrea protegida': ['Ãreas de conservaciÃ³n de mÃºltiples usos', 'Ãreas de conservaciÃ³n de pueblos indÃ­genas', 'Ãrea protegida privada', 'Monumento Natural', 'Parque Nacional', 'Reserva Nacional'],
-        'Costa': ['Acantilado o farellÃ³n', 'Arrecife', 'BahÃ­a', 'Desembocadura', 'Duna o campo dunario', 'Estrecho', 'Fiordo o canal', 'Isla o archipiÃ©lago', 'PenÃ­nsula, cabo o punta', 'Playa o balneario', 'Salina', 'Seno o ensenada'],
-        'CondiciÃ³n natural especial': ['Cielos oscuros', 'Olas'],
-        'Cuerpo y curso de agua': ['Cascada o salto', 'Humedal o bofedal', 'Lago o laguna', 'RÃ­o o estero'],
-        'Fuente termal o gÃ©iser': ['Fuente o centro termal', 'GÃ©iser'],
+        'Área protegida': ['Áreas de conservación de múltiples usos', 'Áreas de conservación de pueblos indígenas', 'Área protegida privada', 'Monumento Natural', 'Parque Nacional', 'Reserva Nacional'],
+        'Costa': ['Acantilado o farellón', 'Arrecife', 'Bahía', 'Desembocadura', 'Duna o campo dunario', 'Estrecho', 'Fiordo o canal', 'Isla o archipiélago', 'Península, cabo o punta', 'Playa o balneario', 'Salina', 'Seno o ensenada'],
+        'Condición natural especial': ['Cielos oscuros', 'Olas'],
+        'Cuerpo y curso de agua': ['Cascada o salto', 'Humedal o bofedal', 'Lago o laguna', 'Río o estero'],
+        'Fuente termal o géiser': ['Fuente o centro termal', 'Géiser'],
         'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciar'],
-        'Lugar de interÃ©s geolÃ³gico o paleontolÃ³gico': ['Lugar de interÃ©s geolÃ³gico', 'Lugar de interÃ©s paleontolÃ³gico'],
-        'MontaÃ±a': ['Altiplano', 'Ãrea nevada', 'Cerro', 'Cordillera', 'MontaÃ±a', 'Quebrada', 'Salar', 'VolcÃ¡n'],
+        'Lugar de interés geológico o paleontológico': ['Lugar de interés geológico', 'Lugar de interés paleontológico'],
+        'Montaña': ['Altiplano', 'Área nevada', 'Cerro', 'Cordillera', 'Montaña', 'Quebrada', 'Salar', 'Volcán'],
         'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa o Llanura', 'Valle']
       },
       'Recurso Cultural': {
-        'Acontecimientos programados': ['Carnaval o fiesta costumbrista', 'Conmemoraciones o representaciones histÃ³ricas', 'Convenciones, ferias, exposiciones o congresos', 'Evento de mÃºsica, canto o danza', 'Evento deportivo', 'Evento enolÃ³gico y/o gastronÃ³mico', 'Feria temÃ¡tica', 'Festival de cine', 'Fiesta religiosa'],
-        'Arquitectura': ['Barrios', 'Espacios pÃºblicos', 'Infraestructura recreativa', 'Monumento histÃ³rico', 'Obra de ingenierÃ­a', 'Otras infraestructuras de arquitectura'],
-        'Folklore': ['ArtesanÃ­a', 'Feria artesanal y/o tradicional', 'Mercado tradicional', 'Representaciones y/o manifestaciones religiosas o creencias populares'],
-        'ManifestaciÃ³n Cultural': ['Caleta artesanal', 'Escultura o instalaciones', 'Lugar o sitio histÃ³rico o de memoria', 'Mural o arte urbano', 'Museo', 'Pueblo o Zona TÃ­pica o Pintoresca', 'Sala de exposiciÃ³n museogrÃ¡fica', 'Ruina o lugar de interÃ©s arqueolÃ³gico'],
-        'Realizaciones tÃ©cnicas y cientÃ­ficas contemporÃ¡neas': ['Acuario, aviario, mariposario y/o zoolÃ³gico', 'Granja educativa', 'Hacienda o estancia', 'JardÃ­n botÃ¡nico', 'Observatorio astronÃ³mico', 'Planetario', 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as']
+        'Acontecimientos programados': ['Carnaval o fiesta costumbrista', 'Conmemoraciones o representaciones históricas', 'Convenciones, ferias, exposiciones o congresos', 'Evento de música, canto o danza', 'Evento deportivo', 'Evento enológico y/o gastronómico', 'Feria temática', 'Festival de cine', 'Fiesta religiosa'],
+        'Arquitectura': ['Barrios', 'Espacios públicos', 'Infraestructura recreativa', 'Monumento histórico', 'Obra de ingeniería', 'Otras infraestructuras de arquitectura'],
+        'Folklore': ['Artesanía', 'Feria artesanal y/o tradicional', 'Mercado tradicional', 'Representaciones y/o manifestaciones religiosas o creencias populares'],
+        'Manifestación Cultural': ['Caleta artesanal', 'Escultura o instalaciones', 'Lugar o sitio histórico o de memoria', 'Mural o arte urbano', 'Museo', 'Pueblo o Zona Típica o Pintoresca', 'Sala de exposición museográfica', 'Ruina o lugar de interés arqueológico'],
+        'Realizaciones técnicas y científicas contemporáneas': ['Acuario, aviario, mariposario y/o zoológico', 'Granja educativa', 'Hacienda o estancia', 'Jardín botánico', 'Observatorio astronómico', 'Planetario', 'Viñas, bodegas, cervecerías o destilerías']
       }
     };
 
@@ -1870,11 +1938,11 @@
       'Estuario': 'Desembocadura',
       'Fiordo': 'Fiordo o canal',
       'Canal': 'Fiordo o canal',
-      'Isla': 'Isla o archipiÃ©lago',
-      'ArchipiÃ©lago': 'Isla o archipiÃ©lago',
-      'PenÃ­nsula': 'PenÃ­nsula, cabo o punta',
-      'Cabo': 'PenÃ­nsula, cabo o punta',
-      'Punta': 'PenÃ­nsula, cabo o punta',
+      'Isla': 'Isla o archipiélago',
+      'Archipiélago': 'Isla o archipiélago',
+      'Península': 'Península, cabo o punta',
+      'Cabo': 'Península, cabo o punta',
+      'Punta': 'Península, cabo o punta',
       'Playa': 'Playa o balneario',
       'Balneario': 'Playa o balneario',
       'Seno': 'Seno o ensenada',
@@ -1885,20 +1953,20 @@
       'Bofedal': 'Humedal o bofedal',
       'Lago': 'Lago o laguna',
       'Laguna': 'Lago o laguna',
-      'RÃ­o': 'RÃ­o o estero',
-      'Estero': 'RÃ­o o estero',
+      'Río': 'Río o estero',
+      'Estero': 'Río o estero',
       'Fuente termal': 'Fuente o centro termal',
       'Centro termal': 'Fuente o centro termal',
       'Glaciares de valle': 'Glaciar',
-      'Glaciares de montaÃ±a': 'Glaciar',
+      'Glaciares de montaña': 'Glaciar',
       'Glaciares rocosos': 'Glaciar',
       'Glaciaretes': 'Glaciar',
-      'Geositios': 'Lugar de interÃ©s geolÃ³gico',
-      'Lugar de InterÃ©s geolÃ³gico': 'Lugar de interÃ©s geolÃ³gico',
+      'Geositios': 'Lugar de interés geológico',
+      'Lugar de Interés geológico': 'Lugar de interés geológico',
       'Pampa': 'Pampa o Llanura',
       'Llanura': 'Pampa o Llanura',
-      'Conmemoraciones': 'Conmemoraciones o representaciones histÃ³ricas',
-      'Representaciones histÃ³ricas': 'Conmemoraciones o representaciones histÃ³ricas',
+      'Conmemoraciones': 'Conmemoraciones o representaciones históricas',
+      'Representaciones históricas': 'Conmemoraciones o representaciones históricas',
       'Convenciones': 'Convenciones, ferias, exposiciones o congresos',
       'Ferias': 'Convenciones, ferias, exposiciones o congresos',
       'Exposiciones': 'Convenciones, ferias, exposiciones o congresos',
@@ -1907,277 +1975,277 @@
       'Casino de juegos': 'Infraestructura recreativa',
       'Escultura': 'Escultura o instalaciones',
       'Instalaciones': 'Escultura o instalaciones',
-      'Lugar o sitio histÃ³rico': 'Lugar o sitio histÃ³rico o de memoria',
-      'Sitios de memoria': 'Lugar o sitio histÃ³rico o de memoria',
+      'Lugar o sitio histórico': 'Lugar o sitio histórico o de memoria',
+      'Sitios de memoria': 'Lugar o sitio histórico o de memoria',
       'Mural': 'Mural o arte urbano',
       'Arte urbano': 'Mural o arte urbano',
-      'Pueblos': 'Pueblo o Zona TÃ­pica o Pintoresca',
-      'Zonas TÃ­picas o pintorescas': 'Pueblo o Zona TÃ­pica o Pintoresca',
-      'Ruina': 'Ruina o lugar de interÃ©s arqueolÃ³gico',
-      'Lugar de interÃ©s arqueolÃ³gico': 'Ruina o lugar de interÃ©s arqueolÃ³gico',
-      'Acuario': 'Acuario, aviario, mariposario y/o zoolÃ³gico',
-      'Aviario': 'Acuario, aviario, mariposario y/o zoolÃ³gico',
-      'Mariposario': 'Acuario, aviario, mariposario y/o zoolÃ³gico',
-      'ZoolÃ³gico': 'Acuario, aviario, mariposario y/o zoolÃ³gico',
+      'Pueblos': 'Pueblo o Zona Típica o Pintoresca',
+      'Zonas Típicas o pintorescas': 'Pueblo o Zona Típica o Pintoresca',
+      'Ruina': 'Ruina o lugar de interés arqueológico',
+      'Lugar de interés arqueológico': 'Ruina o lugar de interés arqueológico',
+      'Acuario': 'Acuario, aviario, mariposario y/o zoológico',
+      'Aviario': 'Acuario, aviario, mariposario y/o zoológico',
+      'Mariposario': 'Acuario, aviario, mariposario y/o zoológico',
+      'Zoológico': 'Acuario, aviario, mariposario y/o zoológico',
       'Hacienda': 'Hacienda o estancia',
       'Estancia': 'Hacienda o estancia',
-      'ViÃ±as': 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as',
-      'Bodegas': 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as',
-      'CervecerÃ­as': 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as',
-      'DestilerÃ­as': 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as'
+      'Viñas': 'Viñas, bodegas, cervecerías o destilerías',
+      'Bodegas': 'Viñas, bodegas, cervecerías o destilerías',
+      'Cervecerías': 'Viñas, bodegas, cervecerías o destilerías',
+      'Destilerías': 'Viñas, bodegas, cervecerías o destilerías'
     };
 
     const CLASSIFICATION_HELP = {
-      "Acantilado o farellÃ³n": {
-            "tipo": "Ãrea protegida",
+      "Acantilado o farellón": {
+            "tipo": "Área protegida",
             "codigo": "329",
-            "definicion": "FormaciÃ³n rocosa escarpada y de pendiente pronunciada ubicada en el borde costero, modelada principalmente por la acciÃ³n erosiva y que destaca en el paisaje litoral. Posee un tamaÃ±o relativamente grande, que destaca por su valor paisajÃ­stico y permite actividades turÃ­sticas de contemplaciÃ³n, fotografÃ­a, observaciÃ³n de naturaleza y turismo aventura en algunos casos. Ejemplo: Acantilados Federico Santa MarÃ­a (RegiÃ³n de ValparaÃ­so)."
+            "definicion": "Formación rocosa escarpada y de pendiente pronunciada ubicada en el borde costero, modelada principalmente por la acción erosiva y que destaca en el paisaje litoral. Posee un tamaño relativamente grande, que destaca por su valor paisajístico y permite actividades turísticas de contemplación, fotografía, observación de naturaleza y turismo aventura en algunos casos. Ejemplo: Acantilados Federico Santa María (Región de Valparaíso)."
       },
-      "Acantilado o FarellÃ³n": {
-            "tipo": "Ãrea Protegida",
+      "Acantilado o Farellón": {
+            "tipo": "Área Protegida",
             "codigo": "329",
-            "digitalizacion": "Colocar punto en el Ã¡rea de observaciÃ³n/spot fotogrÃ¡fico"
+            "digitalizacion": "Colocar punto en el área de observación/spot fotográfico"
       },
       "Acuario": {
             "tipo": "Acontecimientos programados",
             "codigo": "418",
-            "definicion": "Instalaciones abiertas al pÃºblico destinadas a la exhibiciÃ³n y educaciÃ³n sobre fauna terrestre, Ã¡rea o acuÃ¡tica, que promueven el conocimiento, la conservaciÃ³n y constituyen un interÃ©s turÃ­stico de carÃ¡cter educativo y recreativo.",
+            "definicion": "Instalaciones abiertas al público destinadas a la exhibición y educación sobre fauna terrestre, área o acuática, que promueven el conocimiento, la conservación y constituyen un interés turístico de carácter educativo y recreativo.",
             "digitalizacion": "Colocar el punto el el ingreso al espacio o inmueble.",
-            "aliasDe": "Acuario, aviario, mariposario y/o zoolÃ³gico"
+            "aliasDe": "Acuario, aviario, mariposario y/o zoológico"
       },
-      "Acuario, aviario, mariposario y/o zoolÃ³gico": {
+      "Acuario, aviario, mariposario y/o zoológico": {
             "tipo": "Acontecimientos programados",
             "codigo": "418",
-            "definicion": "Instalaciones abiertas al pÃºblico destinadas a la exhibiciÃ³n y educaciÃ³n sobre fauna terrestre, Ã¡rea o acuÃ¡tica, que promueven el conocimiento, la conservaciÃ³n y constituyen un interÃ©s turÃ­stico de carÃ¡cter educativo y recreativo.",
+            "definicion": "Instalaciones abiertas al público destinadas a la exhibición y educación sobre fauna terrestre, área o acuática, que promueven el conocimiento, la conservación y constituyen un interés turístico de carácter educativo y recreativo.",
             "digitalizacion": "Colocar el punto el el ingreso al espacio o inmueble."
       },
       "Altiplano": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "363",
-            "definicion": "ExtensiÃ³n de terreno mÃ¡s o menos llano, situado a considerable altura. Se emplaza sobre los 4.000 m.s.n.m. y se caracteriza por sus grandes salares y volcanes y su clima subtropical, con lluvias de verano que alcanzan los 300 a 400 mm anuales, constituyendo espacios de alto valor paisajÃ­stico y turÃ­stico, ofreciendo experiencias turÃ­sticas de naturaleza, cultura y contemplaciÃ³n.",
-            "digitalizacion": "Colocar punto en el Ã¡rea de observaciÃ³n/spot fotogrÃ¡fico, o donde se desarrolla alguna actividad turÃ­stica"
+            "definicion": "Extensión de terreno más o menos llano, situado a considerable altura. Se emplaza sobre los 4.000 m.s.n.m. y se caracteriza por sus grandes salares y volcanes y su clima subtropical, con lluvias de verano que alcanzan los 300 a 400 mm anuales, constituyendo espacios de alto valor paisajístico y turístico, ofreciendo experiencias turísticas de naturaleza, cultura y contemplación.",
+            "digitalizacion": "Colocar punto en el área de observación/spot fotográfico, o donde se desarrolla alguna actividad turística"
       },
-      "Ãreas de conservaciÃ³n de mÃºltiples usos": {
-            "tipo": "Ãrea protegida",
-            "definicion": "Ãrea terrestre, acuÃ¡tica, marina, insular o continental, cualquiera sea su tamaÃ±o, caracterizada por una interacciÃ³n tradicional entre los seres humanos y la naturaleza, relevante para la conservaciÃ³n de la biodiversidad. En esta Ã¡rea podrÃ¡n desarrollarse distintas actividades de uso sustentable, siempre que no pongan en riesgo los servicios ecosistÃ©micos que esta Ã¡rea provee.",
+      "Áreas de conservación de múltiples usos": {
+            "tipo": "Área protegida",
+            "definicion": "Área terrestre, acuática, marina, insular o continental, cualquiera sea su tamaño, caracterizada por una interacción tradicional entre los seres humanos y la naturaleza, relevante para la conservación de la biodiversidad. En esta área podrán desarrollarse distintas actividades de uso sustentable, siempre que no pongan en riesgo los servicios ecosistémicos que esta área provee.",
             "codigo": "324"
       },
-      "ArtesanÃ­a": {
+      "Artesanía": {
             "tipo": "Acontecimientos programados",
             "codigo": "401",
-            "definicion": "Actividad de producciÃ³n de objetos elaborados de manera individual o colectiva, con predominio del trabajo manual y dominio tÃ©cnico en la transformaciÃ³n de materias primas. Expresa creatividad, identidad cultural y sentido de pertenencia territorial. Considera materiales como alfarerÃ­a, madera, piedra o cantera, textilerÃ­a, fibras vegetales (cesterÃ­a), subproductos de origen animal (curtiembre y talabarterÃ­a), tallado y orfebrerÃ­a en plata, entre otros. Se considerarÃ¡ la artesanÃ­a tradicional y artesanÃ­a contemporÃ¡nea y deben generar interÃ©s de visita o compra por parte de turistas.",
-            "digitalizacion": "Colocar punto en lugar de venta de la artesanÃ­a"
+            "definicion": "Actividad de producción de objetos elaborados de manera individual o colectiva, con predominio del trabajo manual y dominio técnico en la transformación de materias primas. Expresa creatividad, identidad cultural y sentido de pertenencia territorial. Considera materiales como alfarería, madera, piedra o cantera, textilería, fibras vegetales (cestería), subproductos de origen animal (curtiembre y talabartería), tallado y orfebrería en plata, entre otros. Se considerará la artesanía tradicional y artesanía contemporánea y deben generar interés de visita o compra por parte de turistas.",
+            "digitalizacion": "Colocar punto en lugar de venta de la artesanía"
       },
       "Aviario": {
             "tipo": "Acontecimientos programados",
             "codigo": "418",
-            "definicion": "Instalaciones abiertas al pÃºblico destinadas a la exhibiciÃ³n y educaciÃ³n sobre fauna terrestre, Ã¡rea o acuÃ¡tica, que promueven el conocimiento, la conservaciÃ³n y constituyen un interÃ©s turÃ­stico de carÃ¡cter educativo y recreativo.",
+            "definicion": "Instalaciones abiertas al público destinadas a la exhibición y educación sobre fauna terrestre, área o acuática, que promueven el conocimiento, la conservación y constituyen un interés turístico de carácter educativo y recreativo.",
             "digitalizacion": "Colocar el punto el el ingreso al espacio o inmueble.",
-            "aliasDe": "Acuario, aviario, mariposario y/o zoolÃ³gico"
+            "aliasDe": "Acuario, aviario, mariposario y/o zoológico"
       },
       "Barrios": {
             "tipo": "Acontecimientos programados",
             "codigo": "392",
-            "definicion": "Un barrio turÃ­stico es un Ã¡rea delimitada contenida dentro de un Ã¡rea urbana, que concentra atractivos, servicios formales, identidad y experiencias significativas para los visitantes, y que desarrolla una gestiÃ³n sostenible y coordinada para potenciar su valor turÃ­stico, mejorar el impacto econÃ³mico y la habitabilidad local a partir de articular a sus actores pÃºblicos, privados y comunitarios.",
-            "digitalizacion": "Colocar el punto en centroide del polÃ­gono, o bien el alguna intersecciÃ³n de la calle principal del barrio."
+            "definicion": "Un barrio turístico es un área delimitada contenida dentro de un área urbana, que concentra atractivos, servicios formales, identidad y experiencias significativas para los visitantes, y que desarrolla una gestión sostenible y coordinada para potenciar su valor turístico, mejorar el impacto económico y la habitabilidad local a partir de articular a sus actores públicos, privados y comunitarios.",
+            "digitalizacion": "Colocar el punto en centroide del polígono, o bien el alguna intersección de la calle principal del barrio."
       },
       "Caleta artesanal": {
             "tipo": "Acontecimientos programados",
             "codigo": "407",
-            "definicion": "Asentamiento costero tradicional vinculado histÃ³ricamente a la pesca artesanal, que integra actividades productivas extractivas, de transformaciÃ³n, pesca recreativa y acuicultura de pequeÃ±a escala, junto con otras actividades productivas y comerciales como turismo, comercializaciÃ³n de recursos hidrobiolÃ³gicos, artesanÃ­a local y gastronomÃ­a.",
+            "definicion": "Asentamiento costero tradicional vinculado históricamente a la pesca artesanal, que integra actividades productivas extractivas, de transformación, pesca recreativa y acuicultura de pequeña escala, junto con otras actividades productivas y comerciales como turismo, comercialización de recursos hidrobiológicos, artesanía local y gastronomía.",
             "digitalizacion": "Colocar el punto en el ingreso a la caleta"
       },
       "Campo de hielo": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "357",
-            "definicion": "Extensas capas de hielo continental que muy a menudo ocultan relieves preexistentes que se extienden sobre amplias Ã¡reas del territorio. En Chile se hallan en la RegiÃ³n de AysÃ©n del General Carlos IbaÃ±ez del Campo y en la RegiÃ³n de Magallanes y de la AntÃ¡rtica Chilena. Ejemplo: Campo de Hielo Norte (RegiÃ³n de AysÃ©n del General Carlos IbaÃ±ez del Campo).",
-            "digitalizacion": "Colocar el punto en centroide del polÃ­gono"
+            "definicion": "Extensas capas de hielo continental que muy a menudo ocultan relieves preexistentes que se extienden sobre amplias áreas del territorio. En Chile se hallan en la Región de Aysén del General Carlos Ibañez del Campo y en la Región de Magallanes y de la Antártica Chilena. Ejemplo: Campo de Hielo Norte (Región de Aysén del General Carlos Ibañez del Campo).",
+            "digitalizacion": "Colocar el punto en centroide del polígono"
       },
       "Carnaval o fiesta costumbrista": {
             "tipo": "Acontecimientos programados",
-            "definicion": "CelebraciÃ³n donde se muestras las raÃ­ces folklÃ³ricas y culturales de un pueblo o comunidad, se incluye jineteadas.",
+            "definicion": "Celebración donde se muestras las raíces folklóricas y culturales de un pueblo o comunidad, se incluye jineteadas.",
             "codigo": "383",
-            "digitalizacion": "Colocar el punto en el Ã¡rea donde se desarrolla la muestra o actividad."
+            "digitalizacion": "Colocar el punto en el área donde se desarrolla la muestra o actividad."
       },
       "Cascada": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "349",
-            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un rÃ­o o estero, que destaca por su valor escÃ©nico y permite actividades turÃ­sticas de naturaleza y contemplaciÃ³n.",
+            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un río o estero, que destaca por su valor escénico y permite actividades turísticas de naturaleza y contemplación.",
             "digitalizacion": "Base de la cascada o salto",
             "aliasDe": "Cascada o salto"
       },
       "Cascada o salto": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "349",
-            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un rÃ­o o estero, que destaca por su valor escÃ©nico y permite actividades turÃ­sticas de naturaleza y contemplaciÃ³n.",
+            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un río o estero, que destaca por su valor escénico y permite actividades turísticas de naturaleza y contemplación.",
             "digitalizacion": "Base de la cascada o salto"
       },
       "Caverna": {
-            "tipo": "Ãrea Protegida",
+            "tipo": "Área Protegida",
             "codigo": "574",
             "digitalizacion": "Colocar el punto en el acceso a la caverna"
       },
       "Centro termal": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "354",
-            "definicion": "Manantial natural de aguas subterrÃ¡neas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus caracterÃ­sticas tÃ©rmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapÃ©uticos, recreativos y turÃ­sticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turÃ­stico.",
+            "definicion": "Manantial natural de aguas subterráneas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus características térmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapéuticos, recreativos y turísticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turístico.",
             "digitalizacion": "Colocar el punto en el acceso a la fuente o centro termal",
             "aliasDe": "Fuente o centro termal"
       },
       "Cielos oscuros": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "345",
-            "definicion": "Se refiere a la condiciÃ³n ambiental natural del cielo nocturno caracterizada por la ausencia o mÃ­nima presencia de contaminaciÃ³n lumÃ­nica artificial, lo que permite la observaciÃ³n nÃ­tida y prolongada de estrellas, planetas, constelaciones y de la vÃ­a lÃ¡ctea, elementos que habitualmente no son visibles en entornos urbanos. Esta condiciÃ³n puede ser valorada mediante actividades de contemplaciÃ³n, interpretaciÃ³n astronÃ³mica y desarrollo de experiencias de astroturismo.",
-            "digitalizacion": "Colocar punto en el Ã¡rea de observaciÃ³n/spot fotogrÃ¡fico"
+            "definicion": "Se refiere a la condición ambiental natural del cielo nocturno caracterizada por la ausencia o mínima presencia de contaminación lumínica artificial, lo que permite la observación nítida y prolongada de estrellas, planetas, constelaciones y de la vía láctea, elementos que habitualmente no son visibles en entornos urbanos. Esta condición puede ser valorada mediante actividades de contemplación, interpretación astronómica y desarrollo de experiencias de astroturismo.",
+            "digitalizacion": "Colocar punto en el área de observación/spot fotográfico"
       },
       "Desierto": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "374",
-            "definicion": "Extensa Ã¡rea caracterizada por su escasa precipitaciÃ³n (inferior a los 10 mm anuales) y vegetaciÃ³n limitada o inexistente, generando paisajes abiertos de gran amplitud territorial que permiten el desarrollo de actividades turÃ­sticas.",
-            "digitalizacion": "Colocar punto en el Ã¡rea de observaciÃ³n/spot fotogrÃ¡fico, o donde se desarrolla alguna actividad turÃ­stica"
+            "definicion": "Extensa área caracterizada por su escasa precipitación (inferior a los 10 mm anuales) y vegetación limitada o inexistente, generando paisajes abiertos de gran amplitud territorial que permiten el desarrollo de actividades turísticas.",
+            "digitalizacion": "Colocar punto en el área de observación/spot fotográfico, o donde se desarrolla alguna actividad turística"
       },
       "Fuente o centro termal": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "354",
-            "definicion": "Manantial natural de aguas subterrÃ¡neas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus caracterÃ­sticas tÃ©rmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapÃ©uticos, recreativos y turÃ­sticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turÃ­stico.",
+            "definicion": "Manantial natural de aguas subterráneas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus características térmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapéuticos, recreativos y turísticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turístico.",
             "digitalizacion": "Colocar el punto en el acceso a la fuente o centro termal"
       },
       "Fuente termal": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "354",
-            "definicion": "Manantial natural de aguas subterrÃ¡neas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus caracterÃ­sticas tÃ©rmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapÃ©uticos, recreativos y turÃ­sticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turÃ­stico.",
+            "definicion": "Manantial natural de aguas subterráneas que emergen a la superficie con una temperatura superior a la del entorno. Estas aguas, por sus características térmicas y en algunos casos minerales, pueden ser aprovechadas con fines terapéuticos, recreativos y turísticos. Se consideran fuentes termales aquellas surgencias naturales de agua caliente, y centros termales aquellos espacios donde estas aguas han sido acondicionadas con infraestructura para su uso turístico.",
             "digitalizacion": "Colocar el punto en el acceso a la fuente o centro termal",
             "aliasDe": "Fuente o centro termal"
       },
       "Geositios": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "470",
-            "definicion": "Geositios: Lugar con lÃ­mites definidos que destaca por sus caracterÃ­sticas geolÃ³gicas, aspectos destacados de la historia de la tierra, y valor cientÃ­fico, ademÃ¡s puede tener interÃ©s educativo o paisajÃ­stico, permitiendo experiencias turÃ­sticas de interpretaciÃ³n y observaciÃ³n del territorio.",
-            "aliasDe": "Lugar de interÃ©s geolÃ³gico"
+            "definicion": "Geositios: Lugar con límites definidos que destaca por sus características geológicas, aspectos destacados de la historia de la tierra, y valor científico, además puede tener interés educativo o paisajístico, permitiendo experiencias turísticas de interpretación y observación del territorio.",
+            "aliasDe": "Lugar de interés geológico"
       },
-      "Lugar de interÃ©s geolÃ³gico": {
-            "tipo": "Ãrea protegida",
+      "Lugar de interés geológico": {
+            "tipo": "Área protegida",
             "codigo": "470",
-            "definicion": "Geositios: Lugar con lÃ­mites definidos que destaca por sus caracterÃ­sticas geolÃ³gicas, aspectos destacados de la historia de la tierra, y valor cientÃ­fico, ademÃ¡s puede tener interÃ©s educativo o paisajÃ­stico, permitiendo experiencias turÃ­sticas de interpretaciÃ³n y observaciÃ³n del territorio."
+            "definicion": "Geositios: Lugar con límites definidos que destaca por sus características geológicas, aspectos destacados de la historia de la tierra, y valor científico, además puede tener interés educativo o paisajístico, permitiendo experiencias turísticas de interpretación y observación del territorio."
       },
-      "Lugar de InterÃ©s geolÃ³gico": {
-            "tipo": "Ãrea Protegida",
+      "Lugar de Interés geológico": {
+            "tipo": "Área Protegida",
             "codigo": "579",
-            "digitalizacion": "Centroide del polÃ­gono"
+            "digitalizacion": "Centroide del polígono"
       },
       "Mariposario": {
             "tipo": "Acontecimientos programados",
             "codigo": "418",
-            "definicion": "Instalaciones abiertas al pÃºblico destinadas a la exhibiciÃ³n y educaciÃ³n sobre fauna terrestre, Ã¡rea o acuÃ¡tica, que promueven el conocimiento, la conservaciÃ³n y constituyen un interÃ©s turÃ­stico de carÃ¡cter educativo y recreativo.",
+            "definicion": "Instalaciones abiertas al público destinadas a la exhibición y educación sobre fauna terrestre, área o acuática, que promueven el conocimiento, la conservación y constituyen un interés turístico de carácter educativo y recreativo.",
             "digitalizacion": "Colocar el punto el el ingreso al espacio o inmueble.",
-            "aliasDe": "Acuario, aviario, mariposario y/o zoolÃ³gico"
+            "aliasDe": "Acuario, aviario, mariposario y/o zoológico"
       },
       "Parque Nacional": {
-            "tipo": "Ãrea Protegida",
-            "digitalizacion": "Colocar los puntos en los accesos al Ã¡rea protegida. En caso de tener mÃ¡s de 1 acceso en la misma comuna, poner principal, en caso de ser comunas diferentes, replicar el punto. Se recuerda que es posible mapear los recursos dentro del AP.",
+            "tipo": "Área Protegida",
+            "digitalizacion": "Colocar los puntos en los accesos al área protegida. En caso de tener más de 1 acceso en la misma comuna, poner principal, en caso de ser comunas diferentes, replicar el punto. Se recuerda que es posible mapear los recursos dentro del AP.",
             "codigo": "326"
       },
       "Salto": {
-            "tipo": "Ãrea protegida",
+            "tipo": "Área protegida",
             "codigo": "349",
-            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un rÃ­o o estero, que destaca por su valor escÃ©nico y permite actividades turÃ­sticas de naturaleza y contemplaciÃ³n.",
+            "definicion": "Cascada: Salto natural de agua producido por un desnivel del terreno en un río o estero, que destaca por su valor escénico y permite actividades turísticas de naturaleza y contemplación.",
             "digitalizacion": "Base de la cascada o salto",
             "aliasDe": "Cascada o salto"
       },
-      "ZoolÃ³gico": {
+      "Zoológico": {
             "tipo": "Acontecimientos programados",
             "codigo": "418",
-            "definicion": "Instalaciones abiertas al pÃºblico destinadas a la exhibiciÃ³n y educaciÃ³n sobre fauna terrestre, Ã¡rea o acuÃ¡tica, que promueven el conocimiento, la conservaciÃ³n y constituyen un interÃ©s turÃ­stico de carÃ¡cter educativo y recreativo.",
+            "definicion": "Instalaciones abiertas al público destinadas a la exhibición y educación sobre fauna terrestre, área o acuática, que promueven el conocimiento, la conservación y constituyen un interés turístico de carácter educativo y recreativo.",
             "digitalizacion": "Colocar el punto el el ingreso al espacio o inmueble.",
-            "aliasDe": "Acuario, aviario, mariposario y/o zoolÃ³gico"
+            "aliasDe": "Acuario, aviario, mariposario y/o zoológico"
       }
 };
 
     const OPTIONS = {
       categoria: ['Recurso Natural', 'Recurso Cultural'],
-      tipoAcceso: ['AÃ©reo', 'MarÃ­timo (Costero)', 'MarÃ­timo (Lacustre o fluvial)', 'Terrestre'],
-      transportes: ['Auto', 'AviÃ³n o avioneta', 'Barco o crucero', 'Bicicleta', 'Bus o minibÃºs', 'Ferry o transbordador', 'HelicÃ³ptero', 'Lancha o bote', 'Metro o metrotrÃ©n', 'Moto', 'Taxi o colectivo', 'TelefÃ©rico', 'TracciÃ³n animal', 'Tren'],
-      experiencias: ['Astroturismo', 'Cultura y Patrimonio', 'Enoturismo y gastronomÃ­a', 'Turismo aventura y deporte', 'Turismo indÃ­gena', 'Turismo de naturaleza y ecoturismo', 'Turismo MICE', 'Turismo rural', 'Turismo urbano'],
-      instalacionesPublicas: ['Ãreas de descanso', 'Ãreas de picnic', 'BoleterÃ­a', 'Centro de interpretaciÃ³n', 'Estacionamientos para bicicletas', 'Estacionamientos vehiculares', 'Miradores', 'Oficina de informaciÃ³n turÃ­stica', 'Pasarelas y puentes peatonales', 'Refugios', 'SeÃ±alÃ©tica informativa', 'SeÃ±alÃ©tica interpretativa', 'SeÃ±alÃ©tica multilingÃ¼e', 'Senderos peatonales', 'Senderos pecuarios', 'Servicios higiÃ©nicos', 'Zonas de sombra y/o resguardo climÃ¡tico'],
-      actividades: ['Visitas guiadas', 'Visitas autoguiadas', 'ObservaciÃ³n de paisajes', 'Avistamiento de aves', 'Cata de vinos', 'Recorrido por viÃ±edos y bodegas', 'Hiking y trekking', 'Cabalgata', 'Kayak', 'Rafting', 'Compra de artesanÃ­a', 'Compra de productos locales', 'Actividades interactivas', 'Consumo cultural', 'ObservaciÃ³n arquitectÃ³nica', 'Camping', 'Picnic', 'Actividad de culto', 'ParticipaciÃ³n en eventos', 'ObservaciÃ³n de patrimonio material e inmaterial'],
-      propiedad: ['PÃºblica', 'Privada', 'Otro'],
-      organizacion: ['Natural', 'JurÃ­dica'],
+      tipoAcceso: ['Aéreo', 'Marítimo (Costero)', 'Marítimo (Lacustre o fluvial)', 'Terrestre'],
+      transportes: ['Auto', 'Avión o avioneta', 'Barco o crucero', 'Bicicleta', 'Bus o minibús', 'Ferry o transbordador', 'Helicóptero', 'Lancha o bote', 'Metro o metrotrén', 'Moto', 'Taxi o colectivo', 'Teleférico', 'Tracción animal', 'Tren'],
+      experiencias: ['Astroturismo', 'Cultura y Patrimonio', 'Enoturismo y gastronomía', 'Turismo aventura y deporte', 'Turismo indígena', 'Turismo de naturaleza y ecoturismo', 'Turismo MICE', 'Turismo rural', 'Turismo urbano'],
+      instalacionesPublicas: ['Áreas de descanso', 'Áreas de picnic', 'Boletería', 'Centro de interpretación', 'Estacionamientos para bicicletas', 'Estacionamientos vehiculares', 'Miradores', 'Oficina de información turística', 'Pasarelas y puentes peatonales', 'Refugios', 'Señalética informativa', 'Señalética interpretativa', 'Señalética multilingüe', 'Senderos peatonales', 'Senderos pecuarios', 'Servicios higiénicos', 'Zonas de sombra y/o resguardo climático'],
+      actividades: ['Visitas guiadas', 'Visitas autoguiadas', 'Observación de paisajes', 'Avistamiento de aves', 'Cata de vinos', 'Recorrido por viñedos y bodegas', 'Hiking y trekking', 'Cabalgata', 'Kayak', 'Rafting', 'Compra de artesanía', 'Compra de productos locales', 'Actividades interactivas', 'Consumo cultural', 'Observación arquitectónica', 'Camping', 'Picnic', 'Actividad de culto', 'Participación en eventos', 'Observación de patrimonio material e inmaterial'],
+      propiedad: ['Pública', 'Privada', 'Otro'],
+      organizacion: ['Natural', 'Jurídica'],
       alcance: ['Local', 'Regional', 'Nacional', 'Internacional'],
       ingreso: ['Libre', 'Pagado', 'Semi-restringido (previo permiso)'],
       pago: ['Online', 'Presencial', 'Ambas'],
       reserva: ['Reserva anticipada', 'Sin reserva'],
-      meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Todo el aÃ±o'],
-      dias: ['Lunes', 'Martes', 'MiÃ©rcoles', 'Jueves', 'Viernes', 'SÃ¡bado', 'Domingo', 'Toda la semana'],
-      serviciosTuristicos: ['Agencia de viajes', 'Alojamiento turÃ­stico', 'Arriendo de vehÃ­culos', 'Culturales', 'Deportivo', 'Esparcimiento', 'GuÃ­a de turismo', 'ProducciÃ³n artesanal', 'Restaurantes y similares', 'Souvenir', 'Tour operador', 'Transporte de pasajeros', 'Turismo aventura'],
-      serviciosBasicos: ['Agua potable', 'Alcantarillado', 'Cobertura de internet mÃ³vil', 'ConexiÃ³n a internet (Wifi)', 'EnergÃ­a alternativa y/o limpia', 'EnergÃ­a elÃ©ctrica', 'RecolecciÃ³n de residuos', 'Sistema alternativo de residuos', 'TelefonÃ­a fija o mÃ³vil'],
-      seguridad: ['Caseta de guardaparque o salvavidas', 'Puesto de primeros auxilios', 'Puntos de control o acceso', 'Puntos de encuentro (emergencia)', 'SeÃ±alÃ©tica de seguridad'],
-      accesibilidadElementos: ['Accesos', 'BaÃ±os accesibles', 'Circulaciones horizontales o verticales', 'Estacionamiento', 'InformaciÃ³n adaptada', 'PÃ¡gina web', 'Personal capacitado', 'Sendero interpretativo'],
-      discapacidades: ['Intelectual y/o cognitiva', 'FÃ­sica', 'PsÃ­quica y/o psicosocial', 'Sensorial'],
-      amenazas: ['Aluviones', 'Calor intenso o extremo', 'Deslizamientos o remociones en masa', 'Erupciones volcÃ¡nicas', 'FrÃ­o intenso o extremo', 'Incendios forestales', 'Inundaciones', 'Marejadas', 'Precipitaciones estivales altiplÃ¡nicas', 'SequÃ­as', 'Terremotos', 'Tornados o trombas marinas', 'Tormenta elÃ©ctrica', 'Tormenta de polvo', 'Tsunami', 'Otro'],
-      instrumentos: ['Estrategia Regional de Turismo', 'Plan Regional de Desarrollo TurÃ­stico', 'PLADETUR', 'Plan de acciÃ³n ZOIT', 'PLADECO', 'Ordenanza Municipal de Turismo'],
+      meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Todo el año'],
+      dias: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo', 'Toda la semana'],
+      serviciosTuristicos: ['Agencia de viajes', 'Alojamiento turístico', 'Arriendo de vehículos', 'Culturales', 'Deportivo', 'Esparcimiento', 'Guía de turismo', 'Producción artesanal', 'Restaurantes y similares', 'Souvenir', 'Tour operador', 'Transporte de pasajeros', 'Turismo aventura'],
+      serviciosBasicos: ['Agua potable', 'Alcantarillado', 'Cobertura de internet móvil', 'Conexión a internet (Wifi)', 'Energía alternativa y/o limpia', 'Energía eléctrica', 'Recolección de residuos', 'Sistema alternativo de residuos', 'Telefonía fija o móvil'],
+      seguridad: ['Caseta de guardaparque o salvavidas', 'Puesto de primeros auxilios', 'Puntos de control o acceso', 'Puntos de encuentro (emergencia)', 'Señalética de seguridad'],
+      accesibilidadElementos: ['Accesos', 'Baños accesibles', 'Circulaciones horizontales o verticales', 'Estacionamiento', 'Información adaptada', 'Página web', 'Personal capacitado', 'Sendero interpretativo'],
+      discapacidades: ['Intelectual y/o cognitiva', 'Física', 'Psíquica y/o psicosocial', 'Sensorial'],
+      amenazas: ['Aluviones', 'Calor intenso o extremo', 'Deslizamientos o remociones en masa', 'Erupciones volcánicas', 'Frío intenso o extremo', 'Incendios forestales', 'Inundaciones', 'Marejadas', 'Precipitaciones estivales altiplánicas', 'Sequías', 'Terremotos', 'Tornados o trombas marinas', 'Tormenta eléctrica', 'Tormenta de polvo', 'Tsunami', 'Otro'],
+      instrumentos: ['Estrategia Regional de Turismo', 'Plan Regional de Desarrollo Turístico', 'PLADETUR', 'Plan de acción ZOIT', 'PLADECO', 'Ordenanza Municipal de Turismo'],
       reconocimientosAlcance: ['Local', 'Regional', 'Nacional', 'Internacional'],
       promocionEscala: ['Local', 'Regional', 'Nacional', 'Internacional'],
-      instrumentosPromocion: ['Chile es tuyo', 'Chile travel', 'Material promocional de empresas privadas', 'Plan de marketing turÃ­stico', 'Otro'],
+      instrumentosPromocion: ['Chile es tuyo', 'Chile travel', 'Material promocional de empresas privadas', 'Plan de marketing turístico', 'Otro'],
       redes: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'X (antes Twitter)', 'Telegram', 'Otro'],
-      medios: ['Boletines', 'Documentales', 'Newsletters', 'PÃ¡ginas web', 'PeriÃ³dicos', 'Podcasts', 'Radios', 'Revistas', 'Streaming', 'TelevisiÃ³n', 'Otro']
+      medios: ['Boletines', 'Documentales', 'Newsletters', 'Páginas web', 'Periódicos', 'Podcasts', 'Radios', 'Revistas', 'Streaming', 'Televisión', 'Otro']
     };
 
     const sections = [
       {
         id: 'datos-generales',
         title: '1. Datos generales',
-        description: 'IdentificaciÃ³n, ubicaciÃ³n y responsable del registro. RegiÃ³n, provincia y comuna se completan mediante selecciÃ³n dependiente. Incluye un mapa abierto preliminar para capturar coordenadas y buscar ubicaciones a nivel nacional.',
+        description: 'Identificación, ubicación y responsable del registro. Región, provincia y comuna se completan mediante selección dependiente. Incluye un mapa abierto preliminar para capturar coordenadas y buscar ubicaciones a nivel nacional.',
         badge: 'Base',
         fields: [
-          text('nombreRecurso', 'Nombre del recurso', 'Ej. ViÃ±a X / Salto Y / Plaza Z'),
-          text('idInterno', 'CÃ³digo o ID interno', 'Se puede generar despuÃ©s del envÃ­o oficial', 'span-4'),
+          text('nombreRecurso', 'Nombre del recurso', 'Ej. Viña X / Salto Y / Plaza Z'),
+          text('idInterno', 'Código o ID interno', 'Se puede generar después del envío oficial', 'span-4'),
           date('fechaRegistro', 'Fecha de registro', 'span-4'),
           text('responsable', 'Nombre del responsable del registro', '', 'span-4'),
-          territorySelect('region', 'RegiÃ³n', 'region', 'span-4'),
+          territorySelect('region', 'Región', 'region', 'span-4'),
           territorySelect('provincia', 'Provincia', 'provincia', 'span-4'),
           territorySelect('comuna', 'Comuna', 'comuna', 'span-4'),
           text('localidad', 'Localidad o referencia', '', 'span-6'),
-          text('coordenadas', 'Punto geogrÃ¡fico / coordenadas', 'Latitud, longitud o referencia geogrÃ¡fica', 'span-6'),
+          text('coordenadas', 'Punto geográfico / coordenadas', 'Latitud, longitud o referencia geográfica', 'span-6'),
           text('latitud', 'Latitud', 'Se puede completar desde el mapa', 'span-3'),
           text('longitud', 'Longitud', 'Se puede completar desde el mapa', 'span-3'),
-          text('coordX', 'X (UTM WGS84)', 'Calculada automÃ¡ticamente', 'span-3'),
-          text('coordY', 'Y (UTM WGS84)', 'Calculada automÃ¡ticamente', 'span-3'),
+          text('coordX', 'X (UTM WGS84)', 'Calculada automáticamente', 'span-3'),
+          text('coordY', 'Y (UTM WGS84)', 'Calculada automáticamente', 'span-3'),
           email('correoResponsable', 'Correo', '', 'span-6'),
-          tel('telefonoResponsable', 'TelÃ©fono', '', 'span-6'),
-          text('institucion', 'InstituciÃ³n a la que pertenece', '', 'span-6')
+          tel('telefonoResponsable', 'Teléfono', '', 'span-6'),
+          text('institucion', 'Institución a la que pertenece', '', 'span-6')
         ],
         custom: renderGeoMapSection
       },
       {
         id: 'clasificacion',
-        title: '2. ClasificaciÃ³n del recurso turÃ­stico',
-        description: 'CategorÃ­a, tipo, subtipo y descripciÃ³n breve.',
+        title: '2. Clasificación del recurso turístico',
+        description: 'Categoría, tipo, subtipo y descripción breve.',
         badge: 'Obligatorio',
         fields: [
-          select('categoria', 'CategorÃ­a', OPTIONS.categoria, 'span-4'),
-          classificationSelect('tipoRecurso', 'Tipo de recurso turÃ­stico', 'tipo', 'span-4'),
-          classificationSelect('subtipoRecurso', 'Subtipo de recurso turÃ­stico', 'subtipo', 'span-4'),
-          textarea('descripcion', 'DescripciÃ³n del recurso turÃ­stico', 'Considerar caracterÃ­sticas y vocaciÃ³n turÃ­stica. MÃ¡x. 255 caracteres.', 'span-12', 255)
+          select('categoria', 'Categoría', OPTIONS.categoria, 'span-4'),
+          classificationSelect('tipoRecurso', 'Tipo de recurso turístico', 'tipo', 'span-4'),
+          classificationSelect('subtipoRecurso', 'Subtipo de recurso turístico', 'subtipo', 'span-4'),
+          textarea('descripcion', 'Descripción del recurso turístico', 'Considerar características y vocación turística. Máx. 255 caracteres.', 'span-12', 255)
         ],
         custom: renderClassificationHelp
       },
       {
         id: 'administracion',
-        title: '4. AdministraciÃ³n y representaciÃ³n',
-        description: 'Propiedad, administraciÃ³n, contacto y alcance.',
-        badge: 'GestiÃ³n',
+        title: '4. Administración y representación',
+        description: 'Propiedad, administración, contacto y alcance.',
+        badge: 'Gestión',
         fields: [
-          select('propiedad', 'Propiedad del recurso turÃ­stico', OPTIONS.propiedad, 'span-4'),
+          select('propiedad', 'Propiedad del recurso turístico', OPTIONS.propiedad, 'span-4'),
           text('nombrePropietario', 'Nombre del propietario o entidad', '', 'span-4'),
-          select('tipoOrgPropietario', 'Tipo de organizaciÃ³n', OPTIONS.organizacion, 'span-4'),
-          email('correoPropietario', 'Correo electrÃ³nico', '', 'span-4'),
-          tel('telefonoPropietario', 'TelÃ©fono', '', 'span-4'),
-          select('administracion', 'AdministraciÃ³n del recurso', OPTIONS.propiedad, 'span-4'),
+          select('tipoOrgPropietario', 'Tipo de organización', OPTIONS.organizacion, 'span-4'),
+          email('correoPropietario', 'Correo electrónico', '', 'span-4'),
+          tel('telefonoPropietario', 'Teléfono', '', 'span-4'),
+          select('administracion', 'Administración del recurso', OPTIONS.propiedad, 'span-4'),
           text('nombreAdministrador', 'Nombre de quien administra', '', 'span-4'),
-          select('tipoOrgAdministrador', 'Tipo de organizaciÃ³n administradora', OPTIONS.organizacion, 'span-4'),
+          select('tipoOrgAdministrador', 'Tipo de organización administradora', OPTIONS.organizacion, 'span-4'),
           text('sitioWeb', 'Sitio web', 'https://...', 'span-4'),
-          select('alcanceActuacion', 'Alcance de actuaciÃ³n', OPTIONS.alcance, 'span-4'),
-          text('operacionConcesion', 'OperaciÃ³n o concesiÃ³n del recurso turÃ­stico', '', 'span-4'),
+          select('alcanceActuacion', 'Alcance de actuación', OPTIONS.alcance, 'span-4'),
+          text('operacionConcesion', 'Operación o concesión del recurso turístico', '', 'span-4'),
           select('patrocinioEvento', 'Patrocinio del evento', ['Sin patrocinio', ...OPTIONS.alcance], 'span-4')
         ]
       },
@@ -2199,108 +2267,108 @@
         description: 'Debe existir al menos una experiencia y una actividad para pasar admisibilidad.',
         badge: 'Admisibilidad',
         fields: [
-          checklist('tiposExperiencia', 'Â¿QuÃ© tipo de experiencia se desarrolla actualmente?', OPTIONS.experiencias),
-          checklist('actividades', 'Â¿QuÃ© actividades se desarrollan actualmente?', OPTIONS.actividades)
+          checklist('tiposExperiencia', '¿Qué tipo de experiencia se desarrolla actualmente?', OPTIONS.experiencias),
+          checklist('actividades', '¿Qué actividades se desarrollan actualmente?', OPTIONS.actividades)
         ]
       },
       {
         id: 'instalaciones-publicas',
-        title: '7. Instalaciones de uso pÃºblico',
-        description: 'Debe existir al menos una instalaciÃ³n de uso pÃºblico.',
+        title: '7. Instalaciones de uso público',
+        description: 'Debe existir al menos una instalación de uso público.',
         badge: 'Admisibilidad',
         fields: [
-          radio('tieneInstalaciones', 'Â¿Existen instalaciones de uso pÃºblico dentro del recurso?', ['SÃ­', 'No'], 'span-4'),
-          checklist('instalacionesPublicas', 'Â¿CuÃ¡les?', OPTIONS.instalacionesPublicas)
+          radio('tieneInstalaciones', '¿Existen instalaciones de uso público dentro del recurso?', ['Sí', 'No'], 'span-4'),
+          checklist('instalacionesPublicas', '¿Cuáles?', OPTIONS.instalacionesPublicas)
         ]
       },
       {
         id: 'capital-humano',
         title: '8. Capital humano',
-        description: 'DotaciÃ³n, especializaciÃ³n e idiomas.',
-        badge: 'OperaciÃ³n',
+        description: 'Dotación, especialización e idiomas.',
+        badge: 'Operación',
         fields: [
-          number('nAdmin', 'NÂ° personas a cargo de la administraciÃ³n', 'span-3'),
-          number('nOperacion', 'NÂ° personas a cargo de la operaciÃ³n', 'span-3'),
-          number('nTurismo', 'NÂ° personas especializadas en turismo', 'span-3'),
-          number('nIdiomas', 'NÂ° personas que manejan otro idioma', 'span-3'),
-          text('idiomas', 'Idiomas', 'Ej. inglÃ©s, portuguÃ©s', 'span-6'),
-          text('lenguasOriginarias', 'Lenguas indÃ­genas u originarias', '', 'span-6')
+          number('nAdmin', 'N° personas a cargo de la administración', 'span-3'),
+          number('nOperacion', 'N° personas a cargo de la operación', 'span-3'),
+          number('nTurismo', 'N° personas especializadas en turismo', 'span-3'),
+          number('nIdiomas', 'N° personas que manejan otro idioma', 'span-3'),
+          text('idiomas', 'Idiomas', 'Ej. inglés, portugués', 'span-6'),
+          text('lenguasOriginarias', 'Lenguas indígenas u originarias', '', 'span-6')
         ]
       },
       {
         id: 'operacion',
-        title: '9. Ingreso y operaciÃ³n del recurso',
-        description: 'Modalidad de acceso, reserva y periodos de operaciÃ³n.',
-        badge: 'OperaciÃ³n',
+        title: '9. Ingreso y operación del recurso',
+        description: 'Modalidad de acceso, reserva y periodos de operación.',
+        badge: 'Operación',
         fields: [
           select('tipoIngreso', 'Tipo de ingreso', OPTIONS.ingreso, 'span-4'),
           select('tipoPago', 'Tipo de pago', OPTIONS.pago, 'span-4', { showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Se completa solo si el ingreso es pagado.' }),
-          text('medioPago', 'Medio de pago', 'Efectivo / transferencia / electrÃ³nico / otro', 'span-4', { showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Se completa solo si el ingreso es pagado.' }),
+          text('medioPago', 'Medio de pago', 'Efectivo / transferencia / electrónico / otro', 'span-4', { showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Se completa solo si el ingreso es pagado.' }),
           select('reserva', 'Reserva', OPTIONS.reserva, 'span-4'),
-          select('tipoReserva', 'Tipo de reserva', ['Online', 'TelefÃ³nica', 'Presencial'], 'span-4', { showWhen: { field: 'reserva', equals: 'Reserva anticipada' }, conditionalHint: 'Se completa solo cuando requiere reserva anticipada.' }),
-          radio('ingresoMascotas', 'Â¿Se permite ingreso de mascotas?', ['SÃ­', 'No'], 'span-4'),
-          checklist('mesesOperacion', 'Meses de operaciÃ³n', OPTIONS.meses),
-          checklist('diasOperacion', 'DÃ­as de operaciÃ³n', OPTIONS.dias),
+          select('tipoReserva', 'Tipo de reserva', ['Online', 'Telefónica', 'Presencial'], 'span-4', { showWhen: { field: 'reserva', equals: 'Reserva anticipada' }, conditionalHint: 'Se completa solo cuando requiere reserva anticipada.' }),
+          radio('ingresoMascotas', '¿Se permite ingreso de mascotas?', ['Sí', 'No'], 'span-4'),
+          checklist('mesesOperacion', 'Meses de operación', OPTIONS.meses),
+          checklist('diasOperacion', 'Días de operación', OPTIONS.dias),
           time('horaDesde', 'Horario desde', 'span-6'),
           time('horaHasta', 'Horario hasta', 'span-6'),
           checklist('mesesRecomendados', 'Meses recomendados para la visita', OPTIONS.meses),
-          number('continuidad', 'Continuidad (aÃ±os consecutivos, si aplica)', 'span-4')
+          number('continuidad', 'Continuidad (años consecutivos, si aplica)', 'span-4')
         ]
       },
       {
         id: 'visitas',
         title: '10. Registro de la visita',
         description: 'Sistema de registro, reportes y visitantes.',
-        badge: 'JerarquizaciÃ³n',
+        badge: 'Jerarquización',
         fields: [
-          radio('sistemaVisitas', 'Â¿Posee sistema de registro de visitantes?', ['SÃ­', 'No'], 'span-4'),
+          radio('sistemaVisitas', '¿Posee sistema de registro de visitantes?', ['Sí', 'No'], 'span-4'),
           select('tipoRegistro', 'Tipo', ['Digital', 'Papel'], 'span-4'),
-          number('ultimoAnoRegistro', 'Ãšltimo aÃ±o de registro', 'span-4'),
-          radio('reportesVisita', 'Â¿Genera reporte de estadÃ­sticas?', ['SÃ­', 'No'], 'span-4'),
-          select('frecuenciaReportes', 'Frecuencia de reportes', ['Diaria', 'Semanal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Bianual o mÃ¡s'], 'span-4'),
-          number('visitantesNacionales', 'NÂ° visitantes nacionales (anual)', 'span-4'),
-          number('visitantesExtranjeros', 'NÂ° visitantes extranjeros (anual)', 'span-4')
+          number('ultimoAnoRegistro', 'Último año de registro', 'span-4'),
+          radio('reportesVisita', '¿Genera reporte de estadísticas?', ['Sí', 'No'], 'span-4'),
+          select('frecuenciaReportes', 'Frecuencia de reportes', ['Diaria', 'Semanal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Bianual o más'], 'span-4'),
+          number('visitantesNacionales', 'N° visitantes nacionales (anual)', 'span-4'),
+          number('visitantesExtranjeros', 'N° visitantes extranjeros (anual)', 'span-4')
         ]
       },
       {
         id: 'servicios',
-        title: '11. Servicios turÃ­sticos y bÃ¡sicos',
-        description: 'Oferta complementaria y condiciones bÃ¡sicas.',
-        badge: 'JerarquizaciÃ³n',
+        title: '11. Servicios turísticos y básicos',
+        description: 'Oferta complementaria y condiciones básicas.',
+        badge: 'Jerarquización',
         fields: [
-          radio('tieneServiciosTuristicos', 'Â¿Posee servicios turÃ­sticos actuales?', ['SÃ­', 'No'], 'span-4'),
-          checklist('serviciosTuristicos', 'Â¿CuÃ¡les?', OPTIONS.serviciosTuristicos),
-          radio('tieneServiciosBasicos', 'Â¿Posee servicios bÃ¡sicos?', ['SÃ­', 'No'], 'span-4'),
-          checklist('serviciosBasicos', 'Â¿CuÃ¡les?', OPTIONS.serviciosBasicos)
+          radio('tieneServiciosTuristicos', '¿Posee servicios turísticos actuales?', ['Sí', 'No'], 'span-4'),
+          checklist('serviciosTuristicos', '¿Cuáles?', OPTIONS.serviciosTuristicos),
+          radio('tieneServiciosBasicos', '¿Posee servicios básicos?', ['Sí', 'No'], 'span-4'),
+          checklist('serviciosBasicos', '¿Cuáles?', OPTIONS.serviciosBasicos)
         ]
       },
       {
         id: 'seguridad-accesibilidad',
         title: '12. Seguridad y accesibilidad',
         description: 'Instalaciones de seguridad, accesibilidad universal y apoyos.',
-        badge: 'JerarquizaciÃ³n',
+        badge: 'Jerarquización',
         fields: [
-          radio('tieneSeguridad', 'Â¿Existen instalaciones de seguridad?', ['SÃ­', 'No'], 'span-4'),
-          checklist('instalacionesSeguridad', 'Â¿CuÃ¡les?', OPTIONS.seguridad),
-          radio('accesibilidadUniversal', 'Â¿Cuenta con accesibilidad universal?', ['SÃ­', 'No'], 'span-4'),
+          radio('tieneSeguridad', '¿Existen instalaciones de seguridad?', ['Sí', 'No'], 'span-4'),
+          checklist('instalacionesSeguridad', '¿Cuáles?', OPTIONS.seguridad),
+          radio('accesibilidadUniversal', '¿Cuenta con accesibilidad universal?', ['Sí', 'No'], 'span-4'),
           checklist('elementosAccesibles', 'Elementos accesibles', OPTIONS.accesibilidadElementos),
           checklist('aptoDiscapacidades', 'Apto para personas con', OPTIONS.discapacidades),
-          radio('fichaIdat', 'Â¿Cuenta con ficha IDA-T?', ['SÃ­', 'No'], 'span-4'),
-          radio('perrosGuia', 'Â¿Se permite ingreso de perros guÃ­a?', ['SÃ­', 'No'], 'span-4'),
-          radio('apoyoEmocional', 'Â¿Se permite animal de apoyo emocional?', ['SÃ­', 'No'], 'span-4')
+          radio('fichaIdat', '¿Cuenta con ficha IDA-T?', ['Sí', 'No'], 'span-4'),
+          radio('perrosGuia', '¿Se permite ingreso de perros guía?', ['Sí', 'No'], 'span-4'),
+          radio('apoyoEmocional', '¿Se permite animal de apoyo emocional?', ['Sí', 'No'], 'span-4')
         ]
       },
       {
         id: 'reconocimientos',
         title: '13. Reconocimientos',
         description: 'Declaratorias, premios o menciones del recurso.',
-        badge: 'JerarquizaciÃ³n',
+        badge: 'Jerarquización',
         fields: [
-          radio('tieneReconocimiento', 'Â¿El recurso cuenta con reconocimiento?', ['SÃ­', 'No'], 'span-4'),
+          radio('tieneReconocimiento', '¿El recurso cuenta con reconocimiento?', ['Sí', 'No'], 'span-4'),
           select('alcanceReconocimiento', 'Alcance del reconocimiento', OPTIONS.reconocimientosAlcance, 'span-4'),
-          text('institucionReconocimiento', 'InstituciÃ³n que otorga la menciÃ³n', '', 'span-4'),
-          text('denominacionReconocimiento', 'DenominaciÃ³n', '', 'span-6'),
-          date('fechaReconocimiento', 'Fecha de declaraciÃ³n', 'span-6')
+          text('institucionReconocimiento', 'Institución que otorga la mención', '', 'span-4'),
+          text('denominacionReconocimiento', 'Denominación', '', 'span-6'),
+          date('fechaReconocimiento', 'Fecha de declaración', 'span-6')
         ]
       },
       {
@@ -2310,54 +2378,54 @@
         badge: 'Riesgo',
         fields: [
           checklist('amenazasNaturales', 'Tipo de amenaza', OPTIONS.amenazas),
-          radio('planRRD', 'Â¿Cuenta con Plan de ReducciÃ³n de Riesgo de Desastres?', ['SÃ­', 'No'], 'span-6'),
-          radio('planEmergencia', 'Â¿Cuenta con Plan de Emergencia?', ['SÃ­', 'No'], 'span-6')
+          radio('planRRD', '¿Cuenta con Plan de Reducción de Riesgo de Desastres?', ['Sí', 'No'], 'span-6'),
+          radio('planEmergencia', '¿Cuenta con Plan de Emergencia?', ['Sí', 'No'], 'span-6')
         ]
       },
       {
         id: 'planificacion',
-        title: '15. PlanificaciÃ³n y gestiÃ³n del recurso',
-        description: 'Instrumentos de planificaciÃ³n territorial y estudios.',
-        badge: 'GestiÃ³n',
+        title: '15. Planificación y gestión del recurso',
+        description: 'Instrumentos de planificación territorial y estudios.',
+        badge: 'Gestión',
         fields: [
-          radio('enPlanificacion', 'Â¿Se encuentra dentro de la planificaciÃ³n turÃ­stica territorial?', ['SÃ­', 'No'], 'span-4'),
+          radio('enPlanificacion', '¿Se encuentra dentro de la planificación turística territorial?', ['Sí', 'No'], 'span-4'),
           checklist('instrumentosGestion', 'Instrumento en que se menciona', OPTIONS.instrumentos),
-          radio('capacidadCarga', 'Â¿Cuenta con estudios de capacidad de carga?', ['SÃ­', 'No'], 'span-4'),
-          radio('resolucionSanitaria', 'Â¿Cuenta con resoluciÃ³n sanitaria? (solo termas)', ['SÃ­', 'No'], 'span-4')
+          radio('capacidadCarga', '¿Cuenta con estudios de capacidad de carga?', ['Sí', 'No'], 'span-4'),
+          radio('resolucionSanitaria', '¿Cuenta con resolución sanitaria? (solo termas)', ['Sí', 'No'], 'span-4')
         ]
       },
       {
         id: 'promocion',
-        title: '16. PromociÃ³n y comercializaciÃ³n',
-        description: 'Presencia promocional, comercializaciÃ³n y medios.',
-        badge: 'JerarquizaciÃ³n',
+        title: '16. Promoción y comercialización',
+        description: 'Presencia promocional, comercialización y medios.',
+        badge: 'Jerarquización',
         fields: [
-          radio('sePromociona', 'Â¿Se promociona dentro de un producto/destino turÃ­stico?', ['SÃ­', 'No'], 'span-4'),
-          select('escalaPromocion', 'Â¿A quÃ© escala se promociona?', OPTIONS.promocionEscala, 'span-4'),
-          radio('instrumentoPromocion', 'Â¿Se incorpora explÃ­citamente en un instrumento de promociÃ³n?', ['SÃ­', 'No'], 'span-4'),
-          checklist('instrumentosPromocion', 'Â¿CuÃ¡les?', OPTIONS.instrumentosPromocion),
-          select('escalaComercializacion', 'Â¿A quÃ© escala se comercializa?', ['No se comercializa', 'Se comercializa a nivel local', 'Se comercializa a nivel regional', 'Se comercializa a nivel nacional', 'Se comercializa a nivel internacional'], 'span-6'),
-          text('canalesComercializacion', 'Canales de comercializaciÃ³n identificados', 'Agencias, operadores, plataformas, etc.', 'span-6'),
-          radio('tieneWeb', 'Â¿Cuenta con pÃ¡gina web?', ['SÃ­', 'No'], 'span-3'),
-          text('urlWeb', 'DirecciÃ³n URL', 'https://...', 'span-5'),
-          select('periodicidadWeb', 'Periodicidad del medio web', ['EsporÃ¡dica', 'Permanente'], 'span-4'),
-          radio('tieneRedes', 'Â¿Cuenta con redes sociales?', ['SÃ­', 'No'], 'span-3'),
-          checklist('redesSociales', 'Â¿QuÃ© red social?', OPTIONS.redes),
+          radio('sePromociona', '¿Se promociona dentro de un producto/destino turístico?', ['Sí', 'No'], 'span-4'),
+          select('escalaPromocion', '¿A qué escala se promociona?', OPTIONS.promocionEscala, 'span-4'),
+          radio('instrumentoPromocion', '¿Se incorpora explícitamente en un instrumento de promoción?', ['Sí', 'No'], 'span-4'),
+          checklist('instrumentosPromocion', '¿Cuáles?', OPTIONS.instrumentosPromocion),
+          select('escalaComercializacion', '¿A qué escala se comercializa?', ['No se comercializa', 'Se comercializa a nivel local', 'Se comercializa a nivel regional', 'Se comercializa a nivel nacional', 'Se comercializa a nivel internacional'], 'span-6'),
+          text('canalesComercializacion', 'Canales de comercialización identificados', 'Agencias, operadores, plataformas, etc.', 'span-6'),
+          radio('tieneWeb', '¿Cuenta con página web?', ['Sí', 'No'], 'span-3'),
+          text('urlWeb', 'Dirección URL', 'https://...', 'span-5'),
+          select('periodicidadWeb', 'Periodicidad del medio web', ['Esporádica', 'Permanente'], 'span-4'),
+          radio('tieneRedes', '¿Cuenta con redes sociales?', ['Sí', 'No'], 'span-3'),
+          checklist('redesSociales', '¿Qué red social?', OPTIONS.redes),
           text('nombreCuenta', 'Nombre de la cuenta', '@cuenta', 'span-4'),
-          select('periodicidadRedes', 'Periodicidad redes', ['EsporÃ¡dica', 'Permanente'], 'span-4'),
-          radio('mediosComunicacion', 'Â¿Aparece en medios de comunicaciÃ³n?', ['SÃ­', 'No'], 'span-4'),
-          checklist('tiposMedios', 'Â¿CuÃ¡les?', OPTIONS.medios),
-          radio('feriasEventos', 'Â¿Participa de ferias o eventos turÃ­sticos?', ['SÃ­', 'No'], 'span-4'),
+          select('periodicidadRedes', 'Periodicidad redes', ['Esporádica', 'Permanente'], 'span-4'),
+          radio('mediosComunicacion', '¿Aparece en medios de comunicación?', ['Sí', 'No'], 'span-4'),
+          checklist('tiposMedios', '¿Cuáles?', OPTIONS.medios),
+          radio('feriasEventos', '¿Participa de ferias o eventos turísticos?', ['Sí', 'No'], 'span-4'),
           text('nombreFeria', 'Nombre de la feria o evento', '', 'span-4'),
-          radio('folleteria', 'Â¿Cuenta con folleterÃ­a?', ['SÃ­', 'No'], 'span-4'),
-          select('tipoFolleteria', 'Tipo de folleterÃ­a', ['FÃ­sico', 'Digital'], 'span-4'),
+          radio('folleteria', '¿Cuenta con folletería?', ['Sí', 'No'], 'span-4'),
+          select('tipoFolleteria', 'Tipo de folletería', ['Físico', 'Digital'], 'span-4'),
           textarea('otrosMedios', 'Otros medios promocionales', 'Observaciones o detalles.', 'span-12', 500)
         ]
       },
       {
         id: 'fotos',
-        title: '17. FotografÃ­as del recurso',
-        description: 'Anexo fotogrÃ¡fico del levantamiento. Las fotos se guardan en Google Drive al sincronizar el registro.',
+        title: '17. Fotografías del recurso',
+        description: 'Anexo fotográfico del levantamiento. Las fotos se guardan en Google Drive al sincronizar el registro.',
         badge: 'Adjuntos',
         custom: renderPhotosSection
       },
@@ -2365,7 +2433,7 @@
       {
         id: 'observaciones',
         title: '18. Observaciones y cierre',
-        description: 'Campo libre para antecedentes adicionales y validaciÃ³n local.',
+        description: 'Campo libre para antecedentes adicionales y validación local.',
         badge: 'Final',
         fields: [
           textarea('observaciones', 'Observaciones', 'Registrar antecedentes relevantes detectados durante el levantamiento.', 'span-12', 1200)
@@ -2392,11 +2460,11 @@
 
     function loadState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return normalizeState(raw ? JSON.parse(raw) : {});
+        localStorage.removeItem(STORAGE_KEY);
       } catch {
-        return normalizeState({});
+        // Si el navegador bloquea localStorage, igual iniciamos una ficha nueva.
       }
+      return normalizeState({});
     }
 
     function normalizeState(data) {
@@ -2680,7 +2748,7 @@
       const comunaSelect = document.getElementById('comuna');
       if (!regionSelect || !provinceSelect || !comunaSelect) return;
 
-      populateSelect(regionSelect, CHILE_TERRITORY.map(region => region.nombre), state.values.region, 'Seleccione regiÃ³n');
+      populateSelect(regionSelect, CHILE_TERRITORY.map(region => region.nombre), state.values.region, 'Seleccione región');
       syncProvinceSelect({ preserveCurrent: true });
       syncComunaSelect({ preserveCurrent: true });
 
@@ -2765,7 +2833,7 @@
       const category = state.values.categoria || '';
       const typeNames = category && CLASSIFICATION_HIERARCHY[category] ? Object.keys(CLASSIFICATION_HIERARCHY[category]) : [];
       const selectedType = preserveCurrent ? (state.values.tipoRecurso || '') : '';
-      populateSelect(typeSelect, typeNames, selectedType, category ? 'Seleccione tipo' : 'Primero seleccione categorÃ­a');
+      populateSelect(typeSelect, typeNames, selectedType, category ? 'Seleccione tipo' : 'Primero seleccione categoría');
       typeSelect.disabled = !category;
 
       if (!typeNames.includes(state.values.tipoRecurso || '')) {
@@ -2807,7 +2875,7 @@
       const region = CHILE_TERRITORY.find(item => item.nombre === (state.values.region || ''));
       const provinceNames = region ? region.provincias.map(prov => prov.nombre) : [];
       const selectedProvince = preserveCurrent ? (state.values.provincia || '') : '';
-      populateSelect(provinceSelect, provinceNames, selectedProvince, region ? 'Seleccione provincia' : 'Primero seleccione regiÃ³n');
+      populateSelect(provinceSelect, provinceNames, selectedProvince, region ? 'Seleccione provincia' : 'Primero seleccione región');
       provinceSelect.disabled = !region;
 
       if (!provinceNames.includes(state.values.provincia || '')) {
@@ -2870,7 +2938,7 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <div class="coord-note" id="classificationHelp">
-          Selecciona categorÃ­a, tipo y subtipo para ver la definiciÃ³n oficial y la recomendaciÃ³n de digitalizaciÃ³n del punto.
+          Selecciona categoría, tipo y subtipo para ver la definición oficial y la recomendación de digitalización del punto.
         </div>
       `;
       content.appendChild(block);
@@ -2907,17 +2975,17 @@
       const entry = getClassificationHelpEntry(subtype);
 
       if (!category || !type || !subtype) {
-        el.innerHTML = 'Selecciona categorÃ­a, tipo y subtipo para ver la definiciÃ³n oficial y la recomendaciÃ³n de digitalizaciÃ³n del punto.';
+        el.innerHTML = 'Selecciona categoría, tipo y subtipo para ver la definición oficial y la recomendación de digitalización del punto.';
         return;
       }
 
       const rows = [];
-      rows.push('<strong>Ayuda segÃºn formulario oficial</strong>');
-      if (entry?.codigo) rows.push('<span class="pill ok" style="margin-top:8px;">CÃ³digo subtipo: ' + escapeHtml(entry.codigo) + '</span>');
-      rows.push('<div style="margin-top:10px;"><strong>ClasificaciÃ³n:</strong> ' + escapeHtml(category + ' / ' + type + ' / ' + subtype) + '</div>');
-      if (entry?.definicion) rows.push('<div style="margin-top:10px;"><strong>DefiniciÃ³n:</strong> ' + escapeHtml(entry.definicion) + '</div>');
-      if (entry?.digitalizacion) rows.push('<div style="margin-top:10px;"><strong>DigitalizaciÃ³n del punto:</strong> ' + escapeHtml(entry.digitalizacion) + '</div>');
-      if (!entry?.definicion && !entry?.digitalizacion) rows.push('<div style="margin-top:10px;">No hay una definiciÃ³n especÃ­fica cargada para este subtipo en esta versiÃ³n del prototipo.</div>');
+      rows.push('<strong>Ayuda según formulario oficial</strong>');
+      if (entry?.codigo) rows.push('<span class="pill ok" style="margin-top:8px;">Código subtipo: ' + escapeHtml(entry.codigo) + '</span>');
+      rows.push('<div style="margin-top:10px;"><strong>Clasificación:</strong> ' + escapeHtml(category + ' / ' + type + ' / ' + subtype) + '</div>');
+      if (entry?.definicion) rows.push('<div style="margin-top:10px;"><strong>Definición:</strong> ' + escapeHtml(entry.definicion) + '</div>');
+      if (entry?.digitalizacion) rows.push('<div style="margin-top:10px;"><strong>Digitalización del punto:</strong> ' + escapeHtml(entry.digitalizacion) + '</div>');
+      if (!entry?.definicion && !entry?.digitalizacion) rows.push('<div style="margin-top:10px;">No hay una definición específica cargada para este subtipo en esta versión del prototipo.</div>');
 
       el.innerHTML = rows.join('');
     }
@@ -2930,7 +2998,7 @@
           <div class="map-head">
             <div>
               <label style="margin-bottom:4px;">Mapa preliminar para capturar coordenadas</label>
-              <p class="small">Haz clic sobre el mapa o busca una direcciÃ³n/referencia en Chile. El prototipo completarÃ¡ latitud, longitud, X e Y de forma automÃ¡tica.</p>
+              <p class="small">Haz clic sobre el mapa o busca una dirección/referencia en Chile. El prototipo completará latitud, longitud, X e Y de forma automática.</p>
             </div>
             <div class="map-actions">
               <button type="button" class="ghost" id="centerChileBtn">Ver Chile</button>
@@ -2941,37 +3009,37 @@
 
           <div class="search-grid">
             <div class="field span-6" style="margin:0;">
-              <label for="geoSearchQuery">Barra de bÃºsqueda nacional</label>
-              <input id="geoSearchQuery" type="text" placeholder="Ej. Plaza de Armas, Embalse El Yeso, ViÃ±a, museo, mirador">
+              <label for="geoSearchQuery">Barra de búsqueda nacional</label>
+              <input id="geoSearchQuery" type="text" placeholder="Ej. Plaza de Armas, Embalse El Yeso, Viña, museo, mirador">
             </div>
             <div class="field span-4" style="margin:0;">
-              <label for="geoSearchStreet">DirecciÃ³n y numeraciÃ³n</label>
-              <input id="geoSearchStreet" type="text" placeholder="Ej. Camino al VolcÃ¡n 12345">
+              <label for="geoSearchStreet">Dirección y numeración</label>
+              <input id="geoSearchStreet" type="text" placeholder="Ej. Camino al Volcán 12345">
             </div>
             <div class="field span-2" style="margin:0;">
               <button type="button" class="secondary" id="runGeoSearchBtn" style="width:100%;">Buscar</button>
             </div>
             <div class="field span-12" style="margin:0;">
               <div class="search-help">
-                La bÃºsqueda funciona a nivel nacional. Si ya seleccionaste RegiÃ³n, Provincia y Comuna en el formulario, se usarÃ¡n como contexto para afinar el resultado.
+                La búsqueda funciona a nivel nacional. Si ya seleccionaste Región, Provincia y Comuna en el formulario, se usarán como contexto para afinar el resultado.
                 <div class="context-tags" id="geoSearchContext"></div>
               </div>
             </div>
             <div class="field span-12" style="margin:0;">
               <div class="result-list" id="geoSearchResults">
-                <div class="coord-note">TodavÃ­a no hay resultados. Puedes buscar por referencia, direcciÃ³n o direcciÃ³n con numeraciÃ³n.</div>
+                <div class="coord-note">Todavía no hay resultados. Puedes buscar por referencia, dirección o dirección con numeración.</div>
               </div>
             </div>
           </div>
 
           <div id="geoMap"></div>
           <div class="map-footer">
-            <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la bÃºsqueda. Nota: la cartografÃ­a base y la bÃºsqueda requieren conexiÃ³n a internet para cargarse.</div>
+            <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la búsqueda. Nota: la cartografía base y la búsqueda requieren conexión a internet para cargarse.</div>
             <div class="map-edit-actions">
-              <span class="map-lock-state" id="mapEditState">UbicaciÃ³n editable</span>
-              <button type="button" class="ghost" id="editLocationBtn">Editar ubicaciÃ³n</button>
-              <button type="button" class="secondary" id="confirmLocationBtn">Confirmar ubicaciÃ³n</button>
-              <button type="button" class="ghost" id="cancelLocationEditBtn">Cancelar ediciÃ³n</button>
+              <span class="map-lock-state" id="mapEditState">Ubicación editable</span>
+              <button type="button" class="ghost" id="editLocationBtn">Editar ubicación</button>
+              <button type="button" class="secondary" id="confirmLocationBtn">Confirmar ubicación</button>
+              <button type="button" class="ghost" id="cancelLocationEditBtn">Cancelar edición</button>
             </div>
           </div>
         </div>
@@ -2985,7 +3053,7 @@
       if (!mapEl || !statusEl) return;
 
       if (typeof L === 'undefined') {
-        statusEl.textContent = 'No fue posible cargar la librerÃ­a del mapa. Revise su conexiÃ³n y vuelva a abrir la pÃ¡gina.';
+        statusEl.textContent = 'No fue posible cargar la librería del mapa. Revise su conexión y vuelva a abrir la página.';
         return;
       }
 
@@ -3049,7 +3117,7 @@
     function setGeoCandidate(lat, lng, { recenter = true, preserveZoom = false } = {}) {
       if (!geoLocationEditMode) {
         const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'La ubicaciÃ³n estÃ¡ protegida. Presione "Editar ubicaciÃ³n" antes de cambiar el punto.';
+        if (statusEl) statusEl.textContent = 'La ubicación está protegida. Presione "Editar ubicación" antes de cambiar el punto.';
         return false;
       }
       setGeoPoint(lat, lng, { recenter, preserveZoom, commit: false });
@@ -3081,8 +3149,8 @@
         const statusEl = document.getElementById('mapStatus');
         if (statusEl) {
           statusEl.textContent = utm.zoneLabel
-            ? `UbicaciÃ³n pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}. Presione "Confirmar ubicaciÃ³n" para guardar.`
-            : `UbicaciÃ³n pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}. Presione "Confirmar ubicaciÃ³n" para guardar.`;
+            ? `Ubicación pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}. Presione "Confirmar ubicación" para guardar.`
+            : `Ubicación pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}. Presione "Confirmar ubicación" para guardar.`;
         }
         updateGeoEditControls();
         return;
@@ -3104,8 +3172,8 @@
       const statusEl = document.getElementById('mapStatus');
       if (statusEl) {
         statusEl.textContent = utm.zoneLabel
-          ? `UbicaciÃ³n guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.`
-          : `UbicaciÃ³n guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.`;
+          ? `Ubicación guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.`
+          : `Ubicación guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.`;
       }
     }
 
@@ -3123,8 +3191,8 @@
       const hasPoint = Number.isFinite(parseCoordinate(state.values.latitud)) && Number.isFinite(parseCoordinate(state.values.longitud));
       if (stateEl) {
         stateEl.textContent = geoLocationEditMode
-          ? (geoPendingPoint ? 'UbicaciÃ³n pendiente' : 'UbicaciÃ³n editable')
-          : 'UbicaciÃ³n protegida';
+          ? (geoPendingPoint ? 'Ubicación pendiente' : 'Ubicación editable')
+          : 'Ubicación protegida';
       }
       if (editBtn) editBtn.disabled = geoLocationEditMode;
       if (confirmBtn) confirmBtn.disabled = !geoLocationEditMode || !geoPendingPoint;
@@ -3140,12 +3208,12 @@
       geoLocationEditMode = true;
       updateGeoEditControls();
       const statusEl = document.getElementById('mapStatus');
-      if (statusEl) statusEl.textContent = 'Modo ediciÃ³n activo. Seleccione un nuevo punto en el mapa, arrastre el marcador o use la bÃºsqueda. Luego presione "Confirmar ubicaciÃ³n".';
+      if (statusEl) statusEl.textContent = 'Modo edición activo. Seleccione un nuevo punto en el mapa, arrastre el marcador o use la búsqueda. Luego presione "Confirmar ubicación".';
     }
 
     function confirmGeoLocationEdit() {
       if (!geoPendingPoint) {
-        alert('No hay una nueva ubicaciÃ³n pendiente para confirmar.');
+        alert('No hay una nueva ubicación pendiente para confirmar.');
         return;
       }
       const point = geoPendingPoint;
@@ -3165,7 +3233,7 @@
       }
       updateGeoEditControls();
       const statusEl = document.getElementById('mapStatus');
-      if (statusEl) statusEl.textContent = geoOriginalPoint ? 'EdiciÃ³n cancelada. Se mantiene la ubicaciÃ³n guardada.' : 'EdiciÃ³n cancelada. No hay ubicaciÃ³n guardada.';
+      if (statusEl) statusEl.textContent = geoOriginalPoint ? 'Edición cancelada. Se mantiene la ubicación guardada.' : 'Edición cancelada. No hay ubicación guardada.';
     }
 
     function setFieldValue(fieldId, value) {
@@ -3177,10 +3245,10 @@
     function clearGeoPoint() {
       if (!geoLocationEditMode) {
         const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'La ubicaciÃ³n estÃ¡ protegida. Presione "Editar ubicaciÃ³n" antes de limpiar el punto.';
+        if (statusEl) statusEl.textContent = 'La ubicación está protegida. Presione "Editar ubicación" antes de limpiar el punto.';
         return;
       }
-      if (!confirm('Â¿Desea eliminar la ubicaciÃ³n guardada de este recurso?')) return;
+      if (!confirm('¿Desea eliminar la ubicación guardada de este recurso?')) return;
       if (geoMarker) {
         geoMapInstance.removeLayer(geoMarker);
         geoMarker = null;
@@ -3200,13 +3268,13 @@
       const lat = parseCoordinate(document.getElementById('latitud')?.value || state.values.latitud);
       const lng = parseCoordinate(document.getElementById('longitud')?.value || state.values.longitud);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-        alert('Ingrese una latitud y longitud vÃ¡lidas para ubicar el punto en el mapa.');
+        alert('Ingrese una latitud y longitud válidas para ubicar el punto en el mapa.');
         return;
       }
       if (!geoLocationEditMode) {
         geoMapInstance?.setView([lat, lng], Math.max(geoMapInstance.getZoom(), 14));
         const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'Mapa centrado en la ubicaciÃ³n guardada. Para cambiarla, presione "Editar ubicaciÃ³n".';
+        if (statusEl) statusEl.textContent = 'Mapa centrado en la ubicación guardada. Para cambiarla, presione "Editar ubicación".';
         return;
       }
       setGeoCandidate(lat, lng, { recenter: true });
@@ -3255,7 +3323,7 @@
         cache[key] = value;
         localStorage.setItem(COMMUNAL_CAPITAL_CACHE_KEY, JSON.stringify(cache));
       } catch {
-        // Si el navegador no permite cache local, el cÃ¡lculo seguirÃ¡ funcionando online.
+        // Si el navegador no permite cache local, el cálculo seguirá funcionando online.
       }
     }
 
@@ -3325,7 +3393,7 @@
       const wrap = document.getElementById('geoSearchContext');
       if (!wrap) return;
       const tags = [
-        state.values.region ? `RegiÃ³n: ${state.values.region}` : '',
+        state.values.region ? `Región: ${state.values.region}` : '',
         state.values.provincia ? `Provincia: ${state.values.provincia}` : '',
         state.values.comuna ? `Comuna: ${state.values.comuna}` : ''
       ].filter(Boolean);
@@ -3334,7 +3402,7 @@
         : '<span class="small">Sin contexto territorial seleccionado.</span>';
     }
 
-    function clearSearchResults(message = 'TodavÃ­a no hay resultados. Puedes buscar por referencia, direcciÃ³n o direcciÃ³n con numeraciÃ³n.') {
+    function clearSearchResults(message = 'Todavía no hay resultados. Puedes buscar por referencia, dirección o dirección con numeración.') {
       const resultsEl = document.getElementById('geoSearchResults');
       if (!resultsEl) return;
       resultsEl.innerHTML = `<div class="coord-note">${escapeHtml(message)}</div>`;
@@ -3365,11 +3433,11 @@
 
       const payload = buildGeoSearchQuery();
       if (!payload.freeText && !payload.streetText && !state.values.region && !state.values.provincia && !state.values.comuna) {
-        clearSearchResults('Ingrese una referencia, direcciÃ³n o al menos un contexto territorial para ejecutar la bÃºsqueda.');
+        clearSearchResults('Ingrese una referencia, dirección o al menos un contexto territorial para ejecutar la búsqueda.');
         return;
       }
 
-      resultsEl.innerHTML = '<div class="coord-note">Buscando resultados en Chileâ€¦</div>';
+      resultsEl.innerHTML = '<div class="coord-note">Buscando resultados en Chile…</div>';
 
       try {
         const url = new URL('https://nominatim.openstreetmap.org/search');
@@ -3391,7 +3459,7 @@
         const results = await response.json();
         renderGeoSearchResults(results, payload.query);
       } catch (error) {
-        clearSearchResults('No fue posible completar la bÃºsqueda. Revise su conexiÃ³n a internet e intÃ©ntelo nuevamente.');
+        clearSearchResults('No fue posible completar la búsqueda. Revise su conexión a internet e inténtelo nuevamente.');
       }
     }
 
@@ -3413,7 +3481,7 @@
         item.innerHTML = `
           <strong>${escapeHtml(result.display_name || `Resultado ${index + 1}`)}</strong>
           <div class="result-meta">
-            Lat ${Number.isFinite(lat) ? lat.toFixed(6) : '-'} Â· Lon ${Number.isFinite(lon) ? lon.toFixed(6) : '-'}
+            Lat ${Number.isFinite(lat) ? lat.toFixed(6) : '-'} · Lon ${Number.isFinite(lon) ? lon.toFixed(6) : '-'}
           </div>
           <div class="result-actions">
             <button type="button" class="secondary" data-use-result="${index}">Usar este resultado</button>
@@ -3435,7 +3503,7 @@
             setFieldValue('localidad', (result.name || result.display_name || '').slice(0, 180));
           }
           const statusEl = document.getElementById('mapStatus');
-          if (statusEl) statusEl.textContent = `Resultado aplicado al mapa: ${result.display_name || 'ubicaciÃ³n seleccionada'}.`;
+          if (statusEl) statusEl.textContent = `Resultado aplicado al mapa: ${result.display_name || 'ubicación seleccionada'}.`;
         });
       });
     }
@@ -3444,7 +3512,7 @@
       return String(value || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
-        .replace(/['â€™]/g, '')
+        .replace(/['’]/g, '')
         .replace(/\bprovincia de\b/g, '')
         .replace(/\bregion de\b/g, '')
         .replace(/\bregion\b/g, '')
@@ -3527,11 +3595,19 @@
       const block = document.createElement('div');
       block.className = 'field span-12';
       block.innerHTML = `
-        <label for="photoInput">Adjuntar fotografÃ­as (mÃ­nimo 3, mÃ¡ximo 5)</label>
-        <input id="photoInput" type="file" accept="image/*" multiple>
-        <small class="hint">Las imÃ¡genes se mantienen temporalmente en este navegador. Al subirlas, se guardarÃ¡n en Google Drive dentro de una carpeta con el ID Ãºnico del registro.</small>
+        <label for="photoInput">Adjuntar fotografías (mínimo 3, máximo 5)</label>
+        <div class="photo-dropzone" id="photoDropzone" role="button" tabindex="0" aria-label="Arrastrar o seleccionar fotografias">
+          <strong>Arrastra fotografias aqui o haz clic para seleccionarlas</strong>
+          <span>Formatos permitidos: JPG, JPEG, HEIC o HEIF. Maximo 15 MB por archivo.</span>
+        </div>
+        <input id="photoInput" type="file" accept=".jpg,.jpeg,.heic,.heif,image/jpeg,image/heic,image/heif" multiple>
+        <small class="hint">Las imágenes se mantienen temporalmente en este navegador. Al subirlas, se guardarán en Google Drive dentro de una carpeta con el ID único del registro.</small>
         <div class="photo-storage-status" id="photoStorageStatus" aria-live="polite"></div>
-        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavÃ­a no estÃ¡n respaldadas en Google Drive.</div>
+        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
+        <div class="photo-upload-progress" id="photoUploadProgress" aria-live="polite">
+          <div class="photo-upload-bar"><div class="photo-upload-fill" id="photoUploadFill"></div></div>
+          <div class="photo-upload-label" id="photoUploadLabel">Esperando carga...</div>
+        </div>
         <div class="photo-grid" id="photoGrid"></div>
         <div class="toolbar" style="margin-top:12px;">
           <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
@@ -3539,7 +3615,29 @@
       `;
       content.appendChild(block);
 
-      block.querySelector('#photoInput').addEventListener('change', handlePhotoUpload);
+      const input = block.querySelector('#photoInput');
+      const dropzone = block.querySelector('#photoDropzone');
+      input.addEventListener('change', event => addPhotoFiles(event.target.files, input));
+      dropzone.addEventListener('click', () => input.click());
+      dropzone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          input.click();
+        }
+      });
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          dropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          dropzone.classList.remove('is-dragover');
+        });
+      });
+      dropzone.addEventListener('drop', event => addPhotoFiles(event.dataTransfer?.files, input));
       block.querySelector('#uploadPhotosDriveBtn')?.addEventListener('click', uploadPhotosToDrive);
       renderPhotos();
     }
@@ -3549,8 +3647,8 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <div class="panel" style="padding:16px; background:#f8fbff;">
-          <h3>ValidaciÃ³n local del prototipo</h3>
-          <p class="small" style="margin-top:8px;">Este botÃ³n no envÃ­a a ArcGIS ni a una base real. Puedes validar, descargar el JSON o abrir una versiÃ³n imprimible para guardarla como PDF desde el navegador.</p>
+          <h3>Validación local del prototipo</h3>
+          <p class="small" style="margin-top:8px;">Este botón no envía a ArcGIS ni a una base real. Puedes validar, descargar el JSON o abrir una versión imprimible para guardarla como PDF desde el navegador.</p>
           <div class="toolbar" style="margin-top:12px;">
             <button type="button" class="secondary" id="validateBtn">Revisar formulario</button>
             <button type="button" class="primary" id="finalSaveBtn">Guardar online</button>
@@ -3605,22 +3703,43 @@
       updateUiSummary();
     }
 
+    function getFileExtension(fileName = '') {
+      return String(fileName).split('.').pop().toLowerCase();
+    }
+
+    function isAcceptedPhotoFile(file) {
+      const type = String(file?.type || '').toLowerCase();
+      const extension = getFileExtension(file?.name || '');
+      return ACCEPTED_PHOTO_TYPES.includes(type) || ACCEPTED_PHOTO_EXTENSIONS.includes(extension);
+    }
+
+    function canPreviewPhoto(photo) {
+      const type = String(photo?.type || '').toLowerCase();
+      const extension = getFileExtension(photo?.name || '');
+      return type === 'image/jpeg' || extension === 'jpg' || extension === 'jpeg';
+    }
+
     function handlePhotoUpload(event) {
-      const files = Array.from(event.target.files || []);
+      addPhotoFiles(event.target.files, event.target);
+    }
+
+    function addPhotoFiles(fileList, input = null) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
       const remaining = 5 - state.photos.length;
       if (remaining <= 0) {
-        alert('Ya existen 5 fotografÃ­as adjuntas. Elimine una antes de agregar otra.');
-        event.target.value = '';
+        alert('Ya existen 5 fotografías adjuntas. Elimine una antes de agregar otra.');
+        if (input) input.value = '';
         return;
       }
 
       files.slice(0, remaining).forEach(file => {
-        if (!file.type || !file.type.startsWith('image/')) {
-          alert(`${file.name} no es una imagen vÃ¡lida.`);
+        if (!isAcceptedPhotoFile(file)) {
+          alert(`${file.name} no es un formato permitido. Adjunte solo JPG, JPEG, HEIC o HEIF.`);
           return;
         }
         if (file.size > MAX_PHOTO_BYTES) {
-          alert(`${file.name} supera 2 MB. Reduzca o comprima la imagen antes de adjuntarla al prototipo.`);
+          alert(`${file.name} supera 15 MB. Reduzca o comprima la imagen antes de adjuntarla al prototipo.`);
           return;
         }
 
@@ -3631,7 +3750,7 @@
             size: file.size,
             type: file.type,
             dataUrl: reader.result,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: getLocalTimestamp()
           });
           autosave();
           renderPhotos();
@@ -3640,9 +3759,9 @@
         reader.readAsDataURL(file);
       });
       if (files.length > remaining) {
-        alert(`Solo se adjuntaron ${remaining} fotografÃ­a(s). El mÃ¡ximo permitido es 5.`);
+        alert(`Solo se adjuntaron ${remaining} fotografía(s). El máximo permitido es 5.`);
       }
-      event.target.value = '';
+      if (input) input.value = '';
     }
 
     function renderPhotos() {
@@ -3652,15 +3771,15 @@
       state.photos.forEach((photo, idx) => {
         const card = document.createElement('div');
         card.className = 'photo-card';
-        const preview = photo.dataUrl
+        const preview = photo.dataUrl && canPreviewPhoto(photo)
           ? '<img src="' + photo.dataUrl + '" alt="' + escapeHtml(photo.name) + '">'
-          : '<div class="coord-note">Foto no disponible en este navegador. Vuelve a adjuntarla si necesitas subirla a Drive.</div>';
+          : '<div class="coord-note">Archivo adjunto sin vista previa local. HEIC/HEIF puede no visualizarse en este navegador, pero queda disponible para subirlo a Drive.</div>';
         card.innerHTML = `
           ${preview}
           <div class="meta">
-            <strong>${escapeHtml(photo.name || 'FotografÃ­a')}</strong>
+            <strong>${escapeHtml(photo.name || 'Fotografía')}</strong>
             <span>${formatBytes(photo.size)}</span>
-            <span>${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString('es-CL') : 'Sin fecha local'}</span>
+            <span>${photo.uploadedAt ? formatStoredDateTime(photo.uploadedAt) : 'Sin fecha local'}</span>
             <button type="button" class="danger" data-remove-photo="${idx}">Eliminar</button>
           </div>
         `;
@@ -3707,19 +3826,19 @@
 
       if (localCount) {
         statusEl.innerHTML = `<strong>No tiene fotos almacenadas en Google Drive.</strong><span>${localCount} foto(s) adjuntas solo en este navegador, pendientes de subir.</span>`;
-        if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos estÃ¡n adjuntas localmente, pero todavÃ­a no estÃ¡n respaldadas en Google Drive.';
+        if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos están adjuntas localmente, pero todavía no están respaldadas en Google Drive.';
         return;
       }
 
-      statusEl.innerHTML = '<strong>No tiene fotos almacenadas.</strong><span>Adjunta fotografÃ­as y luego usa el botÃ³n inferior para subirlas a Drive.</span>';
-      if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos todavÃ­a no estÃ¡n respaldadas en Google Drive.';
+      statusEl.innerHTML = '<strong>No tiene fotos almacenadas.</strong><span>Adjunta fotografías y luego usa el botón inferior para subirlas a Drive.</span>';
+      if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos todavía no están respaldadas en Google Drive.';
     }
 
     function getAdmissibilityStatus() {
       const checks = [
         {
           key: 'localizacion',
-          label: 'LocalizaciÃ³n',
+          label: 'Localización',
           ok: Boolean((state.values.comuna || '').trim()) && Boolean((state.values.coordenadas || '').trim())
         },
         {
@@ -3739,8 +3858,8 @@
         },
         {
           key: 'instalaciones',
-          label: 'Instalaciones de uso pÃºblico',
-          ok: (state.values.tieneInstalaciones === 'SÃ­') && Array.isArray(state.values.instalacionesPublicas) && state.values.instalacionesPublicas.length > 0
+          label: 'Instalaciones de uso público',
+          ok: (state.values.tieneInstalaciones === 'Sí') && Array.isArray(state.values.instalacionesPublicas) && state.values.instalacionesPublicas.length > 0
         }
       ];
 
@@ -3763,7 +3882,7 @@
         item.innerHTML = `
           <div>
             <strong>${check.label}</strong>
-            <div class="small">${check.ok ? 'Cumple el mÃ­nimo.' : 'Falta completar este criterio.'}</div>
+            <div class="small">${check.ok ? 'Cumple el mínimo.' : 'Falta completar este criterio.'}</div>
           </div>
           <span class="pill ${check.ok ? 'ok' : 'fail'}">${check.ok ? 'Cumple' : 'Pendiente'}</span>
         `;
@@ -3844,7 +3963,7 @@
       const drafts = loadDrafts();
       container.innerHTML = '';
       if (!drafts.length) {
-        container.innerHTML = '<div class="small">AÃºn no hay borradores locales.</div>';
+        container.innerHTML = '<div class="small">Aún no hay borradores locales.</div>';
         return;
       }
       drafts.forEach(draft => {
@@ -3855,7 +3974,7 @@
         const syncedAt = values.fecha_sincronizacion || values.fecha_actualizacion || '';
         const statusClass = syncedAt ? 'ok' : 'warn';
         const statusText = syncedAt ? 'Sincronizado online' : 'Solo este navegador';
-        const detailText = syncedAt ? 'Ãšltima sincronizaciÃ³n: ' + escapeHtml(syncedAt) : 'Disponible offline en este equipo.';
+        const detailText = syncedAt ? 'Última sincronización: ' + escapeHtml(syncedAt) : 'Disponible offline en este equipo.';
         el.innerHTML =
           '<div class="draft-item-main">' +
             '<strong>' + escapeHtml(draft.name) + '</strong>' +
@@ -3880,14 +3999,15 @@
     function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
       Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
       state.lastSavedAt = new Date().toISOString();
+      const loadedId = String(state.values.id_unico || '').trim();
       saveState();
       renderForm();
       setupMobileNavigation();
       setupIdActions();
       updateUniqueIdDisplay();
-      updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || 'â€”');
+      updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
       updateUiSummary();
-      setSyncStatus(statusText, status);
+      setSyncStatus(loadedId ? statusText + ' · ID ' + loadedId : statusText, status);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3911,7 +4031,7 @@
     function deleteNamedDraft(id) {
       const draft = loadDrafts().find(d => d.id === id);
       const name = draft?.name || 'este borrador';
-      const confirmed = confirm('EliminarÃ¡ el borrador offline "' + name + '" de este navegador. No borra registros sincronizados en Google Sheet. Â¿Continuar?');
+      const confirmed = confirm('Eliminará el borrador offline "' + name + '" de este navegador. No borra registros sincronizados en Google Sheet. ¿Continuar?');
       if (!confirmed) return;
       const drafts = loadDrafts().filter(d => d.id !== id);
       try {
@@ -3937,14 +4057,14 @@
       reader.onload = () => {
         try {
           const data = JSON.parse(reader.result);
-          if (!data || typeof data !== 'object') throw new Error('Formato invÃ¡lido');
+          if (!data || typeof data !== 'object') throw new Error('Formato inválido');
           Object.assign(state, normalizeState(data));
           saveState();
           renderForm();
           setupMobileNavigation();
           setupIdActions();
           updateUniqueIdDisplay();
-          updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || 'â€”');
+          updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
           updateUiSummary();
           setSyncStatus('Borrador JSON cargado', 'warn');
           persistNamedDraft();
@@ -3974,24 +4094,24 @@
       const lng = parseCoordinate(state.values.longitud);
 
       if (!(state.values.nombreRecurso || '').trim()) missing.push('Nombre del recurso');
-      if (!(state.values.region || '').trim()) missing.push('RegiÃ³n');
+      if (!(state.values.region || '').trim()) missing.push('Región');
       if (!(state.values.provincia || '').trim()) missing.push('Provincia');
       if (!(state.values.comuna || '').trim()) missing.push('Comuna');
-      if (!(state.values.categoria || '').trim()) missing.push('CategorÃ­a');
+      if (!(state.values.categoria || '').trim()) missing.push('Categoría');
       if (!(state.values.tipoRecurso || '').trim()) missing.push('Tipo de recurso');
       if (!(state.values.subtipoRecurso || '').trim()) missing.push('Subtipo de recurso');
-      if (state.photos.length < 3) missing.push('MÃ­nimo 3 fotografÃ­as');
+      if (state.photos.length < 3) missing.push('Mínimo 3 fotografías');
 
       if (!Number.isFinite(lat) || lat < CHILE_LAT_RANGE.min || lat > CHILE_LAT_RANGE.max) {
-        missing.push('Latitud vÃ¡lida dentro de Chile');
+        missing.push('Latitud válida dentro de Chile');
       }
       if (!Number.isFinite(lng) || lng < CHILE_LNG_RANGE.min || lng > CHILE_LNG_RANGE.max) {
-        missing.push('Longitud vÃ¡lida dentro de Chile');
+        missing.push('Longitud válida dentro de Chile');
       }
       if (!isValidOptionalUrl(state.values.sitioWeb)) warnings.push('Sitio web debe comenzar con http:// o https://');
-      if (!isValidOptionalUrl(state.values.urlWeb)) warnings.push('URL de promociÃ³n debe comenzar con http:// o https://');
+      if (!isValidOptionalUrl(state.values.urlWeb)) warnings.push('URL de promoción debe comenzar con http:// o https://');
       if (state.photos.some(photo => Number(photo.size) > MAX_PHOTO_BYTES)) {
-        warnings.push('Hay fotografÃ­as que superan 2 MB y podrÃ­an impedir el guardado local.');
+        warnings.push('Hay fotografías que superan 15 MB y podrían impedir el guardado local.');
       }
 
       return { missing, warnings };
@@ -4006,9 +4126,9 @@
       const result = document.getElementById('validationResult');
       result.style.display = 'block';
       result.innerHTML = `
-        <strong>${adm.admissible && !missing.length ? 'ValidaciÃ³n local exitosa' : 'ValidaciÃ³n incompleta'}</strong><br>
-        ${adm.admissible ? 'Cumple criterios mÃ­nimos de admisibilidad.' : 'AÃºn no cumple todos los criterios de admisibilidad.'}<br>
-        ${missing.length ? 'Faltantes detectados: ' + escapeHtml(missing.join(', ')) + '.' : 'No se detectaron faltantes crÃ­ticos del prototipo.'}
+        <strong>${adm.admissible && !missing.length ? 'Validación local exitosa' : 'Validación incompleta'}</strong><br>
+        ${adm.admissible ? 'Cumple criterios mínimos de admisibilidad.' : 'Aún no cumple todos los criterios de admisibilidad.'}<br>
+        ${missing.length ? 'Faltantes detectados: ' + escapeHtml(missing.join(', ')) + '.' : 'No se detectaron faltantes críticos del prototipo.'}
         ${warnings.length ? '<br>Advertencias: ' + escapeHtml(warnings.join(', ')) + '.' : ''}
       `;
     }
@@ -4030,110 +4150,110 @@
 
     function loadSample() {
       state.values = {
-        nombreRecurso: 'ViÃ±a Patrimonial de Isla de Maipo',
+        nombreRecurso: 'Viña Patrimonial de Isla de Maipo',
         idInterno: 'RM-IM-001',
-        fechaRegistro: new Date().toISOString().slice(0, 10),
+        fechaRegistro: getLocalDateValue(),
         responsable: 'Encargado Municipal de Turismo',
-        region: 'RegiÃ³n Metropolitana de Santiago',
+        region: 'Región Metropolitana de Santiago',
         provincia: 'Talagante',
         comuna: 'Isla de Maipo',
-        localidad: 'Centro urbano y entorno vitivinÃ­cola',
+        localidad: 'Centro urbano y entorno vitivinícola',
         coordenadas: '-33.7522, -70.8991',
         correoResponsable: 'turismo@ejemplo.cl',
         telefonoResponsable: '+56 9 1234 5678',
         institucion: 'Municipalidad de Isla de Maipo',
         categoria: 'Recurso Cultural',
-        tipoRecurso: 'Realizaciones tÃ©cnicas y cientÃ­ficas contemporÃ¡neas',
-        subtipoRecurso: 'ViÃ±as, bodegas, cervecerÃ­as o destilerÃ­as',
-        descripcion: 'ViÃ±a abierta al pÃºblico con recorridos guiados, valor patrimonial y oferta enoturÃ­stica activa.',
+        tipoRecurso: 'Realizaciones técnicas y científicas contemporáneas',
+        subtipoRecurso: 'Viñas, bodegas, cervecerías o destilerías',
+        descripcion: 'Viña abierta al público con recorridos guiados, valor patrimonial y oferta enoturística activa.',
         propiedad: 'Privada',
-        nombrePropietario: 'ViÃ±a Ejemplo SpA',
-        tipoOrgPropietario: 'JurÃ­dica',
+        nombrePropietario: 'Viña Ejemplo SpA',
+        tipoOrgPropietario: 'Jurídica',
         correoPropietario: 'contacto@vinaejemplo.cl',
         telefonoPropietario: '+56 2 2345 6789',
         administracion: 'Privada',
         nombreAdministrador: 'Equipo de Enoturismo',
-        tipoOrgAdministrador: 'JurÃ­dica',
+        tipoOrgAdministrador: 'Jurídica',
         sitioWeb: 'https://www.vinaejemplo.cl',
         alcanceActuacion: 'Nacional',
-        operacionConcesion: 'OperaciÃ³n directa del recurso',
+        operacionConcesion: 'Operación directa del recurso',
         patrocinioEvento: 'Regional',
         tipoAcceso: 'Terrestre',
-        mediosTransporte: ['Auto', 'Bus o minibÃºs', 'Bicicleta'],
+        mediosTransporte: ['Auto', 'Bus o minibús', 'Bicicleta'],
         distanciaCapitalRegional: 52,
         distanciaCapitalComunal: 4,
-        tiposExperiencia: ['Enoturismo y gastronomÃ­a', 'Turismo rural', 'Cultura y Patrimonio'],
-        actividades: ['Cata de vinos', 'Recorrido por viÃ±edos y bodegas', 'ObservaciÃ³n de paisajes', 'Visitas guiadas'],
-        tieneInstalaciones: 'SÃ­',
-        instalacionesPublicas: ['Estacionamientos vehiculares', 'Servicios higiÃ©nicos', 'SeÃ±alÃ©tica informativa', 'Miradores', 'Ãreas de descanso'],
+        tiposExperiencia: ['Enoturismo y gastronomía', 'Turismo rural', 'Cultura y Patrimonio'],
+        actividades: ['Cata de vinos', 'Recorrido por viñedos y bodegas', 'Observación de paisajes', 'Visitas guiadas'],
+        tieneInstalaciones: 'Sí',
+        instalacionesPublicas: ['Estacionamientos vehiculares', 'Servicios higiénicos', 'Señalética informativa', 'Miradores', 'Áreas de descanso'],
         nAdmin: 3,
         nOperacion: 8,
         nTurismo: 4,
         nIdiomas: 2,
-        idiomas: 'InglÃ©s, portuguÃ©s',
+        idiomas: 'Inglés, portugués',
         lenguasOriginarias: '',
         tipoIngreso: 'Pagado',
         tipoPago: 'Ambas',
-        medioPago: 'Efectivo, transferencia y electrÃ³nico',
+        medioPago: 'Efectivo, transferencia y electrónico',
         reserva: 'Reserva anticipada',
         tipoReserva: 'Online',
-        mesesOperacion: ['Todo el aÃ±o'],
-        diasOperacion: ['Jueves', 'Viernes', 'SÃ¡bado', 'Domingo'],
+        mesesOperacion: ['Todo el año'],
+        diasOperacion: ['Jueves', 'Viernes', 'Sábado', 'Domingo'],
         horaDesde: '10:00',
         horaHasta: '18:00',
         mesesRecomendados: ['Marzo', 'Abril', 'Septiembre', 'Octubre', 'Noviembre'],
         ingresoMascotas: 'No',
-        sistemaVisitas: 'SÃ­',
+        sistemaVisitas: 'Sí',
         tipoRegistro: 'Digital',
         ultimoAnoRegistro: new Date().getFullYear() - 1,
-        reportesVisita: 'SÃ­',
+        reportesVisita: 'Sí',
         frecuenciaReportes: 'Mensual',
         visitantesNacionales: 12000,
         visitantesExtranjeros: 1600,
-        tieneServiciosTuristicos: 'SÃ­',
-        serviciosTuristicos: ['GuÃ­a de turismo', 'Restaurantes y similares', 'Souvenir'],
-        tieneServiciosBasicos: 'SÃ­',
-        serviciosBasicos: ['Agua potable', 'EnergÃ­a elÃ©ctrica', 'Cobertura de internet mÃ³vil', 'ConexiÃ³n a internet (Wifi)', 'RecolecciÃ³n de residuos'],
-        tieneSeguridad: 'SÃ­',
-        instalacionesSeguridad: ['Puntos de control o acceso', 'SeÃ±alÃ©tica de seguridad', 'Puesto de primeros auxilios'],
-        accesibilidadUniversal: 'SÃ­',
-        elementosAccesibles: ['Accesos', 'BaÃ±os accesibles', 'Estacionamiento', 'PÃ¡gina web'],
-        aptoDiscapacidades: ['FÃ­sica', 'Sensorial'],
+        tieneServiciosTuristicos: 'Sí',
+        serviciosTuristicos: ['Guía de turismo', 'Restaurantes y similares', 'Souvenir'],
+        tieneServiciosBasicos: 'Sí',
+        serviciosBasicos: ['Agua potable', 'Energía eléctrica', 'Cobertura de internet móvil', 'Conexión a internet (Wifi)', 'Recolección de residuos'],
+        tieneSeguridad: 'Sí',
+        instalacionesSeguridad: ['Puntos de control o acceso', 'Señalética de seguridad', 'Puesto de primeros auxilios'],
+        accesibilidadUniversal: 'Sí',
+        elementosAccesibles: ['Accesos', 'Baños accesibles', 'Estacionamiento', 'Página web'],
+        aptoDiscapacidades: ['Física', 'Sensorial'],
         fichaIdat: 'No',
-        perrosGuia: 'SÃ­',
-        apoyoEmocional: 'SÃ­',
-        tieneReconocimiento: 'SÃ­',
+        perrosGuia: 'Sí',
+        apoyoEmocional: 'Sí',
+        tieneReconocimiento: 'Sí',
         alcanceReconocimiento: 'Regional',
         institucionReconocimiento: 'Gobierno Regional',
-        denominacionReconocimiento: 'Ruta enoturÃ­stica destacada',
+        denominacionReconocimiento: 'Ruta enoturística destacada',
         fechaReconocimiento: '2025-10-01',
-        amenazasNaturales: ['Terremotos', 'SequÃ­as'],
-        planRRD: 'SÃ­',
-        planEmergencia: 'SÃ­',
-        enPlanificacion: 'SÃ­',
-        instrumentosGestion: ['Plan de acciÃ³n ZOIT', 'PLADETUR', 'PLADECO'],
+        amenazasNaturales: ['Terremotos', 'Sequías'],
+        planRRD: 'Sí',
+        planEmergencia: 'Sí',
+        enPlanificacion: 'Sí',
+        instrumentosGestion: ['Plan de acción ZOIT', 'PLADETUR', 'PLADECO'],
         capacidadCarga: 'No',
         resolucionSanitaria: 'No',
-        sePromociona: 'SÃ­',
+        sePromociona: 'Sí',
         escalaPromocion: 'Nacional',
-        instrumentoPromocion: 'SÃ­',
-        instrumentosPromocion: ['Material promocional de empresas privadas', 'Plan de marketing turÃ­stico'],
+        instrumentoPromocion: 'Sí',
+        instrumentosPromocion: ['Material promocional de empresas privadas', 'Plan de marketing turístico'],
         escalaComercializacion: 'Se comercializa a nivel nacional',
         canalesComercializacion: 'Operadores locales, web propia y OTA de experiencias',
-        tieneWeb: 'SÃ­',
+        tieneWeb: 'Sí',
         urlWeb: 'https://www.vinaejemplo.cl/turismo',
         periodicidadWeb: 'Permanente',
-        tieneRedes: 'SÃ­',
+        tieneRedes: 'Sí',
         redesSociales: ['Instagram', 'Facebook'],
         nombreCuenta: '@vinaejemplo',
         periodicidadRedes: 'Permanente',
-        mediosComunicacion: 'SÃ­',
-        tiposMedios: ['PÃ¡ginas web', 'Revistas', 'Radios'],
-        feriasEventos: 'SÃ­',
+        mediosComunicacion: 'Sí',
+        tiposMedios: ['Páginas web', 'Revistas', 'Radios'],
+        feriasEventos: 'Sí',
         nombreFeria: 'Vendimia local',
-        folleteria: 'SÃ­',
+        folleteria: 'Sí',
         tipoFolleteria: 'Digital',
-        otrosMedios: 'CampaÃ±as con municipios y operadores.',
+        otrosMedios: 'Campañas con municipios y operadores.',
         observaciones: 'Ejemplo de ficha precargada para mostrar funcionamiento del prototipo.'
       };
       autosave();
@@ -4150,7 +4270,7 @@
     }
 
     function exportPdfView() {
-      const title = state.values.nombreRecurso || 'Catastro de recurso turÃ­stico';
+      const title = state.values.nombreRecurso || 'Catastro de recurso turístico';
       const printableHtml = buildPrintableHtml(title);
       showPrintablePreview(printableHtml);
     }
@@ -4206,7 +4326,7 @@
             frame.contentWindow.focus();
             frame.contentWindow.print();
           } catch (innerError) {
-            alert('No fue posible abrir la impresiÃ³n automÃ¡ticamente. Usa Ctrl + P para guardar la ficha como PDF.');
+            alert('No fue posible abrir la impresión automáticamente. Usa Ctrl + P para guardar la ficha como PDF.');
           }
         }
       });
@@ -4221,11 +4341,11 @@
     function renderPrintableSummary() {
       const classification = [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ');
       const coordinates = [state.values.latitud, state.values.longitud].filter(Boolean).join(', ');
-      const utmParts = [state.values.coordX ? `X ${state.values.coordX}` : '', state.values.coordY ? `Y ${state.values.coordY}` : '', state.values.utmZona ? `Zona ${state.values.utmZona}` : ''].filter(Boolean).join(' Â· ');
+      const utmParts = [state.values.coordX ? `X ${state.values.coordX}` : '', state.values.coordY ? `Y ${state.values.coordY}` : '', state.values.utmZona ? `Zona ${state.values.utmZona}` : ''].filter(Boolean).join(' · ');
       const cards = [
         { label: 'Nombre del recurso', value: getPrintableSimpleValue('nombreRecurso') || 'Sin informar' },
         { label: 'Territorio', value: formatInlineTerritory() },
-        { label: 'ClasificaciÃ³n', value: classification || 'Sin informar' },
+        { label: 'Clasificación', value: classification || 'Sin informar' },
         { label: 'Responsable del registro', value: getPrintableSimpleValue('responsable') || 'Sin informar' },
         { label: 'Fecha de registro', value: getPrintableSimpleValue('fechaRegistro') || 'Sin informar' },
         { label: 'Coordenadas', value: coordinates || 'Sin informar' },
@@ -4248,27 +4368,27 @@
       const lng = parseCoordinate(state.values.longitud);
       const hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
       const detailRows = [
-        ['Latitud', state.values.latitud || 'â€”'],
-        ['Longitud', state.values.longitud || 'â€”'],
-        ['X (UTM WGS84)', state.values.coordX || 'â€”'],
-        ['Y (UTM WGS84)', state.values.coordY || 'â€”'],
-        ['Zona UTM', state.values.utmZona || 'â€”'],
-        ['Localidad o referencia', getPrintableSimpleValue('localidad') || 'â€”']
+        ['Latitud', state.values.latitud || '—'],
+        ['Longitud', state.values.longitud || '—'],
+        ['X (UTM WGS84)', state.values.coordX || '—'],
+        ['Y (UTM WGS84)', state.values.coordY || '—'],
+        ['Zona UTM', state.values.utmZona || '—'],
+        ['Localidad o referencia', getPrintableSimpleValue('localidad') || '—']
       ];
 
       return `
         <section class="section map-section">
           <div class="section-header">
             <h2>Mapa de referencia</h2>
-            <p>UbicaciÃ³n del recurso o atractivo turÃ­stico segÃºn el punto geogrÃ¡fico registrado en el formulario.</p>
+            <p>Ubicación del recurso o atractivo turístico según el punto geográfico registrado en el formulario.</p>
           </div>
           <div class="section-body">
             <div class="map-grid">
               <div class="map-panel">
-                ${hasPoint ? '<div id="printMap"></div><div class="map-caption">Referencia cartogrÃ¡fica preliminar para impresiÃ³n.</div>' : '<div class="map-empty">No hay coordenadas suficientes para generar el mapa de referencia.</div>'}
+                ${hasPoint ? '<div id="printMap"></div><div class="map-caption">Referencia cartográfica preliminar para impresión.</div>' : '<div class="map-empty">No hay coordenadas suficientes para generar el mapa de referencia.</div>'}
               </div>
               <div class="map-sidecard">
-                <h3>Detalle de ubicaciÃ³n</h3>
+                <h3>Detalle de ubicación</h3>
                 <table class="compact-table">
                   <tbody>
                     ${detailRows.map(([label, value]) => `
@@ -4295,7 +4415,7 @@
       const mapConfig = {
         lat: parseCoordinate(state.values.latitud),
         lng: parseCoordinate(state.values.longitud),
-        title: state.values.nombreRecurso || 'Recurso turÃ­stico'
+        title: state.values.nombreRecurso || 'Recurso turístico'
       };
       return `<!DOCTYPE html>
 <html lang="es">
@@ -4377,12 +4497,12 @@
     <section class="hero">
       <div class="top">
         <div class="top-copy">
-          <div class="eyebrow">Catastro Nacional de Recursos TurÃ­sticos</div>
+          <div class="eyebrow">Catastro Nacional de Recursos Turísticos</div>
           <h1>${escapeHtml(title)}</h1>
-          <p>Resumen ordenado para revisiÃ³n, validaciÃ³n territorial y respaldo en PDF del recurso o atractivo registrado en el formulario.</p>
+          <p>Resumen ordenado para revisión, validación territorial y respaldo en PDF del recurso o atractivo registrado en el formulario.</p>
           <div class="meta">
-            <div class="meta-card"><strong>Fecha de exportaciÃ³n</strong><span>${escapeHtml(generatedAt)}</span></div>
-            <div class="meta-card"><strong>RegiÃ³n / Provincia / Comuna</strong><span>${escapeHtml(formatInlineTerritory())}</span></div>
+            <div class="meta-card"><strong>Fecha de exportación</strong><span>${escapeHtml(generatedAt)}</span></div>
+            <div class="meta-card"><strong>Región / Provincia / Comuna</strong><span>${escapeHtml(formatInlineTerritory())}</span></div>
             <div class="meta-card"><strong>Responsable</strong><span>${escapeHtml(state.values.responsable || 'Sin informar')}</span></div>
           </div>
         </div>
@@ -4397,8 +4517,8 @@
     ${bodySections}
     ${photosSection}
 
-    <div class="print-note">La exportaciÃ³n se presenta en una versiÃ³n optimizada para impresiÃ³n y guardado como PDF. El mapa de referencia utiliza el punto geogrÃ¡fico registrado en el formulario.</div>
-    <div class="footer-note">Catastro Nacional de Recursos TurÃ­sticos Â· ExportaciÃ³n preliminar</div>
+    <div class="print-note">La exportación se presenta en una versión optimizada para impresión y guardado como PDF. El mapa de referencia utiliza el punto geográfico registrado en el formulario.</div>
+    <div class="footer-note">Catastro Nacional de Recursos Turísticos · Exportación preliminar</div>
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""><\/script>
@@ -4488,7 +4608,7 @@
         <section class="section">
           <div class="section-header">
             <h2>${escapeHtml(section.title)}</h2>
-            ${section.description ? `<p>${escapeHtml(section.description)}</p>` : '<p>Detalle de campos registrados en esta secciÃ³n del formulario.</p>'}
+            ${section.description ? `<p>${escapeHtml(section.description)}</p>` : '<p>Detalle de campos registrados en esta sección del formulario.</p>'}
           </div>
           <div class="section-body">
             <table class="data-table">
@@ -4505,10 +4625,10 @@
 
       const value = state.values[field.name];
       if (Array.isArray(value)) {
-        return value.length ? escapeHtml(value.join(', ')) : '<span class="empty">â€”</span>';
+        return value.length ? escapeHtml(value.join(', ')) : '<span class="empty">—</span>';
       }
       if (value === undefined || value === null || value === '') {
-        return '<span class="empty">â€”</span>';
+        return '<span class="empty">—</span>';
       }
       if (field.type === 'textarea') {
         return escapeHtml(value).replace(/\n/g, '<br>');
@@ -4520,22 +4640,27 @@
       if (!state.photos || !state.photos.length) {
         return `
           <section class="section">
-            <h2>Anexo fotogrÃ¡fico</h2>
-            <p class="empty">No hay fotografÃ­as adjuntas en este borrador.</p>
+            <h2>Anexo fotográfico</h2>
+            <p class="empty">No hay fotografías adjuntas en este borrador.</p>
           </section>
         `;
       }
 
-      const cards = state.photos.map(photo => `
-        <div class="photo-card">
-          <img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">
-          <p><strong>${escapeHtml(photo.name)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
-        </div>
-      `).join('');
+      const cards = state.photos.map(photo => {
+        const preview = photo.dataUrl && canPreviewPhoto(photo)
+          ? `<img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">`
+          : '<p class="empty">Archivo adjunto sin vista previa local.</p>';
+        return `
+          <div class="photo-card">
+            ${preview}
+            <p><strong>${escapeHtml(photo.name)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
+          </div>
+        `;
+      }).join('');
 
       return `
         <section class="section">
-          <h2>Anexo fotogrÃ¡fico</h2>
+          <h2>Anexo fotográfico</h2>
           <div class="photos">${cards}</div>
         </section>
       `;
@@ -4575,6 +4700,31 @@
       state.values.codigo_provincia = codes.codigo_provincia;
       state.values.codigo_comuna = codes.codigo_comuna;
       return codes;
+    }
+
+    function validateTerritoryBeforeSave() {
+      const required = [
+        { name: 'nombreRecurso', label: 'Nombre del recurso' },
+        { name: 'region', label: 'Región' },
+        { name: 'provincia', label: 'Provincia' },
+        { name: 'comuna', label: 'Comuna' }
+      ];
+      const missing = required.filter(field => !String(state.values[field.name] || '').trim());
+
+      if (!missing.length) return true;
+
+      const firstMissing = missing[0];
+      const firstInput = document.getElementById(firstMissing.name);
+      openSection('datos-generales');
+      firstInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInput?.focus({ preventScroll: true });
+      setSyncStatus('Faltan datos obligatorios para generar ID', 'fail');
+      alert(
+        'Antes de guardar online u offline debes ingresar el Nombre del recurso y seleccionar Región, Provincia y Comuna.\n\n' +
+        'Falta completar: ' + missing.map(field => field.label).join(', ') + '.\n\n' +
+        'Estos datos son obligatorios para generar un ID único territorial y evitar duplicados.'
+      );
+      return false;
     }
 
     function createAttractionCode() {
@@ -4624,13 +4774,20 @@
     }
 
     function buildPhotoUploadPayload() {
+      if (!validateTerritoryBeforeSave()) {
+        throw new Error('Falta completar Nombre del recurso, Región, Provincia y Comuna.');
+      }
       const id = ensureUniqueId();
+      const localTimestamp = applyLocalRecordTimestamps();
       return {
         action: 'uploadPhotos',
         id_unico: id,
         values: {
           ...state.values,
-          id_unico: id
+          id_unico: id,
+          fecha_creacion: state.values.fecha_creacion,
+          fecha_actualizacion: state.values.fecha_actualizacion,
+          zona_horaria_usuario: state.values.zona_horaria_usuario
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
@@ -4638,29 +4795,48 @@
           type: photo.type || '',
           dataUrl: photo.dataUrl || ''
         })),
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: localTimestamp,
         replaceExistingPhotos: true
       };
     }
 
+    function setPhotoUploadProgress(percent, label, visible = true) {
+      const wrap = document.getElementById('photoUploadProgress');
+      const fill = document.getElementById('photoUploadFill');
+      const text = document.getElementById('photoUploadLabel');
+      if (!wrap || !fill || !text) return;
+      wrap.classList.toggle('show', visible);
+      fill.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + '%';
+      text.textContent = label || '';
+    }
+
     async function uploadPhotosToDrive() {
       const statusEl = document.getElementById('photoDriveStatus');
+      const button = document.getElementById('uploadPhotosDriveBtn');
+      if (!validateTerritoryBeforeSave()) {
+        setPhotoUploadProgress(0, 'Carga detenida: faltan datos obligatorios.', false);
+        return;
+      }
       if (!state.photos.length) {
-        alert('Primero selecciona al menos una fotografÃ­a.');
+        alert('Primero selecciona al menos una fotografía.');
         return;
       }
 
       const id = ensureUniqueId();
       updateUniqueIdDisplay();
-      const message = 'Se subirÃ¡n las fotografÃ­as seleccionadas a Google Drive. Si ya existÃ­an fotos para este ID, serÃ¡n reemplazadas dentro de la carpeta ' + id + '. Â¿Continuar?';
+      const message = 'Se subirán las fotografías seleccionadas a Google Drive. Si ya existían fotos para este ID, serán reemplazadas dentro de la carpeta ' + id + '. ¿Continuar?';
       if (!confirm(message)) return;
 
       try {
+        if (button) button.disabled = true;
+        setPhotoUploadProgress(10, 'Preparando fotografías para subir...');
         if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         setSyncStatus('Subiendo fotos...', 'busy');
 
         const payload = buildPhotoUploadPayload();
+        setPhotoUploadProgress(35, 'Enviando solicitud a Google Drive...');
         await submitPayloadToGoogleSheet(payload);
+        setPhotoUploadProgress(70, 'Solicitud enviada. Verificando enlaces en Google Sheet...');
         await sleep(2500);
 
         let verifiedRecord = null;
@@ -4672,12 +4848,14 @@
           verifiedRecord = null;
         }
 
-        const when = new Date().toLocaleString('es-CL');
+        const when = getLocalTimestamp();
         state.values.fecha_subida_fotos = verifiedRecord?.fecha_subida_fotos || when;
         state.values.fotos_cantidad = Number(verifiedRecord?.fotos_cantidad || state.photos.length);
         if (verifiedRecord?.fotos_carpeta_drive) state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive;
         if (verifiedRecord?.fotos_links) state.values.fotos_links = verifiedRecord.fotos_links;
         state.values.fecha_sincronizacion = verifiedRecord?.fecha_sincronizacion || when;
+        state.values.fecha_actualizacion = verifiedRecord?.fecha_actualizacion || state.values.fecha_actualizacion || when;
+        state.values.zona_horaria_usuario = verifiedRecord?.zona_horaria_usuario || state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
@@ -4689,16 +4867,21 @@
             : '';
           if (statusEl) statusEl.textContent = 'Fotos guardadas en Google Drive y enlazadas en Google Sheet.' + folderLink;
           setSyncStatus('Fotos respaldadas online', 'ok');
+          setPhotoUploadProgress(100, 'Fotos respaldadas en Drive.');
           alert('Listo: las fotos quedaron guardadas en Drive y los enlaces quedaron en Google Sheet.');
         } else {
           if (statusEl) statusEl.textContent = 'Solicitud enviada. Si no aparecen enlaces en Google Sheet, revisa permisos de Drive en Apps Script.';
           setSyncStatus('Verificar en Google Sheet', 'warn');
+          setPhotoUploadProgress(100, 'Solicitud enviada. Verifica enlaces en Google Sheet.');
           alert('La solicitud fue enviada. Verifica en Google Sheet si aparecieron las columnas fotos_carpeta_drive y fotos_links. Si no aparecen, falta autorizar Drive en Apps Script.');
         }
       } catch (error) {
         if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
         setSyncStatus('Error al subir fotos', 'fail');
+        setPhotoUploadProgress(100, 'Error al subir fotos.');
         alert('No fue posible subir las fotos: ' + String(error.message || error));
+      } finally {
+        if (button) button.disabled = false;
       }
     }
 
@@ -4725,7 +4908,11 @@
     }
 
     function buildOnlinePayload() {
+      if (!validateTerritoryBeforeSave()) {
+        throw new Error('Falta completar Nombre del recurso, Región, Provincia y Comuna.');
+      }
       const id = ensureUniqueId();
+      const localTimestamp = applyLocalRecordTimestamps();
 
       return {
         action: 'saveRecord',
@@ -4735,20 +4922,23 @@
         values: {
           ...state.values,
           id_unico: id,
-          codigo_atractivo: state.values.codigo_atractivo || ''
+          codigo_atractivo: state.values.codigo_atractivo || '',
+          fecha_creacion: state.values.fecha_creacion,
+          fecha_actualizacion: state.values.fecha_actualizacion,
+          zona_horaria_usuario: state.values.zona_horaria_usuario
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
           size: photo.size,
           type: photo.type || ''
         })),
-        syncedAt: new Date().toISOString()
+        syncedAt: localTimestamp
       };
     }
 
     async function syncDraftOnline() {
       if (!navigator.onLine) {
-        return { ok: false, error: 'Sin conexiÃ³n a internet.' };
+        return { ok: false, error: 'Sin conexión a internet.' };
       }
 
       try {
@@ -4780,6 +4970,48 @@
       return `${value.toFixed(i ? 1 : 0)} ${sizes[i]}`;
     }
 
+    function getUserTimeZone() {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Hora local del equipo';
+    }
+
+    function getLocalTimestamp(date = new Date()) {
+      const timeZone = getUserTimeZone();
+      const formatted = date.toLocaleString('es-CL', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZoneName: 'short'
+      });
+      return `${formatted} (${timeZone})`;
+    }
+
+    function getLocalDateValue(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function applyLocalRecordTimestamps() {
+      const timestamp = getLocalTimestamp();
+      if (!String(state.values.fecha_creacion || '').trim()) {
+        state.values.fecha_creacion = timestamp;
+      }
+      state.values.fecha_actualizacion = timestamp;
+      state.values.zona_horaria_usuario = getUserTimeZone();
+      return timestamp;
+    }
+
+    function formatStoredDateTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('es-CL');
+    }
+
     function slugify(text) {
       return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     }
@@ -4804,7 +5036,7 @@
       const id = (explicitId || input?.value || '').trim();
       if (explicitId && input) input.value = id;
       if (!id) {
-        alert('Ingresa un ID Ãºnico para cargar el registro.');
+        alert('Ingresa un ID único para cargar el registro.');
         return;
       }
 
@@ -4823,7 +5055,7 @@
         const record = data.record || data.values || data.data || null;
         if (!data.ok || !record) {
           setSyncStatus('Registro no encontrado', 'fail');
-          alert(data.message || data.error || 'No se encontrÃ³ un registro con ese ID. Si es un borrador local, revisa la lista de Borradores locales.');
+          alert(data.message || data.error || 'No se encontró un registro con ese ID. Si es un borrador local, revisa la lista de Borradores locales.');
           return;
         }
 
@@ -4831,7 +5063,7 @@
         applyLoadedState(loaded, 'Registro online cargado', 'ok');
       } catch (error) {
         setSyncStatus('Error al cargar', 'fail');
-        alert('No fue posible cargar el registro online. Revisa que el ID exista en Google Sheet y que Apps Script estÃ© implementado. Detalle: ' + String(error.message || error));
+        alert('No fue posible cargar el registro online. Revisa que el ID exista en Google Sheet y que Apps Script esté implementado. Detalle: ' + String(error.message || error));
       }
     }
 
@@ -4856,24 +5088,24 @@
       setupMobileNavigation();
       setupIdActions();
       updateUniqueIdDisplay();
-      updateLastSyncDisplay('â€”');
+      updateLastSyncDisplay('—');
       updateUiSummary();
       setSyncStatus('Formulario limpio', 'warn');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function clearCurrentForm() {
-      const firstConfirm = confirm('Esta acciÃ³n limpiarÃ¡ todos los campos y fotografÃ­as del formulario actual en este navegador. No elimina registros ya guardados en Google Sheet. Â¿Continuar?');
+      const firstConfirm = confirm('Esta acción limpiará todos los campos y fotografías del formulario actual en este navegador. No elimina registros ya guardados en Google Sheet. ¿Continuar?');
       if (!firstConfirm) return;
 
-      const secondConfirm = confirm('ConfirmaciÃ³n final: se perderÃ¡n los cambios locales no guardados online.');
+      const secondConfirm = confirm('Confirmación final: se perderán los cambios locales no guardados online.');
       if (!secondConfirm) return;
 
       resetFormState();
     }
 
     function startNewAttraction() {
-      if (!confirm('Se iniciarÃ¡ una nueva ficha de recurso turÃ­stico. El formulario actual se limpiarÃ¡ en este navegador, pero no se eliminan borradores guardados ni registros sincronizados en Google Sheet. Â¿Continuar?')) return;
+      if (!confirm('Se iniciará una nueva ficha de recurso turístico. El formulario actual se limpiará en este navegador, pero no se eliminan borradores guardados ni registros sincronizados en Google Sheet. ¿Continuar?')) return;
       resetFormState();
       setSyncStatus('Nueva ficha iniciada', 'warn');
     }
@@ -4939,7 +5171,7 @@
       const clasificacionEl = document.getElementById('summaryClasificacion');
       if (nombreEl) nombreEl.textContent = state.values.nombreRecurso || 'Sin nombre';
       if (territorioEl) territorioEl.textContent = [state.values.region, state.values.provincia, state.values.comuna].filter(Boolean).join(' / ') || 'Sin territorio';
-      if (clasificacionEl) clasificacionEl.textContent = [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificaciÃ³n';
+      if (clasificacionEl) clasificacionEl.textContent = [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificación';
     }
 
     function updateFormProgress() {
@@ -4997,7 +5229,7 @@
     function updateLastSyncDisplay(value = null) {
       const syncEl = document.getElementById('lastSyncDisplay');
       if (!syncEl) return;
-      syncEl.textContent = value || state.values.fecha_sincronizacion || 'â€”';
+      syncEl.textContent = value || state.values.fecha_sincronizacion || '—';
     }
 
     function updateOnlineStatus() {
@@ -5023,20 +5255,20 @@
 
     function buildSaveReviewHtml() {
       const validation = validateRecord();
-      const id = state.values.id_unico || 'Se generarÃ¡ al confirmar';
+      const id = state.values.id_unico || 'Se generará al confirmar';
       const rows = [
-        ['ID Ãºnico', id],
+        ['ID único', id],
         ['Nombre', state.values.nombreRecurso || 'Sin nombre'],
         ['Territorio', [state.values.region, state.values.provincia, state.values.comuna].filter(Boolean).join(' / ') || 'Sin territorio'],
-        ['ClasificaciÃ³n', [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificaciÃ³n'],
+        ['Clasificación', [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ') || 'Sin clasificación'],
         ['Coordenadas', [state.values.latitud, state.values.longitud].filter(Boolean).join(', ') || 'Sin coordenadas'],
         ['Fotos adjuntas', String(state.photos.length) + ' / 5']
       ];
 
       const cards = rows.map(([label, value]) => '<div class="review-card"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>').join('');
       const missing = validation.missing.length
-        ? '<div class="start-guide-note"><strong>Campos crÃ­ticos pendientes:</strong><ul class="review-list">' + validation.missing.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
-        : '<div class="criterion ok"><div><strong>Campos crÃ­ticos completos</strong><div class="small">El registro tiene la informaciÃ³n mÃ­nima para enviarse.</div></div><span class="pill ok">Listo</span></div>';
+        ? '<div class="start-guide-note"><strong>Campos críticos pendientes:</strong><ul class="review-list">' + validation.missing.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
+        : '<div class="criterion ok"><div><strong>Campos críticos completos</strong><div class="small">El registro tiene la información mínima para enviarse.</div></div><span class="pill ok">Listo</span></div>';
       const warnings = validation.warnings.length
         ? '<div class="conditional-note"><strong>Advertencias:</strong><ul class="review-list">' + validation.warnings.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
         : '';
@@ -5045,6 +5277,7 @@
     }
 
     function openSaveReview() {
+      if (!validateTerritoryBeforeSave()) return;
       autosave();
       ensureUniqueId();
       persistNamedDraft();
@@ -5065,29 +5298,35 @@
     }
 
     function saveDraftOffline(options = {}) {
+      if (!validateTerritoryBeforeSave()) return false;
       autosave();
       ensureUniqueId();
+      applyLocalRecordTimestamps();
+      autosave();
       persistNamedDraft();
       updateUniqueIdDisplay();
       updateUiSummary();
       setSyncStatus('Guardado local en este navegador', 'warn');
       if (!options.silent) {
-        alert('Registro guardado como borrador local en este navegador. Para respaldo online, usa Guardar online cuando tengas conexiÃ³n.');
+        alert('Registro guardado como borrador local en este navegador. Para respaldo online, usa Guardar online cuando tengas conexión.');
       }
+      return true;
     }
 
     async function saveDraftAndSyncOnline(options = {}) {
+      if (!validateTerritoryBeforeSave()) return;
+
       if (!navigator.onLine) {
-        saveDraftOffline({ silent: true });
-        setSyncStatus('Sin conexiÃ³n: guardado offline', 'fail');
-        alert('No hay conexiÃ³n a internet. El registro quedÃ³ guardado offline en este navegador. Intenta guardar online cuando vuelva la conexiÃ³n.');
+        if (!saveDraftOffline({ silent: true })) return;
+        setSyncStatus('Sin conexión: guardado offline', 'fail');
+        alert('No hay conexión a internet. El registro quedó guardado offline en este navegador. Intenta guardar online cuando vuelva la conexión.');
         return;
       }
 
       if (!ONLINE_SYNC_URL || ONLINE_SYNC_URL.includes('PEGAR_AQUI')) {
-        saveDraftOffline({ silent: true });
+        if (!saveDraftOffline({ silent: true })) return;
         setSyncStatus('Falta URL de Apps Script', 'fail');
-        alert('Falta conectar la URL de Apps Script. El registro quedÃ³ guardado offline.');
+        alert('Falta conectar la URL de Apps Script. El registro quedó guardado offline.');
         return;
       }
 
@@ -5099,6 +5338,8 @@
       closeSaveReview();
       autosave();
       ensureUniqueId();
+      applyLocalRecordTimestamps();
+      autosave();
       persistNamedDraft();
       setSyncStatus('Sincronizando...', 'busy');
       updateUniqueIdDisplay();
@@ -5106,8 +5347,10 @@
       const result = await syncDraftOnline();
 
       if (result.ok) {
-        const when = new Date().toLocaleString('es-CL');
+        const when = getLocalTimestamp();
         state.values.fecha_sincronizacion = when;
+        state.values.fecha_actualizacion = state.values.fecha_actualizacion || when;
+        state.values.zona_horaria_usuario = state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateUniqueIdDisplay();
