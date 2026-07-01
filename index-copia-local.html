@@ -518,6 +518,71 @@
       font-size: 0.82rem;
     }
 
+    .photo-dropzone {
+      margin-top: 10px;
+      padding: 18px;
+      border: 2px dashed #93c5fd;
+      border-radius: 14px;
+      background: #f8fbff;
+      color: #1e3a8a;
+      display: grid;
+      gap: 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s ease, background .15s ease, transform .15s ease;
+    }
+
+    .photo-dropzone strong {
+      font-size: 0.96rem;
+    }
+
+    .photo-dropzone span {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .photo-dropzone.is-dragover {
+      border-color: #0f766e;
+      background: #ecfdf5;
+      transform: translateY(-1px);
+    }
+
+    .photo-upload-progress {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #ffffff;
+    }
+
+    .photo-upload-progress.show {
+      display: block;
+    }
+
+    .photo-upload-bar {
+      width: 100%;
+      height: 10px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e5edf7;
+    }
+
+    .photo-upload-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #0f766e, #2563eb);
+      transition: width .25s ease;
+    }
+
+    .photo-upload-label {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
     .photo-storage-status {
       display: grid;
       gap: 6px;
@@ -1796,7 +1861,9 @@
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
     const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
-    const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+    const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
+    const ACCEPTED_PHOTO_EXTENSIONS = ['jpg', 'jpeg', 'heic', 'heif'];
+    const ACCEPTED_PHOTO_TYPES = ['image/jpeg', 'image/heic', 'image/heif'];
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
     const COMMUNAL_CAPITAL_CACHE_KEY = 'catastro_communal_capital_coords_v1';
@@ -2392,11 +2459,11 @@
 
     function loadState() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return normalizeState(raw ? JSON.parse(raw) : {});
+        localStorage.removeItem(STORAGE_KEY);
       } catch {
-        return normalizeState({});
+        // Si el navegador bloquea localStorage, igual iniciamos una ficha nueva.
       }
+      return normalizeState({});
     }
 
     function normalizeState(data) {
@@ -3528,10 +3595,18 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <label for="photoInput">Adjuntar fotografÃ­as (mÃ­nimo 3, mÃ¡ximo 5)</label>
-        <input id="photoInput" type="file" accept="image/*" multiple>
+        <div class="photo-dropzone" id="photoDropzone" role="button" tabindex="0" aria-label="Arrastrar o seleccionar fotografias">
+          <strong>Arrastra fotografias aqui o haz clic para seleccionarlas</strong>
+          <span>Formatos permitidos: JPG, JPEG, HEIC o HEIF. Maximo 15 MB por archivo.</span>
+        </div>
+        <input id="photoInput" type="file" accept=".jpg,.jpeg,.heic,.heif,image/jpeg,image/heic,image/heif" multiple>
         <small class="hint">Las imÃ¡genes se mantienen temporalmente en este navegador. Al subirlas, se guardarÃ¡n en Google Drive dentro de una carpeta con el ID Ãºnico del registro.</small>
         <div class="photo-storage-status" id="photoStorageStatus" aria-live="polite"></div>
         <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavÃ­a no estÃ¡n respaldadas en Google Drive.</div>
+        <div class="photo-upload-progress" id="photoUploadProgress" aria-live="polite">
+          <div class="photo-upload-bar"><div class="photo-upload-fill" id="photoUploadFill"></div></div>
+          <div class="photo-upload-label" id="photoUploadLabel">Esperando carga...</div>
+        </div>
         <div class="photo-grid" id="photoGrid"></div>
         <div class="toolbar" style="margin-top:12px;">
           <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
@@ -3539,7 +3614,29 @@
       `;
       content.appendChild(block);
 
-      block.querySelector('#photoInput').addEventListener('change', handlePhotoUpload);
+      const input = block.querySelector('#photoInput');
+      const dropzone = block.querySelector('#photoDropzone');
+      input.addEventListener('change', event => addPhotoFiles(event.target.files, input));
+      dropzone.addEventListener('click', () => input.click());
+      dropzone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          input.click();
+        }
+      });
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          dropzone.classList.add('is-dragover');
+        });
+      });
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          dropzone.classList.remove('is-dragover');
+        });
+      });
+      dropzone.addEventListener('drop', event => addPhotoFiles(event.dataTransfer?.files, input));
       block.querySelector('#uploadPhotosDriveBtn')?.addEventListener('click', uploadPhotosToDrive);
       renderPhotos();
     }
@@ -3605,22 +3702,43 @@
       updateUiSummary();
     }
 
+    function getFileExtension(fileName = '') {
+      return String(fileName).split('.').pop().toLowerCase();
+    }
+
+    function isAcceptedPhotoFile(file) {
+      const type = String(file?.type || '').toLowerCase();
+      const extension = getFileExtension(file?.name || '');
+      return ACCEPTED_PHOTO_TYPES.includes(type) || ACCEPTED_PHOTO_EXTENSIONS.includes(extension);
+    }
+
+    function canPreviewPhoto(photo) {
+      const type = String(photo?.type || '').toLowerCase();
+      const extension = getFileExtension(photo?.name || '');
+      return type === 'image/jpeg' || extension === 'jpg' || extension === 'jpeg';
+    }
+
     function handlePhotoUpload(event) {
-      const files = Array.from(event.target.files || []);
+      addPhotoFiles(event.target.files, event.target);
+    }
+
+    function addPhotoFiles(fileList, input = null) {
+      const files = Array.from(fileList || []);
+      if (!files.length) return;
       const remaining = 5 - state.photos.length;
       if (remaining <= 0) {
         alert('Ya existen 5 fotografÃ­as adjuntas. Elimine una antes de agregar otra.');
-        event.target.value = '';
+        if (input) input.value = '';
         return;
       }
 
       files.slice(0, remaining).forEach(file => {
-        if (!file.type || !file.type.startsWith('image/')) {
-          alert(`${file.name} no es una imagen vÃ¡lida.`);
+        if (!isAcceptedPhotoFile(file)) {
+          alert(`${file.name} no es un formato permitido. Adjunte solo JPG, JPEG, HEIC o HEIF.`);
           return;
         }
         if (file.size > MAX_PHOTO_BYTES) {
-          alert(`${file.name} supera 2 MB. Reduzca o comprima la imagen antes de adjuntarla al prototipo.`);
+          alert(`${file.name} supera 15 MB. Reduzca o comprima la imagen antes de adjuntarla al prototipo.`);
           return;
         }
 
@@ -3631,7 +3749,7 @@
             size: file.size,
             type: file.type,
             dataUrl: reader.result,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: getLocalTimestamp()
           });
           autosave();
           renderPhotos();
@@ -3642,7 +3760,7 @@
       if (files.length > remaining) {
         alert(`Solo se adjuntaron ${remaining} fotografÃ­a(s). El mÃ¡ximo permitido es 5.`);
       }
-      event.target.value = '';
+      if (input) input.value = '';
     }
 
     function renderPhotos() {
@@ -3652,15 +3770,15 @@
       state.photos.forEach((photo, idx) => {
         const card = document.createElement('div');
         card.className = 'photo-card';
-        const preview = photo.dataUrl
+        const preview = photo.dataUrl && canPreviewPhoto(photo)
           ? '<img src="' + photo.dataUrl + '" alt="' + escapeHtml(photo.name) + '">'
-          : '<div class="coord-note">Foto no disponible en este navegador. Vuelve a adjuntarla si necesitas subirla a Drive.</div>';
+          : '<div class="coord-note">Archivo adjunto sin vista previa local. HEIC/HEIF puede no visualizarse en este navegador, pero queda disponible para subirlo a Drive.</div>';
         card.innerHTML = `
           ${preview}
           <div class="meta">
             <strong>${escapeHtml(photo.name || 'FotografÃ­a')}</strong>
             <span>${formatBytes(photo.size)}</span>
-            <span>${photo.uploadedAt ? new Date(photo.uploadedAt).toLocaleString('es-CL') : 'Sin fecha local'}</span>
+            <span>${photo.uploadedAt ? formatStoredDateTime(photo.uploadedAt) : 'Sin fecha local'}</span>
             <button type="button" class="danger" data-remove-photo="${idx}">Eliminar</button>
           </div>
         `;
@@ -3880,6 +3998,7 @@
     function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
       Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
       state.lastSavedAt = new Date().toISOString();
+      const loadedId = String(state.values.id_unico || '').trim();
       saveState();
       renderForm();
       setupMobileNavigation();
@@ -3887,7 +4006,7 @@
       updateUniqueIdDisplay();
       updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || 'â€”');
       updateUiSummary();
-      setSyncStatus(statusText, status);
+      setSyncStatus(loadedId ? statusText + ' Â· ID ' + loadedId : statusText, status);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -3991,7 +4110,7 @@
       if (!isValidOptionalUrl(state.values.sitioWeb)) warnings.push('Sitio web debe comenzar con http:// o https://');
       if (!isValidOptionalUrl(state.values.urlWeb)) warnings.push('URL de promociÃ³n debe comenzar con http:// o https://');
       if (state.photos.some(photo => Number(photo.size) > MAX_PHOTO_BYTES)) {
-        warnings.push('Hay fotografÃ­as que superan 2 MB y podrÃ­an impedir el guardado local.');
+        warnings.push('Hay fotografÃ­as que superan 15 MB y podrÃ­an impedir el guardado local.');
       }
 
       return { missing, warnings };
@@ -4032,7 +4151,7 @@
       state.values = {
         nombreRecurso: 'ViÃ±a Patrimonial de Isla de Maipo',
         idInterno: 'RM-IM-001',
-        fechaRegistro: new Date().toISOString().slice(0, 10),
+        fechaRegistro: getLocalDateValue(),
         responsable: 'Encargado Municipal de Turismo',
         region: 'RegiÃ³n Metropolitana de Santiago',
         provincia: 'Talagante',
@@ -4526,12 +4645,17 @@
         `;
       }
 
-      const cards = state.photos.map(photo => `
-        <div class="photo-card">
-          <img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">
-          <p><strong>${escapeHtml(photo.name)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
-        </div>
-      `).join('');
+      const cards = state.photos.map(photo => {
+        const preview = photo.dataUrl && canPreviewPhoto(photo)
+          ? `<img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">`
+          : '<p class="empty">Archivo adjunto sin vista previa local.</p>';
+        return `
+          <div class="photo-card">
+            ${preview}
+            <p><strong>${escapeHtml(photo.name)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
+          </div>
+        `;
+      }).join('');
 
       return `
         <section class="section">
@@ -4575,6 +4699,31 @@
       state.values.codigo_provincia = codes.codigo_provincia;
       state.values.codigo_comuna = codes.codigo_comuna;
       return codes;
+    }
+
+    function validateTerritoryBeforeSave() {
+      const required = [
+        { name: 'nombreRecurso', label: 'Nombre del recurso' },
+        { name: 'region', label: 'RegiÃ³n' },
+        { name: 'provincia', label: 'Provincia' },
+        { name: 'comuna', label: 'Comuna' }
+      ];
+      const missing = required.filter(field => !String(state.values[field.name] || '').trim());
+
+      if (!missing.length) return true;
+
+      const firstMissing = missing[0];
+      const firstInput = document.getElementById(firstMissing.name);
+      openSection('datos-generales');
+      firstInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      firstInput?.focus({ preventScroll: true });
+      setSyncStatus('Faltan datos obligatorios para generar ID', 'fail');
+      alert(
+        'Antes de guardar online u offline debes ingresar el Nombre del recurso y seleccionar RegiÃ³n, Provincia y Comuna.\n\n' +
+        'Falta completar: ' + missing.map(field => field.label).join(', ') + '.\n\n' +
+        'Estos datos son obligatorios para generar un ID Ãºnico territorial y evitar duplicados.'
+      );
+      return false;
     }
 
     function createAttractionCode() {
@@ -4624,13 +4773,20 @@
     }
 
     function buildPhotoUploadPayload() {
+      if (!validateTerritoryBeforeSave()) {
+        throw new Error('Falta completar Nombre del recurso, RegiÃ³n, Provincia y Comuna.');
+      }
       const id = ensureUniqueId();
+      const localTimestamp = applyLocalRecordTimestamps();
       return {
         action: 'uploadPhotos',
         id_unico: id,
         values: {
           ...state.values,
-          id_unico: id
+          id_unico: id,
+          fecha_creacion: state.values.fecha_creacion,
+          fecha_actualizacion: state.values.fecha_actualizacion,
+          zona_horaria_usuario: state.values.zona_horaria_usuario
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
@@ -4638,13 +4794,28 @@
           type: photo.type || '',
           dataUrl: photo.dataUrl || ''
         })),
-        uploadedAt: new Date().toISOString(),
+        uploadedAt: localTimestamp,
         replaceExistingPhotos: true
       };
     }
 
+    function setPhotoUploadProgress(percent, label, visible = true) {
+      const wrap = document.getElementById('photoUploadProgress');
+      const fill = document.getElementById('photoUploadFill');
+      const text = document.getElementById('photoUploadLabel');
+      if (!wrap || !fill || !text) return;
+      wrap.classList.toggle('show', visible);
+      fill.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + '%';
+      text.textContent = label || '';
+    }
+
     async function uploadPhotosToDrive() {
       const statusEl = document.getElementById('photoDriveStatus');
+      const button = document.getElementById('uploadPhotosDriveBtn');
+      if (!validateTerritoryBeforeSave()) {
+        setPhotoUploadProgress(0, 'Carga detenida: faltan datos obligatorios.', false);
+        return;
+      }
       if (!state.photos.length) {
         alert('Primero selecciona al menos una fotografÃ­a.');
         return;
@@ -4656,11 +4827,15 @@
       if (!confirm(message)) return;
 
       try {
+        if (button) button.disabled = true;
+        setPhotoUploadProgress(10, 'Preparando fotografÃƒÂ­as para subir...');
         if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         setSyncStatus('Subiendo fotos...', 'busy');
 
         const payload = buildPhotoUploadPayload();
+        setPhotoUploadProgress(35, 'Enviando solicitud a Google Drive...');
         await submitPayloadToGoogleSheet(payload);
+        setPhotoUploadProgress(70, 'Solicitud enviada. Verificando enlaces en Google Sheet...');
         await sleep(2500);
 
         let verifiedRecord = null;
@@ -4672,12 +4847,14 @@
           verifiedRecord = null;
         }
 
-        const when = new Date().toLocaleString('es-CL');
+        const when = getLocalTimestamp();
         state.values.fecha_subida_fotos = verifiedRecord?.fecha_subida_fotos || when;
         state.values.fotos_cantidad = Number(verifiedRecord?.fotos_cantidad || state.photos.length);
         if (verifiedRecord?.fotos_carpeta_drive) state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive;
         if (verifiedRecord?.fotos_links) state.values.fotos_links = verifiedRecord.fotos_links;
         state.values.fecha_sincronizacion = verifiedRecord?.fecha_sincronizacion || when;
+        state.values.fecha_actualizacion = verifiedRecord?.fecha_actualizacion || state.values.fecha_actualizacion || when;
+        state.values.zona_horaria_usuario = verifiedRecord?.zona_horaria_usuario || state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
@@ -4689,16 +4866,21 @@
             : '';
           if (statusEl) statusEl.textContent = 'Fotos guardadas en Google Drive y enlazadas en Google Sheet.' + folderLink;
           setSyncStatus('Fotos respaldadas online', 'ok');
+          setPhotoUploadProgress(100, 'Fotos respaldadas en Drive.');
           alert('Listo: las fotos quedaron guardadas en Drive y los enlaces quedaron en Google Sheet.');
         } else {
           if (statusEl) statusEl.textContent = 'Solicitud enviada. Si no aparecen enlaces en Google Sheet, revisa permisos de Drive en Apps Script.';
           setSyncStatus('Verificar en Google Sheet', 'warn');
+          setPhotoUploadProgress(100, 'Solicitud enviada. Verifica enlaces en Google Sheet.');
           alert('La solicitud fue enviada. Verifica en Google Sheet si aparecieron las columnas fotos_carpeta_drive y fotos_links. Si no aparecen, falta autorizar Drive en Apps Script.');
         }
       } catch (error) {
         if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
         setSyncStatus('Error al subir fotos', 'fail');
+        setPhotoUploadProgress(100, 'Error al subir fotos.');
         alert('No fue posible subir las fotos: ' + String(error.message || error));
+      } finally {
+        if (button) button.disabled = false;
       }
     }
 
@@ -4725,7 +4907,11 @@
     }
 
     function buildOnlinePayload() {
+      if (!validateTerritoryBeforeSave()) {
+        throw new Error('Falta completar Nombre del recurso, RegiÃ³n, Provincia y Comuna.');
+      }
       const id = ensureUniqueId();
+      const localTimestamp = applyLocalRecordTimestamps();
 
       return {
         action: 'saveRecord',
@@ -4735,14 +4921,17 @@
         values: {
           ...state.values,
           id_unico: id,
-          codigo_atractivo: state.values.codigo_atractivo || ''
+          codigo_atractivo: state.values.codigo_atractivo || '',
+          fecha_creacion: state.values.fecha_creacion,
+          fecha_actualizacion: state.values.fecha_actualizacion,
+          zona_horaria_usuario: state.values.zona_horaria_usuario
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
           size: photo.size,
           type: photo.type || ''
         })),
-        syncedAt: new Date().toISOString()
+        syncedAt: localTimestamp
       };
     }
 
@@ -4778,6 +4967,48 @@
         i++;
       }
       return `${value.toFixed(i ? 1 : 0)} ${sizes[i]}`;
+    }
+
+    function getUserTimeZone() {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Hora local del equipo';
+    }
+
+    function getLocalTimestamp(date = new Date()) {
+      const timeZone = getUserTimeZone();
+      const formatted = date.toLocaleString('es-CL', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+        timeZoneName: 'short'
+      });
+      return `${formatted} (${timeZone})`;
+    }
+
+    function getLocalDateValue(date = new Date()) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    function applyLocalRecordTimestamps() {
+      const timestamp = getLocalTimestamp();
+      if (!String(state.values.fecha_creacion || '').trim()) {
+        state.values.fecha_creacion = timestamp;
+      }
+      state.values.fecha_actualizacion = timestamp;
+      state.values.zona_horaria_usuario = getUserTimeZone();
+      return timestamp;
+    }
+
+    function formatStoredDateTime(value) {
+      if (!value) return '';
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('es-CL');
     }
 
     function slugify(text) {
@@ -5045,6 +5276,7 @@
     }
 
     function openSaveReview() {
+      if (!validateTerritoryBeforeSave()) return;
       autosave();
       ensureUniqueId();
       persistNamedDraft();
@@ -5065,8 +5297,11 @@
     }
 
     function saveDraftOffline(options = {}) {
+      if (!validateTerritoryBeforeSave()) return false;
       autosave();
       ensureUniqueId();
+      applyLocalRecordTimestamps();
+      autosave();
       persistNamedDraft();
       updateUniqueIdDisplay();
       updateUiSummary();
@@ -5074,18 +5309,21 @@
       if (!options.silent) {
         alert('Registro guardado como borrador local en este navegador. Para respaldo online, usa Guardar online cuando tengas conexiÃ³n.');
       }
+      return true;
     }
 
     async function saveDraftAndSyncOnline(options = {}) {
+      if (!validateTerritoryBeforeSave()) return;
+
       if (!navigator.onLine) {
-        saveDraftOffline({ silent: true });
+        if (!saveDraftOffline({ silent: true })) return;
         setSyncStatus('Sin conexiÃ³n: guardado offline', 'fail');
         alert('No hay conexiÃ³n a internet. El registro quedÃ³ guardado offline en este navegador. Intenta guardar online cuando vuelva la conexiÃ³n.');
         return;
       }
 
       if (!ONLINE_SYNC_URL || ONLINE_SYNC_URL.includes('PEGAR_AQUI')) {
-        saveDraftOffline({ silent: true });
+        if (!saveDraftOffline({ silent: true })) return;
         setSyncStatus('Falta URL de Apps Script', 'fail');
         alert('Falta conectar la URL de Apps Script. El registro quedÃ³ guardado offline.');
         return;
@@ -5099,6 +5337,8 @@
       closeSaveReview();
       autosave();
       ensureUniqueId();
+      applyLocalRecordTimestamps();
+      autosave();
       persistNamedDraft();
       setSyncStatus('Sincronizando...', 'busy');
       updateUniqueIdDisplay();
@@ -5106,8 +5346,10 @@
       const result = await syncDraftOnline();
 
       if (result.ok) {
-        const when = new Date().toLocaleString('es-CL');
+        const when = getLocalTimestamp();
         state.values.fecha_sincronizacion = when;
+        state.values.fecha_actualizacion = state.values.fecha_actualizacion || when;
+        state.values.zona_horaria_usuario = state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateUniqueIdDisplay();
