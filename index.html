@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -29,7 +28,7 @@
     .shell {
       max-width: 1440px;
       margin: 0 auto;
-      padding: 24px 24px 132px;
+      padding: 24px;
       display: grid;
       grid-template-columns: 320px 1fr;
       gap: 20px;
@@ -519,42 +518,6 @@
       font-size: 0.82rem;
     }
 
-    .photo-card .photo-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: fit-content;
-      min-height: 36px;
-      padding: 8px 12px;
-      border-radius: 10px;
-      background: #dbeafe;
-      color: #1d4ed8;
-      font-weight: 800;
-      text-decoration: none;
-    }
-
-    .photo-storage-status {
-      display: grid;
-      gap: 6px;
-      margin-top: 10px;
-      padding: 12px 14px;
-      border-radius: 12px;
-      border: 1px solid var(--line);
-      background: #fff7ed;
-      color: #7c2d12;
-      font-size: 0.9rem;
-    }
-
-    .photo-storage-status.ok {
-      background: #ecfdf5;
-      color: #065f46;
-      border-color: #bbf7d0;
-    }
-
-    .photo-storage-status strong {
-      color: inherit;
-    }
-
     .admissibility {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -712,7 +675,7 @@
     .floating-save-group {
       position: fixed;
       right: 22px;
-      bottom: 12px;
+      bottom: 22px;
       z-index: 1200;
       display: flex;
       gap: 10px;
@@ -725,7 +688,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 11px 15px;
+      padding: 13px 16px;
       border-radius: 999px;
       background: #0f766e;
       color: #ffffff;
@@ -766,7 +729,7 @@
     .floating-index {
       position: fixed;
       right: 22px;
-      bottom: 72px;
+      bottom: 82px;
       z-index: 1190;
       display: inline-flex;
       align-items: center;
@@ -784,7 +747,7 @@
     .floating-index-panel {
       position: fixed;
       right: 22px;
-      bottom: 124px;
+      bottom: 134px;
       z-index: 1190;
       width: min(320px, calc(100vw - 28px));
       max-height: min(520px, calc(100vh - 180px));
@@ -1212,33 +1175,6 @@
       flex-wrap: wrap;
     }
 
-    .map-lock-state {
-      display: inline-flex;
-      align-items: center;
-      min-height: 38px;
-      padding: 8px 12px;
-      border-radius: 12px;
-      background: #f8fafc;
-      color: var(--muted);
-      font-weight: 800;
-      font-size: 0.86rem;
-      border: 1px solid var(--line);
-    }
-
-    .map-footer {
-      display: grid;
-      grid-template-columns: minmax(260px, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .map-edit-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
     #geoMap {
       width: 100%;
       height: 380px;
@@ -1331,8 +1267,6 @@
       .field, .span-3, .span-4, .span-6, .span-8 { grid-column: span 1; }
       .admissibility { grid-template-columns: 1fr; }
       .hero { flex-direction: column; }
-      .map-footer { grid-template-columns: 1fr; }
-      .map-edit-actions { justify-content: flex-start; }
     }
     @media (max-width: 800px) {
       body { line-height: 1.38; }
@@ -1577,7 +1511,7 @@
 
 
       main {
-        padding-bottom: 104px;
+        padding-bottom: 76px;
       }
     }
 
@@ -1810,29 +1744,10 @@
   <script>
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
-    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxD5_L3iuS_pxfIwqzIJ6aM6hlPKisCffju2itBZO80CpIa6z3WD2SS2yNFG7xWUnjlPg/exec';
+    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
     const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
-    const COMMUNAL_CAPITAL_CACHE_KEY = 'catastro_communal_capital_coords_v1';
-    const REGIONAL_CAPITAL_COORDS = {
-      'Región de Arica y Parinacota': { lat: -18.478253, lng: -70.312599, name: 'Arica' },
-      'Región de Tarapacá': { lat: -20.213262, lng: -70.150268, name: 'Iquique' },
-      'Región de Antofagasta': { lat: -23.650928, lng: -70.397502, name: 'Antofagasta' },
-      'Región de Atacama': { lat: -27.366793, lng: -70.331398, name: 'Copiapó' },
-      'Región de Coquimbo': { lat: -29.902669, lng: -71.251937, name: 'La Serena' },
-      'Región de Valparaíso': { lat: -33.047238, lng: -71.612688, name: 'Valparaíso' },
-      'Región Metropolitana de Santiago': { lat: -33.448891, lng: -70.669266, name: 'Santiago' },
-      "Región del Libertador General Bernardo O'Higgins": { lat: -34.170132, lng: -70.740625, name: 'Rancagua' },
-      'Región del Maule': { lat: -35.426400, lng: -71.655420, name: 'Talca' },
-      'Región de Ñuble': { lat: -36.606261, lng: -72.103440, name: 'Chillán' },
-      'Región del Biobío': { lat: -36.826992, lng: -73.049774, name: 'Concepción' },
-      'Región de La Araucanía': { lat: -38.735902, lng: -72.590374, name: 'Temuco' },
-      'Región de Los Ríos': { lat: -39.814224, lng: -73.245891, name: 'Valdivia' },
-      'Región de Los Lagos': { lat: -41.471812, lng: -72.939621, name: 'Puerto Montt' },
-      'Región de Aysén del General Carlos Ibáñez del Campo': { lat: -45.571225, lng: -72.068266, name: 'Coyhaique' },
-      'Región de Magallanes y de la Antártica Chilena': { lat: -53.163833, lng: -70.917068, name: 'Punta Arenas' }
-    };
     let storageWarningShown = false;
 
 
@@ -1862,84 +1777,22 @@
     const CLASSIFICATION_HIERARCHY = {
       'Recurso Natural': {
         'Área protegida': ['Áreas de conservación de múltiples usos', 'Áreas de conservación de pueblos indígenas', 'Área protegida privada', 'Monumento Natural', 'Parque Nacional', 'Reserva Nacional'],
-        'Costa': ['Acantilado o farellón', 'Arrecife', 'Bahía', 'Desembocadura', 'Duna o campo dunario', 'Estrecho', 'Fiordo o canal', 'Isla o archipiélago', 'Península, cabo o punta', 'Playa o balneario', 'Salina', 'Seno o ensenada'],
+        'Costa': ['Acantilado o farellón', 'Arrecife', 'Bahía', 'Desembocadura', 'Delta', 'Estuario', 'Duna o campo dunario', 'Estrecho', 'Fiordo', 'Canal', 'Isla', 'Archipiélago', 'Península', 'Cabo', 'Punta', 'Playa', 'Balneario', 'Salina', 'Seno', 'Ensenada'],
         'Condición natural especial': ['Cielos oscuros', 'Olas'],
-        'Cuerpo y curso de agua': ['Cascada o salto', 'Humedal o bofedal', 'Lago o laguna', 'Río o estero'],
-        'Fuente termal o géiser': ['Fuente o centro termal', 'Géiser'],
-        'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciar'],
-        'Lugar de interés geológico o paleontológico': ['Lugar de interés geológico', 'Lugar de interés paleontológico'],
-        'Montaña': ['Altiplano', 'Área nevada', 'Cerro', 'Cordillera', 'Montaña', 'Quebrada', 'Salar', 'Volcán'],
-        'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa o Llanura', 'Valle']
+        'Cuerpo y curso de agua': ['Cascada', 'Salto', 'Humedal', 'Bofedal', 'Lago', 'Laguna', 'Río', 'Estero'],
+        'Fuente termal o géiser': ['Fuente termal', 'Centro termal', 'Géiser'],
+        'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciares de valle', 'Glaciares de montaña', 'Glaciares rocosos', 'Glaciaretes'],
+        'Lugar de interés geológico o paleontológico': ['Geositios', 'Lugar de interés paleontológico'],
+        'Montaña': ['Altiplano', 'Área nevada', 'Cerro', 'Cerro isla', 'Cordillera', 'Montaña', 'Quebrada', 'Salar', 'Volcán'],
+        'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa', 'Llanura', 'Valle']
       },
       'Recurso Cultural': {
-        'Acontecimientos programados': ['Carnaval o fiesta costumbrista', 'Conmemoraciones o representaciones históricas', 'Convenciones, ferias, exposiciones o congresos', 'Evento de música, canto o danza', 'Evento deportivo', 'Evento enológico y/o gastronómico', 'Feria temática', 'Festival de cine', 'Fiesta religiosa'],
-        'Arquitectura': ['Barrios', 'Espacios públicos', 'Infraestructura recreativa', 'Monumento histórico', 'Obra de ingeniería', 'Otras infraestructuras de arquitectura'],
+        'Acontecimientos programados': ['Carnaval o fiesta costumbrista', 'Conmemoraciones', 'Representaciones históricas', 'Convenciones', 'Ferias', 'Exposiciones', 'Congresos', 'Evento de música, canto o danza', 'Evento deportivo', 'Evento enológico y/o gastronómico', 'Feria temática', 'Festival de cine', 'Fiesta religiosa'],
+        'Arquitectura': ['Barrios', 'Espacios públicos', 'Parque de atracciones', 'Casino de juegos', 'Monumento histórico', 'Obra de ingeniería', 'Otras infraestructuras de arquitectura'],
         'Folklore': ['Artesanía', 'Feria artesanal y/o tradicional', 'Mercado tradicional', 'Representaciones y/o manifestaciones religiosas o creencias populares'],
-        'Manifestación Cultural': ['Caleta artesanal', 'Escultura o instalaciones', 'Lugar o sitio histórico o de memoria', 'Mural o arte urbano', 'Museo', 'Pueblo o Zona Típica o Pintoresca', 'Sala de exposición museográfica', 'Ruina o lugar de interés arqueológico'],
-        'Realizaciones técnicas y científicas contemporáneas': ['Acuario, aviario, mariposario y/o zoológico', 'Granja educativa', 'Hacienda o estancia', 'Jardín botánico', 'Observatorio astronómico', 'Planetario', 'Viñas, bodegas, cervecerías o destilerías']
+        'Manifestación Cultural': ['Caleta artesanal', 'Escultura', 'Instalaciones', 'Lugar o sitio histórico', 'Sitios de memoria', 'Mural', 'Arte urbano', 'Museo', 'Pueblos', 'Zonas Típicas o pintorescas', 'Sala de exposición museográfica', 'Ruina', 'Lugar de interés arqueológico'],
+        'Realizaciones técnicas y científicas contemporáneas': ['Acuario', 'Aviario', 'Mariposario', 'Zoológico', 'Granja educativa', 'Hacienda', 'Estancia', 'Jardín botánico', 'Observatorio astronómico', 'Planetario', 'Viñas', 'Bodegas', 'Cervecerías', 'Destilerías']
       }
-    };
-
-    const LEGACY_SUBTYPE_ALIASES = {
-      'Delta': 'Desembocadura',
-      'Estuario': 'Desembocadura',
-      'Fiordo': 'Fiordo o canal',
-      'Canal': 'Fiordo o canal',
-      'Isla': 'Isla o archipiélago',
-      'Archipiélago': 'Isla o archipiélago',
-      'Península': 'Península, cabo o punta',
-      'Cabo': 'Península, cabo o punta',
-      'Punta': 'Península, cabo o punta',
-      'Playa': 'Playa o balneario',
-      'Balneario': 'Playa o balneario',
-      'Seno': 'Seno o ensenada',
-      'Ensenada': 'Seno o ensenada',
-      'Cascada': 'Cascada o salto',
-      'Salto': 'Cascada o salto',
-      'Humedal': 'Humedal o bofedal',
-      'Bofedal': 'Humedal o bofedal',
-      'Lago': 'Lago o laguna',
-      'Laguna': 'Lago o laguna',
-      'Río': 'Río o estero',
-      'Estero': 'Río o estero',
-      'Fuente termal': 'Fuente o centro termal',
-      'Centro termal': 'Fuente o centro termal',
-      'Glaciares de valle': 'Glaciar',
-      'Glaciares de montaña': 'Glaciar',
-      'Glaciares rocosos': 'Glaciar',
-      'Glaciaretes': 'Glaciar',
-      'Geositios': 'Lugar de interés geológico',
-      'Lugar de Interés geológico': 'Lugar de interés geológico',
-      'Pampa': 'Pampa o Llanura',
-      'Llanura': 'Pampa o Llanura',
-      'Conmemoraciones': 'Conmemoraciones o representaciones históricas',
-      'Representaciones históricas': 'Conmemoraciones o representaciones históricas',
-      'Convenciones': 'Convenciones, ferias, exposiciones o congresos',
-      'Ferias': 'Convenciones, ferias, exposiciones o congresos',
-      'Exposiciones': 'Convenciones, ferias, exposiciones o congresos',
-      'Congresos': 'Convenciones, ferias, exposiciones o congresos',
-      'Parque de atracciones': 'Infraestructura recreativa',
-      'Casino de juegos': 'Infraestructura recreativa',
-      'Escultura': 'Escultura o instalaciones',
-      'Instalaciones': 'Escultura o instalaciones',
-      'Lugar o sitio histórico': 'Lugar o sitio histórico o de memoria',
-      'Sitios de memoria': 'Lugar o sitio histórico o de memoria',
-      'Mural': 'Mural o arte urbano',
-      'Arte urbano': 'Mural o arte urbano',
-      'Pueblos': 'Pueblo o Zona Típica o Pintoresca',
-      'Zonas Típicas o pintorescas': 'Pueblo o Zona Típica o Pintoresca',
-      'Ruina': 'Ruina o lugar de interés arqueológico',
-      'Lugar de interés arqueológico': 'Ruina o lugar de interés arqueológico',
-      'Acuario': 'Acuario, aviario, mariposario y/o zoológico',
-      'Aviario': 'Acuario, aviario, mariposario y/o zoológico',
-      'Mariposario': 'Acuario, aviario, mariposario y/o zoológico',
-      'Zoológico': 'Acuario, aviario, mariposario y/o zoológico',
-      'Hacienda': 'Hacienda o estancia',
-      'Estancia': 'Hacienda o estancia',
-      'Viñas': 'Viñas, bodegas, cervecerías o destilerías',
-      'Bodegas': 'Viñas, bodegas, cervecerías o destilerías',
-      'Cervecerías': 'Viñas, bodegas, cervecerías o destilerías',
-      'Destilerías': 'Viñas, bodegas, cervecerías o destilerías'
     };
 
     const CLASSIFICATION_HELP = {
@@ -2407,11 +2260,11 @@
 
     function loadState() {
       try {
-        localStorage.removeItem(STORAGE_KEY);
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return normalizeState(raw ? JSON.parse(raw) : {});
       } catch {
-        // Si el navegador bloquea localStorage, igual iniciamos una ficha nueva.
+        return normalizeState({});
       }
-      return normalizeState({});
     }
 
     function normalizeState(data) {
@@ -2703,42 +2556,30 @@
         state.values.region = regionSelect.value || '';
         state.values.provincia = '';
         state.values.comuna = '';
-        setFieldValue('distanciaCapitalRegional', '');
-        setFieldValue('distanciaCapitalComunal', '');
         refreshDraftTerritoryId();
         autosave();
         syncProvinceSelect();
         syncComunaSelect();
         renderAdmissibility();
-        updateDistanceFieldsFromStoredPoint();
       });
 
       provinceSelect.addEventListener('change', () => {
         state.values.provincia = provinceSelect.value || '';
         state.values.comuna = '';
-        setFieldValue('distanciaCapitalComunal', '');
         refreshDraftTerritoryId();
         autosave();
         syncComunaSelect();
-        updateDistanceFieldsFromStoredPoint();
       });
 
       comunaSelect.addEventListener('change', () => {
         state.values.comuna = comunaSelect.value || '';
-        setFieldValue('distanciaCapitalComunal', '');
         refreshDraftTerritoryId();
         autosave();
         renderAdmissibility();
-        updateDistanceFieldsFromStoredPoint();
       });
     }
 
 
-
-    function normalizeSubtypeValue(value) {
-      const subtype = String(value || '').trim();
-      return LEGACY_SUBTYPE_ALIASES[subtype] || subtype;
-    }
 
     function setupClassificationSelects() {
       const categorySelect = document.getElementById('categoria');
@@ -2799,12 +2640,6 @@
       const subtypes = category && type && CLASSIFICATION_HIERARCHY[category] && CLASSIFICATION_HIERARCHY[category][type]
         ? CLASSIFICATION_HIERARCHY[category][type]
         : [];
-      if (preserveCurrent) {
-        const normalizedSubtype = normalizeSubtypeValue(state.values.subtipoRecurso);
-        if (normalizedSubtype !== (state.values.subtipoRecurso || '')) {
-          state.values.subtipoRecurso = normalizedSubtype;
-        }
-      }
       const selectedSubtype = preserveCurrent ? (state.values.subtipoRecurso || '') : '';
       populateSelect(subtypeSelect, subtypes, selectedSubtype, type ? 'Seleccione subtipo' : 'Primero seleccione tipo');
       subtypeSelect.disabled = !type;
@@ -2876,9 +2711,6 @@
 
     let geoMapInstance = null;
     let geoMarker = null;
-    let geoLocationEditMode = true;
-    let geoOriginalPoint = null;
-    let geoPendingPoint = null;
 
     function renderClassificationHelp(content) {
       const block = document.createElement('div');
@@ -2980,15 +2812,7 @@
           </div>
 
           <div id="geoMap"></div>
-          <div class="map-footer">
-            <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la búsqueda. Nota: la cartografía base y la búsqueda requieren conexión a internet para cargarse.</div>
-            <div class="map-edit-actions">
-              <span class="map-lock-state" id="mapEditState">Ubicación editable</span>
-              <button type="button" class="ghost" id="editLocationBtn">Editar ubicación</button>
-              <button type="button" class="secondary" id="confirmLocationBtn">Confirmar ubicación</button>
-              <button type="button" class="ghost" id="cancelLocationEditBtn">Cancelar edición</button>
-            </div>
-          </div>
+          <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la búsqueda. Nota: la cartografía base y la búsqueda requieren conexión a internet para cargarse.</div>
         </div>
       `;
       content.appendChild(block);
@@ -3009,13 +2833,10 @@
         geoMapInstance = null;
         geoMarker = null;
       }
-      geoPendingPoint = null;
 
       const initialLat = parseCoordinate(state.values.latitud);
       const initialLng = parseCoordinate(state.values.longitud);
       const hasStoredPoint = Number.isFinite(initialLat) && Number.isFinite(initialLng);
-      geoLocationEditMode = !hasStoredPoint;
-      geoOriginalPoint = hasStoredPoint ? { lat: initialLat, lng: initialLng } : null;
       const initialCenter = hasStoredPoint ? [initialLat, initialLng] : [-35.6751, -71.5430];
       const initialZoom = hasStoredPoint ? 14 : 5;
 
@@ -3025,21 +2846,16 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(geoMapInstance);
 
-      geoMapInstance.on('click', (e) => setGeoCandidate(e.latlng.lat, e.latlng.lng, { recenter: false }));
+      geoMapInstance.on('click', (e) => setGeoPoint(e.latlng.lat, e.latlng.lng, { recenter: false }));
 
       if (hasStoredPoint) {
         setGeoPoint(initialLat, initialLng, { recenter: false, preserveZoom: true });
       }
 
-      updateGeoEditControls();
-
       document.getElementById('centerChileBtn')?.addEventListener('click', () => {
         geoMapInstance.setView([-35.6751, -71.5430], 5);
       });
 
-      document.getElementById('editLocationBtn')?.addEventListener('click', beginGeoLocationEdit);
-      document.getElementById('confirmLocationBtn')?.addEventListener('click', confirmGeoLocationEdit);
-      document.getElementById('cancelLocationEditBtn')?.addEventListener('click', cancelGeoLocationEdit);
       document.getElementById('clearPointBtn')?.addEventListener('click', clearGeoPoint);
       document.getElementById('syncFromFieldsBtn')?.addEventListener('click', syncMapFromFields);
       document.getElementById('runGeoSearchBtn')?.addEventListener('click', runGeoSearch);
@@ -3061,126 +2877,40 @@
       return Number(String(value).replace(',', '.'));
     }
 
-    function setGeoCandidate(lat, lng, { recenter = true, preserveZoom = false } = {}) {
-      if (!geoLocationEditMode) {
-        const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'La ubicación está protegida. Presione "Editar ubicación" antes de cambiar el punto.';
-        return false;
-      }
-      setGeoPoint(lat, lng, { recenter, preserveZoom, commit: false });
-      return true;
-    }
-
-    function setGeoPoint(lat, lng, { recenter = true, preserveZoom = false, commit = true } = {}) {
+    function setGeoPoint(lat, lng, { recenter = true, preserveZoom = false } = {}) {
       if (!geoMapInstance || !Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
       const currentZoom = geoMapInstance.getZoom();
       if (!geoMarker) {
-        geoMarker = L.marker([lat, lng], { draggable: geoLocationEditMode }).addTo(geoMapInstance);
+        geoMarker = L.marker([lat, lng], { draggable: true }).addTo(geoMapInstance);
         geoMarker.on('dragend', () => {
           const pos = geoMarker.getLatLng();
-          setGeoCandidate(pos.lat, pos.lng, { recenter: false, preserveZoom: true });
+          setGeoPoint(pos.lat, pos.lng, { recenter: false, preserveZoom: true });
         });
       } else {
         geoMarker.setLatLng([lat, lng]);
       }
-      updateGeoMarkerDraggable();
 
       if (recenter) {
         geoMapInstance.setView([lat, lng], preserveZoom ? currentZoom : Math.max(currentZoom, 14));
       }
 
       const utm = toUtm(lat, lng);
-      if (!commit) {
-        geoPendingPoint = { lat, lng };
-        const statusEl = document.getElementById('mapStatus');
-        if (statusEl) {
-          statusEl.textContent = utm.zoneLabel
-            ? `Ubicación pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}. Presione "Confirmar ubicación" para guardar.`
-            : `Ubicación pendiente. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}. Presione "Confirmar ubicación" para guardar.`;
-        }
-        updateGeoEditControls();
-        return;
-      }
-
       setFieldValue('latitud', lat.toFixed(6));
       setFieldValue('longitud', lng.toFixed(6));
       setFieldValue('coordX', Number.isFinite(utm.x) ? utm.x.toFixed(2) : '');
       setFieldValue('coordY', Number.isFinite(utm.y) ? utm.y.toFixed(2) : '');
       setFieldValue('coordenadas', `${lat.toFixed(6)}, ${lng.toFixed(6)}`);
       state.values.utmZona = utm.zoneLabel || '';
-      geoPendingPoint = null;
-      geoOriginalPoint = { lat, lng };
-      updateDistanceFieldsFromGeoPoint(lat, lng);
       autosave();
       renderAdmissibility();
-      updateGeoEditControls();
 
       const statusEl = document.getElementById('mapStatus');
       if (statusEl) {
         statusEl.textContent = utm.zoneLabel
-          ? `Ubicación guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.`
-          : `Ubicación guardada. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.`;
+          ? `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.`
+          : `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.`;
       }
-    }
-
-    function updateGeoMarkerDraggable() {
-      if (!geoMarker?.dragging) return;
-      if (geoLocationEditMode) geoMarker.dragging.enable();
-      else geoMarker.dragging.disable();
-    }
-
-    function updateGeoEditControls() {
-      const stateEl = document.getElementById('mapEditState');
-      const editBtn = document.getElementById('editLocationBtn');
-      const confirmBtn = document.getElementById('confirmLocationBtn');
-      const cancelBtn = document.getElementById('cancelLocationEditBtn');
-      const hasPoint = Number.isFinite(parseCoordinate(state.values.latitud)) && Number.isFinite(parseCoordinate(state.values.longitud));
-      if (stateEl) {
-        stateEl.textContent = geoLocationEditMode
-          ? (geoPendingPoint ? 'Ubicación pendiente' : 'Ubicación editable')
-          : 'Ubicación protegida';
-      }
-      if (editBtn) editBtn.disabled = geoLocationEditMode;
-      if (confirmBtn) confirmBtn.disabled = !geoLocationEditMode || !geoPendingPoint;
-      if (cancelBtn) cancelBtn.disabled = !geoLocationEditMode || (!geoPendingPoint && !hasPoint);
-      updateGeoMarkerDraggable();
-    }
-
-    function beginGeoLocationEdit() {
-      const lat = parseCoordinate(state.values.latitud);
-      const lng = parseCoordinate(state.values.longitud);
-      geoOriginalPoint = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
-      geoPendingPoint = null;
-      geoLocationEditMode = true;
-      updateGeoEditControls();
-      const statusEl = document.getElementById('mapStatus');
-      if (statusEl) statusEl.textContent = 'Modo edición activo. Seleccione un nuevo punto en el mapa, arrastre el marcador o use la búsqueda. Luego presione "Confirmar ubicación".';
-    }
-
-    function confirmGeoLocationEdit() {
-      if (!geoPendingPoint) {
-        alert('No hay una nueva ubicación pendiente para confirmar.');
-        return;
-      }
-      const point = geoPendingPoint;
-      geoLocationEditMode = false;
-      setGeoPoint(point.lat, point.lng, { recenter: false, preserveZoom: true, commit: true });
-    }
-
-    function cancelGeoLocationEdit() {
-      geoPendingPoint = null;
-      geoLocationEditMode = !geoOriginalPoint;
-      if (geoOriginalPoint) {
-        setGeoPoint(geoOriginalPoint.lat, geoOriginalPoint.lng, { recenter: true, preserveZoom: true, commit: true });
-        geoLocationEditMode = false;
-      } else if (geoMarker) {
-        geoMapInstance.removeLayer(geoMarker);
-        geoMarker = null;
-      }
-      updateGeoEditControls();
-      const statusEl = document.getElementById('mapStatus');
-      if (statusEl) statusEl.textContent = geoOriginalPoint ? 'Edición cancelada. Se mantiene la ubicación guardada.' : 'Edición cancelada. No hay ubicación guardada.';
     }
 
     function setFieldValue(fieldId, value) {
@@ -3190,23 +2920,14 @@
     }
 
     function clearGeoPoint() {
-      if (!geoLocationEditMode) {
-        const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'La ubicación está protegida. Presione "Editar ubicación" antes de limpiar el punto.';
-        return;
-      }
-      if (!confirm('¿Desea eliminar la ubicación guardada de este recurso?')) return;
       if (geoMarker) {
         geoMapInstance.removeLayer(geoMarker);
         geoMarker = null;
       }
       ['latitud', 'longitud', 'coordX', 'coordY', 'coordenadas'].forEach(id => setFieldValue(id, ''));
       delete state.values.utmZona;
-      geoOriginalPoint = null;
-      geoPendingPoint = null;
       autosave();
       renderAdmissibility();
-      updateGeoEditControls();
       const statusEl = document.getElementById('mapStatus');
       if (statusEl) statusEl.textContent = 'Punto eliminado. Puede ingresar coordenadas manualmente o seleccionar un nuevo punto en el mapa.';
     }
@@ -3218,13 +2939,7 @@
         alert('Ingrese una latitud y longitud válidas para ubicar el punto en el mapa.');
         return;
       }
-      if (!geoLocationEditMode) {
-        geoMapInstance?.setView([lat, lng], Math.max(geoMapInstance.getZoom(), 14));
-        const statusEl = document.getElementById('mapStatus');
-        if (statusEl) statusEl.textContent = 'Mapa centrado en la ubicación guardada. Para cambiarla, presione "Editar ubicación".';
-        return;
-      }
-      setGeoCandidate(lat, lng, { recenter: true });
+      setGeoPoint(lat, lng, { recenter: true });
     }
 
     function toUtm(lat, lng) {
@@ -3240,101 +2955,6 @@
       }
     }
 
-
-    function distanceKmBetween(lat1, lng1, lat2, lng2) {
-      const toRad = value => value * Math.PI / 180;
-      const radiusKm = 6371.0088;
-      const dLat = toRad(lat2 - lat1);
-      const dLng = toRad(lng2 - lng1);
-      const a = Math.sin(dLat / 2) ** 2
-        + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-      return radiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    function formatDistanceKm(value) {
-      if (!Number.isFinite(value)) return '';
-      return value < 10 ? value.toFixed(1) : Math.round(value).toString();
-    }
-
-    function getCommunalCapitalCache() {
-      try {
-        return JSON.parse(localStorage.getItem(COMMUNAL_CAPITAL_CACHE_KEY) || '{}') || {};
-      } catch {
-        return {};
-      }
-    }
-
-    function setCommunalCapitalCache(key, value) {
-      try {
-        const cache = getCommunalCapitalCache();
-        cache[key] = value;
-        localStorage.setItem(COMMUNAL_CAPITAL_CACHE_KEY, JSON.stringify(cache));
-      } catch {
-        // Si el navegador no permite cache local, el cálculo seguirá funcionando online.
-      }
-    }
-
-    function communalCapitalCacheKey() {
-      return [state.values.region, state.values.provincia, state.values.comuna]
-        .map(value => normalizeText(value || ''))
-        .filter(Boolean)
-        .join('|');
-    }
-
-    async function resolveCommunalCapitalCoords() {
-      const key = communalCapitalCacheKey();
-      if (!key || !state.values.comuna) return null;
-
-      const cache = getCommunalCapitalCache();
-      if (cache[key]) return cache[key];
-
-      try {
-        const url = new URL('https://nominatim.openstreetmap.org/search');
-        url.searchParams.set('format', 'jsonv2');
-        url.searchParams.set('limit', '1');
-        url.searchParams.set('countrycodes', 'cl');
-        url.searchParams.set('accept-language', 'es');
-        url.searchParams.set('q', [state.values.comuna, state.values.provincia, state.values.region, 'Chile'].filter(Boolean).join(', '));
-        const response = await fetch(url.toString(), { headers: { 'Accept': 'application/json' } });
-        if (!response.ok) return null;
-        const results = await response.json();
-        const first = Array.isArray(results) ? results[0] : null;
-        const lat = Number(first?.lat);
-        const lng = Number(first?.lon);
-        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
-        const value = { lat, lng, name: first.display_name || state.values.comuna };
-        setCommunalCapitalCache(key, value);
-        return value;
-      } catch {
-        return null;
-      }
-    }
-
-    async function updateDistanceFieldsFromGeoPoint(lat, lng) {
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-      const regionalCapital = REGIONAL_CAPITAL_COORDS[state.values.region];
-      if (regionalCapital) {
-        const regionalDistance = distanceKmBetween(lat, lng, regionalCapital.lat, regionalCapital.lng);
-        setFieldValue('distanciaCapitalRegional', formatDistanceKm(regionalDistance));
-        autosave();
-      }
-
-      const communalCapital = await resolveCommunalCapitalCoords();
-      if (communalCapital) {
-        const communalDistance = distanceKmBetween(lat, lng, communalCapital.lat, communalCapital.lng);
-        setFieldValue('distanciaCapitalComunal', formatDistanceKm(communalDistance));
-        autosave();
-      }
-    }
-
-    function updateDistanceFieldsFromStoredPoint() {
-      const lat = parseCoordinate(state.values.latitud);
-      const lng = parseCoordinate(state.values.longitud);
-      if (Number.isFinite(lat) && Number.isFinite(lng)) {
-        updateDistanceFieldsFromGeoPoint(lat, lng);
-      }
-    }
 
     function updateGeoSearchContext() {
       const wrap = document.getElementById('geoSearchContext');
@@ -3444,7 +3064,7 @@
           const lat = Number(result.lat);
           const lon = Number(result.lon);
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-          if (!setGeoCandidate(lat, lon, { recenter: true })) return;
+          setGeoPoint(lat, lon, { recenter: true });
           syncTerritoryFromSearchResult(result);
           if (!(state.values.localidad || '').trim()) {
             setFieldValue('localidad', (result.name || result.display_name || '').slice(0, 180));
@@ -3545,12 +3165,11 @@
         <label for="photoInput">Adjuntar fotografías (mínimo 3, máximo 5)</label>
         <input id="photoInput" type="file" accept="image/*" multiple>
         <small class="hint">Las imágenes se mantienen temporalmente en este navegador. Al subirlas, se guardarán en Google Drive dentro de una carpeta con el ID único del registro.</small>
-        <div class="photo-storage-status" id="photoStorageStatus" aria-live="polite"></div>
-        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
-        <div class="photo-grid" id="photoGrid"></div>
         <div class="toolbar" style="margin-top:12px;">
           <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
         </div>
+        <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
+        <div class="photo-grid" id="photoGrid"></div>
       `;
       content.appendChild(block);
 
@@ -3620,23 +3239,6 @@
       updateUiSummary();
     }
 
-    function parseStoredPhotoLinks(value) {
-      const raw = String(value || '').trim();
-      if (!raw) return [];
-      try {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed.map(item => String(item || '').trim()).filter(Boolean);
-      } catch {
-        // En registros anteriores puede venir como texto separado por saltos de línea, comas o punto y coma.
-      }
-      return raw.split(/[\n,;]+/).map(item => item.trim()).filter(Boolean);
-    }
-
-    function getStoredPhotoLinks() {
-      const links = parseStoredPhotoLinks(state.values.fotos_links);
-      return Array.from(new Set(links.filter(link => /^https?:\/\//i.test(link))));
-    }
-
     function handlePhotoUpload(event) {
       const files = Array.from(event.target.files || []);
       const remaining = 5 - state.photos.length;
@@ -3699,20 +3301,6 @@
         grid.appendChild(card);
       });
 
-      getStoredPhotoLinks().forEach((link, idx) => {
-        const card = document.createElement('div');
-        card.className = 'photo-card drive-photo';
-        card.innerHTML = `
-          <div class="coord-note">Foto respaldada en Google Drive.</div>
-          <div class="meta">
-            <strong>Foto Drive ${idx + 1}</strong>
-            <span>Archivo asociado al registro cargado.</span>
-            <a class="photo-link" href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">Abrir foto</a>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-
       grid.querySelectorAll('[data-remove-photo]').forEach(btn => {
         btn.addEventListener('click', () => {
           const idx = Number(btn.dataset.removePhoto);
@@ -3723,41 +3311,6 @@
       });
 
       document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
-      updatePhotoStorageStatus();
-    }
-
-    function getStoredPhotoCount() {
-      const count = Number(state.values.fotos_cantidad || 0);
-      if (Number.isFinite(count) && count > 0) return count;
-      return getStoredPhotoLinks().length;
-    }
-
-    function updatePhotoStorageStatus() {
-      const statusEl = document.getElementById('photoStorageStatus');
-      const driveStatusEl = document.getElementById('photoDriveStatus');
-      if (!statusEl) return;
-
-      const storedCount = getStoredPhotoCount();
-      const hasDrivePhotos = Boolean(storedCount || state.values.fotos_carpeta_drive || state.values.fotos_links);
-      const localCount = state.photos.length;
-      statusEl.classList.toggle('ok', hasDrivePhotos);
-
-      if (hasDrivePhotos) {
-        const countText = storedCount ? `${storedCount} foto(s)` : 'fotos';
-        const folderText = state.values.fotos_carpeta_drive ? '<br><span>Carpeta Drive registrada.</span>' : '';
-        statusEl.innerHTML = `<strong>Tiene fotos almacenadas en Google Drive.</strong><span>${countText} asociadas a este recurso.</span>${folderText}`;
-        if (driveStatusEl) driveStatusEl.textContent = 'Fotos respaldadas online.';
-        return;
-      }
-
-      if (localCount) {
-        statusEl.innerHTML = `<strong>No tiene fotos almacenadas en Google Drive.</strong><span>${localCount} foto(s) adjuntas solo en este navegador, pendientes de subir.</span>`;
-        if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos están adjuntas localmente, pero todavía no están respaldadas en Google Drive.';
-        return;
-      }
-
-      statusEl.innerHTML = '<strong>No tiene fotos almacenadas.</strong><span>Adjunta fotografías y luego usa el botón inferior para subirlas a Drive.</span>';
-      if (driveStatusEl) driveStatusEl.textContent = 'Pendiente: las fotos todavía no están respaldadas en Google Drive.';
     }
 
     function getAdmissibilityStatus() {
@@ -4645,7 +4198,6 @@
       const codes = ensureTerritoryCodes();
       const existingId = String(state.values.id_unico || '').trim();
       const existingCode = String(state.values.codigo_atractivo || '').trim();
-      const existingInternalCode = String(state.values.idInterno || '').trim();
       const idCodeMatch = existingId.match(/-A(.+)$/);
       const attractionCode = existingCode || (idCodeMatch ? idCodeMatch[1] : createAttractionCode());
       const territorialId = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
@@ -4655,10 +4207,6 @@
       const alreadySyncedOnline = Boolean(state.values.fecha_sincronizacion || state.values.fotos_carpeta_drive || state.values.fotos_links);
 
       state.values.codigo_atractivo = attractionCode;
-      if (!existingInternalCode || existingInternalCode === existingId) {
-        state.values.idInterno = attractionCode;
-        updateInternalCodeField();
-      }
 
       if (!existingId || isPlaceholderId || (territoryDoesNotMatch && !alreadySyncedOnline)) {
         state.values.id_unico = territorialId;
@@ -4668,30 +4216,23 @@
       return state.values.id_unico;
     }
 
-    function buildPhotoUploadPayload(photos = state.photos, options = {}) {
+    function buildPhotoUploadPayload() {
       const id = ensureUniqueId();
-      const localTimestamp = applyLocalRecordTimestamps();
-      const selectedPhotos = Array.isArray(photos) ? photos : [];
       return {
-        action: options.action || 'uploadPhotos',
+        action: 'uploadPhotos',
         id_unico: id,
         values: {
           ...state.values,
-          id_unico: id,
-          fecha_creacion: state.values.fecha_creacion,
-          fecha_actualizacion: state.values.fecha_actualizacion,
-          zona_horaria_usuario: state.values.zona_horaria_usuario
+          id_unico: id
         },
-        photos: selectedPhotos.map(photo => ({
+        photos: state.photos.map(photo => ({
           name: photo.name,
           size: photo.size,
           type: photo.type || '',
           dataUrl: photo.dataUrl || ''
         })),
-        uploadedAt: localTimestamp,
-        photoIndex: Number.isFinite(options.photoIndex) ? options.photoIndex : null,
-        photoTotal: Number.isFinite(options.photoTotal) ? options.photoTotal : selectedPhotos.length,
-        replaceExistingPhotos: Boolean(options.replaceExistingPhotos)
+        uploadedAt: new Date().toISOString(),
+        replaceExistingPhotos: true
       };
     }
 
@@ -4711,40 +4252,28 @@
         if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         setSyncStatus('Subiendo fotos...', 'busy');
 
-        const idForVerification = state.values.id_unico;
-        for (let index = 0; index < state.photos.length; index += 1) {
-          const payload = buildPhotoUploadPayload([state.photos[index]], {
-            action: 'uploadPhoto',
-            photoIndex: index + 1,
-            photoTotal: state.photos.length,
-            replaceExistingPhotos: index === 0
-          });
-          await submitPayloadToGoogleSheet(payload);
-          await sleep(700);
-        }
+        const payload = buildPhotoUploadPayload();
+        await submitPayloadToGoogleSheet(payload);
         await sleep(2500);
 
         let verifiedRecord = null;
         try {
-          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: idForVerification, t: Date.now() }));
+          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: payload.id_unico, t: Date.now() }));
           const data = await response.json();
           if (data.ok && data.record) verifiedRecord = data.record;
         } catch (verifyError) {
           verifiedRecord = null;
         }
 
-        const when = getLocalTimestamp();
+        const when = new Date().toLocaleString('es-CL');
         state.values.fecha_subida_fotos = verifiedRecord?.fecha_subida_fotos || when;
         state.values.fotos_cantidad = Number(verifiedRecord?.fotos_cantidad || state.photos.length);
         if (verifiedRecord?.fotos_carpeta_drive) state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive;
         if (verifiedRecord?.fotos_links) state.values.fotos_links = verifiedRecord.fotos_links;
         state.values.fecha_sincronizacion = verifiedRecord?.fecha_sincronizacion || when;
-        state.values.fecha_actualizacion = verifiedRecord?.fecha_actualizacion || state.values.fecha_actualizacion || when;
-        state.values.zona_horaria_usuario = verifiedRecord?.zona_horaria_usuario || state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
-        renderPhotos();
 
         if (verifiedRecord?.fotos_links || verifiedRecord?.fotos_carpeta_drive) {
           const folderLink = verifiedRecord.fotos_carpeta_drive
@@ -4789,7 +4318,6 @@
 
     function buildOnlinePayload() {
       const id = ensureUniqueId();
-      const localTimestamp = applyLocalRecordTimestamps();
 
       return {
         action: 'saveRecord',
@@ -4799,17 +4327,14 @@
         values: {
           ...state.values,
           id_unico: id,
-          codigo_atractivo: state.values.codigo_atractivo || '',
-          fecha_creacion: state.values.fecha_creacion,
-          fecha_actualizacion: state.values.fecha_actualizacion,
-          zona_horaria_usuario: state.values.zona_horaria_usuario
+          codigo_atractivo: state.values.codigo_atractivo || ''
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
           size: photo.size,
           type: photo.type || ''
         })),
-        syncedAt: localTimestamp
+        syncedAt: new Date().toISOString()
       };
     }
 
@@ -4847,35 +4372,6 @@
       return `${value.toFixed(i ? 1 : 0)} ${sizes[i]}`;
     }
 
-    function getUserTimeZone() {
-      return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Hora local del equipo';
-    }
-
-    function getLocalTimestamp(date = new Date()) {
-      const timeZone = getUserTimeZone();
-      const formatted = date.toLocaleString('es-CL', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-        timeZoneName: 'short'
-      });
-      return `${formatted} (${timeZone})`;
-    }
-
-    function applyLocalRecordTimestamps() {
-      const timestamp = getLocalTimestamp();
-      if (!String(state.values.fecha_creacion || '').trim()) {
-        state.values.fecha_creacion = timestamp;
-      }
-      state.values.fecha_actualizacion = timestamp;
-      state.values.zona_horaria_usuario = getUserTimeZone();
-      return timestamp;
-    }
-
     function slugify(text) {
       return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     }
@@ -4896,9 +4392,8 @@
 
     async function loadRecordByUniqueId(idOverride = '') {
       const input = document.getElementById('lookupUniqueIdInput');
-      const explicitId = typeof idOverride === 'string' ? idOverride : '';
-      const id = (explicitId || input?.value || '').trim();
-      if (explicitId && input) input.value = id;
+      const id = (idOverride || input?.value || '').trim();
+      if (idOverride && input) input.value = id;
       if (!id) {
         alert('Ingresa un ID único para cargar el registro.');
         return;
@@ -4977,7 +4472,7 @@
     function setupIdActions() {
       document.getElementById('copyUniqueIdBtn')?.addEventListener('click', copyUniqueId);
       document.getElementById('newAttractionBtn')?.addEventListener('click', startNewAttraction);
-      document.getElementById('loadByIdBtn')?.addEventListener('click', () => loadRecordByUniqueId());
+      document.getElementById('loadByIdBtn')?.addEventListener('click', loadRecordByUniqueId);
       document.getElementById('lookupUniqueIdInput')?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') loadRecordByUniqueId();
       });
@@ -5084,12 +4579,6 @@
       idEl.textContent = state.values.id_unico || 'Pendiente';
     }
 
-    function updateInternalCodeField() {
-      const input = document.querySelector('[name="idInterno"]');
-      if (!input) return;
-      input.value = state.values.idInterno || '';
-    }
-
     function updateLastSyncDisplay(value = null) {
       const syncEl = document.getElementById('lastSyncDisplay');
       if (!syncEl) return;
@@ -5163,8 +4652,6 @@
     function saveDraftOffline(options = {}) {
       autosave();
       ensureUniqueId();
-      applyLocalRecordTimestamps();
-      autosave();
       persistNamedDraft();
       updateUniqueIdDisplay();
       updateUiSummary();
@@ -5204,10 +4691,8 @@
       const result = await syncDraftOnline();
 
       if (result.ok) {
-        const when = getLocalTimestamp();
+        const when = new Date().toLocaleString('es-CL');
         state.values.fecha_sincronizacion = when;
-        state.values.fecha_actualizacion = state.values.fecha_actualizacion || when;
-        state.values.zona_horaria_usuario = state.values.zona_horaria_usuario || getUserTimeZone();
         saveState();
         persistNamedDraft();
         updateUniqueIdDisplay();
@@ -5290,4 +4775,3 @@
   </script>
 </body>
 </html>
-
