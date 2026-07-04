@@ -518,6 +518,73 @@
       font-size: 0.82rem;
     }
 
+    .photo-dropzone {
+      border: 2px dashed #b8c7dd;
+      border-radius: 16px;
+      padding: 18px;
+      background: #f8fbff;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .photo-dropzone:hover,
+    .photo-dropzone.drag-over {
+      border-color: var(--primary);
+      background: #eef6ff;
+      transform: translateY(-1px);
+    }
+
+    .photo-dropzone strong {
+      color: var(--text);
+      font-size: 1rem;
+    }
+
+    .photo-dropzone span {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .photo-dropzone input[type="file"] {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .upload-progress {
+      display: none;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .upload-progress.show {
+      display: grid;
+    }
+
+    .upload-progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #dbe7f5;
+      overflow: hidden;
+    }
+
+    .upload-progress-bar {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--primary));
+      transition: width .35s ease;
+    }
+
+    .upload-progress-label {
+      font-size: .86rem;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
     .admissibility {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
@@ -1704,7 +1771,7 @@
         <div class="start-disclaimer-step"><strong>2. Completa</strong><span class="small">Clasificación, operación, servicios y antecedentes.</span></div>
         <div class="start-disclaimer-step"><strong>3. Respalda</strong><span class="small">Guarda offline o sincroniza en Google Sheet.</span></div>
       </div>
-      <div class="start-disclaimer-note"><strong>Importante:</strong> Guardar offline conserva el borrador solo en este navegador. Para respaldo institucional, usa Guardar online y verifica el registro en Google Sheet.</div>
+      <div class="start-disclaimer-note"><strong>Importante:</strong> Este formulario inicia vacío cada vez que se abre. Guardar offline conserva un borrador solo en este navegador; para respaldo institucional, usa Guardar online y verifica el registro en Google Sheet.</div>
       <div class="start-disclaimer-actions">
         <button type="button" class="primary" id="acceptStartDisclaimerBtn">Aceptar e iniciar</button>
       </div>
@@ -1745,7 +1812,7 @@
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
     const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
-    const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
+    const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
     let storageWarningShown = false;
@@ -2242,7 +2309,8 @@
       }
     ];
 
-    const state = loadState();
+    const ALWAYS_START_NEW_RECORD = true;
+    const state = ALWAYS_START_NEW_RECORD ? normalizeState({}) : loadState();
 
     function withFieldOptions(field, extra = {}) { return { ...field, ...extra }; }
     function text(name, label, hint = '', span = 'span-12', extra = {}) { return withFieldOptions({ type: 'text', name, label, hint, span }, extra); }
@@ -2259,6 +2327,7 @@
     function checklist(name, label, options, span = 'span-12', extra = {}) { return withFieldOptions({ type: 'checklist', name, label, options, span }, extra); }
 
     function loadState() {
+      if (ALWAYS_START_NEW_RECORD) return normalizeState({});
       try {
         const raw = localStorage.getItem(STORAGE_KEY);
         return normalizeState(raw ? JSON.parse(raw) : {});
@@ -3163,17 +3232,28 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <label for="photoInput">Adjuntar fotografías (mínimo 3, máximo 5)</label>
-        <input id="photoInput" type="file" accept="image/*" multiple>
+        <div class="photo-dropzone" id="photoDropzone">
+          <strong>Arrastra fotografías aquí o elige archivos</strong>
+          <span>Formatos permitidos: JPG, JPEG o HEIC. Máximo 15 MB por archivo.</span>
+          <input id="photoInput" type="file" accept=".jpg,.jpeg,.heic,image/jpeg,image/heic,image/heif" multiple>
+        </div>
         <small class="hint">Las imágenes se mantienen temporalmente en este navegador. Al subirlas, se guardarán en Google Drive dentro de una carpeta con el ID único del registro.</small>
         <div class="toolbar" style="margin-top:12px;">
           <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
         </div>
         <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
+        <div class="upload-progress" id="photoUploadProgress" aria-live="polite">
+          <div class="upload-progress-track"><div class="upload-progress-bar" id="photoUploadProgressBar"></div></div>
+          <div class="upload-progress-label" id="photoUploadProgressLabel">Esperando subida...</div>
+        </div>
         <div class="photo-grid" id="photoGrid"></div>
       `;
       content.appendChild(block);
 
-      block.querySelector('#photoInput').addEventListener('change', handlePhotoUpload);
+      const photoInput = block.querySelector('#photoInput');
+      const dropzone = block.querySelector('#photoDropzone');
+      photoInput.addEventListener('change', handlePhotoUpload);
+      setupPhotoDropzone(dropzone, photoInput);
       block.querySelector('#uploadPhotosDriveBtn')?.addEventListener('click', uploadPhotosToDrive);
       renderPhotos();
     }
@@ -3239,22 +3319,56 @@
       updateUiSummary();
     }
 
+    function setupPhotoDropzone(dropzone, input) {
+      if (!dropzone || !input) return;
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          event.stopPropagation();
+          dropzone.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropzone.addEventListener(eventName, event => {
+          event.preventDefault();
+          event.stopPropagation();
+          dropzone.classList.remove('drag-over');
+        });
+      });
+
+      dropzone.addEventListener('drop', event => {
+        const files = Array.from(event.dataTransfer?.files || []);
+        addPhotoFiles(files);
+      });
+    }
+
+    function isAllowedPhotoFile(file) {
+      const name = String(file.name || '').toLowerCase();
+      const type = String(file.type || '').toLowerCase();
+      return /\.(jpe?g|heic)$/.test(name) || ['image/jpeg', 'image/heic', 'image/heif'].includes(type);
+    }
+
     function handlePhotoUpload(event) {
-      const files = Array.from(event.target.files || []);
+      addPhotoFiles(Array.from(event.target.files || []));
+      event.target.value = '';
+    }
+
+    function addPhotoFiles(files) {
       const remaining = 5 - state.photos.length;
       if (remaining <= 0) {
-        alert('Ya existen 5 fotografías adjuntas. Elimine una antes de agregar otra.');
-        event.target.value = '';
+        alert('Ya existen 5 fotografías adjuntas. Elimina una antes de agregar otra.');
         return;
       }
 
       files.slice(0, remaining).forEach(file => {
-        if (!file.type || !file.type.startsWith('image/')) {
-          alert(`${file.name} no es una imagen válida.`);
+        if (!isAllowedPhotoFile(file)) {
+          alert(`${file.name} no es un formato permitido. Usa JPG, JPEG o HEIC.`);
           return;
         }
         if (file.size > MAX_PHOTO_BYTES) {
-          alert(`${file.name} supera 2 MB. Reduzca o comprima la imagen antes de adjuntarla al prototipo.`);
+          alert(`${file.name} supera 15 MB. Reduce o comprime la imagen antes de adjuntarla.`);
           return;
         }
 
@@ -3276,7 +3390,6 @@
       if (files.length > remaining) {
         alert(`Solo se adjuntaron ${remaining} fotografía(s). El máximo permitido es 5.`);
       }
-      event.target.value = '';
     }
 
     function renderPhotos() {
@@ -3477,12 +3590,16 @@
 
     function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
       Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
+      if (validateTerritoryForSave({ silent: true })) {
+        ensureUniqueId();
+      }
       state.lastSavedAt = new Date().toISOString();
       saveState();
       renderForm();
       setupMobileNavigation();
       setupIdActions();
       updateUniqueIdDisplay();
+      if (validateTerritoryForSave({ silent: true })) persistNamedDraft();
       updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
       updateUiSummary();
       setSyncStatus(statusText, status);
@@ -3589,7 +3706,7 @@
       if (!isValidOptionalUrl(state.values.sitioWeb)) warnings.push('Sitio web debe comenzar con http:// o https://');
       if (!isValidOptionalUrl(state.values.urlWeb)) warnings.push('URL de promoción debe comenzar con http:// o https://');
       if (state.photos.some(photo => Number(photo.size) > MAX_PHOTO_BYTES)) {
-        warnings.push('Hay fotografías que superan 2 MB y podrían impedir el guardado local.');
+        warnings.push('Hay fotografías que superan 15 MB y podrían impedir el guardado local.');
       }
 
       return { missing, warnings };
@@ -4175,6 +4292,37 @@
       return codes;
     }
 
+    function validateTerritoryForSave(options = {}) {
+      const missing = [];
+      const resourceName = String(state.values.nombreRecurso || '').trim();
+      const regionName = String(state.values.region || '').trim();
+      const provinceName = String(state.values.provincia || '').trim();
+      const comunaName = String(state.values.comuna || '').trim();
+      const region = CHILE_TERRITORY.find(item => item.nombre === regionName);
+      const province = region?.provincias.find(item => item.nombre === provinceName);
+      const comunaExists = Boolean(province?.comunas.includes(comunaName));
+
+      if (!resourceName) missing.push('nombre del recurso');
+      if (!regionName || !region) missing.push('región');
+      if (!provinceName || !province) missing.push('provincia');
+      if (!comunaName || !comunaExists) missing.push('comuna');
+
+      if (!missing.length) return true;
+
+      if (!options.silent) {
+        alert('Antes de guardar online u offline debes ingresar Nombre del recurso, Región, Provincia y Comuna.\n\nFalta completar o corregir: ' + missing.join(', ') + '.\n\nEstos datos son obligatorios para identificar el recurso, generar un ID único territorial y evitar duplicados.');
+        goToSection('datos-generales');
+        requestAnimationFrame(() => {
+          const firstMissing = missing[0] === 'nombre del recurso' ? 'nombreRecurso' : missing[0] === 'región' ? 'region' : missing[0] === 'provincia' ? 'provincia' : 'comuna';
+          const field = document.getElementById(firstMissing);
+          field?.focus();
+          field?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+        setSyncStatus('Completa nombre y territorio antes de guardar', 'fail');
+      }
+      return false;
+    }
+
     function createAttractionCode() {
       return Math.random().toString(36).slice(2, 8).toUpperCase();
     }
@@ -4216,6 +4364,16 @@
       return state.values.id_unico;
     }
 
+    function setPhotoUploadProgress(percent = 0, label = '', visible = true) {
+      const wrap = document.getElementById('photoUploadProgress');
+      const bar = document.getElementById('photoUploadProgressBar');
+      const labelEl = document.getElementById('photoUploadProgressLabel');
+      if (!wrap || !bar || !labelEl) return;
+      wrap.classList.toggle('show', visible);
+      bar.style.width = Math.max(0, Math.min(100, percent)) + '%';
+      labelEl.textContent = label || 'Procesando...';
+    }
+
     function buildPhotoUploadPayload() {
       const id = ensureUniqueId();
       return {
@@ -4243,17 +4401,22 @@
         return;
       }
 
+      if (!validateTerritoryForSave()) return;
       const id = ensureUniqueId();
       updateUniqueIdDisplay();
       const message = 'Se subirán las fotografías seleccionadas a Google Drive. Si ya existían fotos para este ID, serán reemplazadas dentro de la carpeta ' + id + '. ¿Continuar?';
       if (!confirm(message)) return;
 
       try {
-        if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
+        if (statusEl) statusEl.textContent = 'Preparando fotografías para Google Drive...';
+        setPhotoUploadProgress(15, 'Preparando fotografías...');
         setSyncStatus('Subiendo fotos...', 'busy');
 
         const payload = buildPhotoUploadPayload();
+        setPhotoUploadProgress(45, 'Enviando fotografías a Google Drive...');
+        if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         await submitPayloadToGoogleSheet(payload);
+        setPhotoUploadProgress(75, 'Subida enviada. Verificando registro online...');
         await sleep(2500);
 
         let verifiedRecord = null;
@@ -4261,6 +4424,7 @@
           const response = await fetch(googleScriptUrl({ action: 'get', id_unico: payload.id_unico, t: Date.now() }));
           const data = await response.json();
           if (data.ok && data.record) verifiedRecord = data.record;
+          setPhotoUploadProgress(90, 'Verificación recibida desde Google Sheet...');
         } catch (verifyError) {
           verifiedRecord = null;
         }
@@ -4280,15 +4444,18 @@
             ? ' Carpeta: ' + verifiedRecord.fotos_carpeta_drive
             : '';
           if (statusEl) statusEl.textContent = 'Fotos guardadas en Google Drive y enlazadas en Google Sheet.' + folderLink;
+          setPhotoUploadProgress(100, 'Fotos guardadas correctamente en Drive.');
           setSyncStatus('Fotos respaldadas online', 'ok');
           alert('Listo: las fotos quedaron guardadas en Drive y los enlaces quedaron en Google Sheet.');
         } else {
           if (statusEl) statusEl.textContent = 'Solicitud enviada. Si no aparecen enlaces en Google Sheet, revisa permisos de Drive en Apps Script.';
+          setPhotoUploadProgress(100, 'Solicitud enviada. Verifica enlaces en Google Sheet.');
           setSyncStatus('Verificar en Google Sheet', 'warn');
           alert('La solicitud fue enviada. Verifica en Google Sheet si aparecieron las columnas fotos_carpeta_drive y fotos_links. Si no aparecen, falta autorizar Drive en Apps Script.');
         }
       } catch (error) {
         if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
+        setPhotoUploadProgress(100, 'Error al subir fotos. Revisa conexión o Apps Script.');
         setSyncStatus('Error al subir fotos', 'fail');
         alert('No fue posible subir las fotos: ' + String(error.message || error));
       }
@@ -4630,6 +4797,7 @@
     }
 
     function openSaveReview() {
+      if (!validateTerritoryForSave()) return;
       autosave();
       ensureUniqueId();
       persistNamedDraft();
@@ -4650,6 +4818,7 @@
     }
 
     function saveDraftOffline(options = {}) {
+      if (!validateTerritoryForSave()) return;
       autosave();
       ensureUniqueId();
       persistNamedDraft();
@@ -4662,6 +4831,8 @@
     }
 
     async function saveDraftAndSyncOnline(options = {}) {
+      if (!validateTerritoryForSave()) return;
+
       if (!navigator.onLine) {
         saveDraftOffline({ silent: true });
         setSyncStatus('Sin conexión: guardado offline', 'fail');
@@ -4683,6 +4854,7 @@
 
       closeSaveReview();
       autosave();
+      if (!validateTerritoryForSave()) return;
       ensureUniqueId();
       persistNamedDraft();
       setSyncStatus('Sincronizando...', 'busy');
