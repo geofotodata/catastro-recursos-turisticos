@@ -23,7 +23,8 @@
 
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
-    body { line-height: 1.45; }
+    html { scroll-padding-bottom: var(--floating-actions-space); }
+    body { line-height: 1.45; padding-bottom: var(--floating-actions-space); }
 
     .shell {
       max-width: 1440px;
@@ -518,6 +519,33 @@
       font-size: 0.82rem;
     }
 
+    .photo-storage-status {
+      margin-top: 12px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #f8fbff;
+      display: grid;
+      gap: 4px;
+    }
+
+    .photo-storage-status strong { color: var(--text); }
+    .photo-storage-status.ok { border-color: #86efac; background: #f0fdf4; }
+    .photo-storage-status.warn { border-color: #facc15; background: #fffbeb; }
+    .photo-storage-status.empty { border-color: var(--line); background: #f8fbff; }
+
+    .photo-drive-actions {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .photo-drive-actions button { min-width: 240px; }
+
     .photo-dropzone {
       border: 2px dashed #b8c7dd;
       border-radius: 16px;
@@ -737,6 +765,15 @@
       border: 1px solid var(--line);
       color: var(--muted);
       font-size: 0.88rem;
+    }
+
+    #sectionsContainer {
+      padding-bottom: 42px;
+    }
+
+    .form-card:last-child,
+    .section-card:last-child {
+      margin-bottom: 70px;
     }
 
     .floating-save-group {
@@ -1044,6 +1081,12 @@
     }
 
     @media (max-width: 800px) {
+      :root { --floating-actions-space: 175px; }
+
+      #sectionsContainer {
+        padding-bottom: 92px;
+      }
+
       .floating-save-group {
         right: 14px;
         bottom: 14px;
@@ -1249,6 +1292,40 @@
       border: 1px solid var(--line);
       overflow: hidden;
       background: #eef4ff;
+    }
+
+    .location-lock-toolbar {
+      display: grid;
+      grid-template-columns: auto repeat(3, minmax(150px, 1fr));
+      gap: 10px;
+      align-items: center;
+      margin: 14px 0 10px;
+    }
+
+    .location-lock-pill {
+      min-height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #f8fbff;
+      color: var(--muted);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .location-lock-pill.editing {
+      border-color: #f6c453;
+      background: #fff7dd;
+      color: #92400e;
+    }
+
+    .location-lock-toolbar button {
+      width: 100%;
+      min-height: 42px;
+      justify-content: center;
     }
 
     .coord-note {
@@ -1515,6 +1592,10 @@
         width: 100%;
       }
 
+      .location-lock-toolbar {
+        grid-template-columns: 1fr;
+      }
+
       .draft-item {
         align-items: stretch;
         flex-direction: column;
@@ -1544,6 +1625,12 @@
 
       .start-disclaimer-actions {
         display: grid;
+      }
+
+      :root { --floating-actions-space: 215px; }
+
+      #sectionsContainer {
+        padding-bottom: 126px;
       }
 
       .floating-save-group {
@@ -1837,28 +1924,140 @@
       'Región de Magallanes y de la Antártica Chilena': '12'
     };
 
+    const REGIONAL_CAPITAL_COORDS = {
+      'Región de Arica y Parinacota': { name: 'Arica', lat: -18.478253, lng: -70.312599 },
+      'Región de Tarapacá': { name: 'Iquique', lat: -20.213262, lng: -70.150270 },
+      'Región de Antofagasta': { name: 'Antofagasta', lat: -23.650928, lng: -70.397502 },
+      'Región de Atacama': { name: 'Copiapó', lat: -27.366576, lng: -70.332158 },
+      'Región de Coquimbo': { name: 'La Serena', lat: -29.902669, lng: -71.251937 },
+      'Región de Valparaíso': { name: 'Valparaíso', lat: -33.047238, lng: -71.612688 },
+      'Región Metropolitana de Santiago': { name: 'Santiago', lat: -33.448891, lng: -70.669266 },
+      "Región del Libertador General Bernardo O'Higgins": { name: 'Rancagua', lat: -34.170132, lng: -70.740625 },
+      'Región del Maule': { name: 'Talca', lat: -35.426400, lng: -71.655420 },
+      'Región de Ñuble': { name: 'Chillán', lat: -36.606262, lng: -72.102336 },
+      'Región del Biobío': { name: 'Concepción', lat: -36.827069, lng: -73.050339 },
+      'Región de La Araucanía': { name: 'Temuco', lat: -38.735901, lng: -72.590374 },
+      'Región de Los Ríos': { name: 'Valdivia', lat: -39.814220, lng: -73.245890 },
+      'Región de Los Lagos': { name: 'Puerto Montt', lat: -41.471812, lng: -72.936599 },
+      'Región de Aysén del General Carlos Ibáñez del Campo': { name: 'Coyhaique', lat: -45.571225, lng: -72.068266 },
+      'Región de Magallanes y de la Antártica Chilena': { name: 'Punta Arenas', lat: -53.163833, lng: -70.917068 }
+    };
+
+    let distanceCalcTimer = null;
+
     const CHILE_TERRITORY = [{"nombre":"Región de Arica y Parinacota","provincias":[{"nombre":"Arica","comunas":["Arica","Camarones"]},{"nombre":"Parinacota","comunas":["Putre","General Lagos"]}]},{"nombre":"Región de Tarapacá","provincias":[{"nombre":"Iquique","comunas":["Iquique","Alto Hospicio"]},{"nombre":"Del Tamarugal","comunas":["Pozo Almonte","Camiña","Colchane","Huara","Pica"]}]},{"nombre":"Región de Antofagasta","provincias":[{"nombre":"Antofagasta","comunas":["Antofagasta","Mejillones","Sierra Gorda","Taltal"]},{"nombre":"El Loa","comunas":["Calama","Ollagüe","San Pedro de Atacama"]},{"nombre":"Tocopilla","comunas":["Tocopilla","María Elena"]}]},{"nombre":"Región de Atacama","provincias":[{"nombre":"Copiapó","comunas":["Copiapó","Caldera","Tierra Amarilla"]},{"nombre":"Chañaral","comunas":["Chañaral","Diego de Almagro"]},{"nombre":"Huasco","comunas":["Vallenar","Alto del Carmen","Freirina","Huasco"]}]},{"nombre":"Región de Coquimbo","provincias":[{"nombre":"Elqui","comunas":["La Serena","Coquimbo","Andacollo","La Higuera","Paihuano","Vicuña"]},{"nombre":"Choapa","comunas":["Illapel","Canela","Los Vilos","Salamanca"]},{"nombre":"Limarí","comunas":["Ovalle","Combarbalá","Monte Patria","Punitaqui","Río Hurtado"]}]},{"nombre":"Región de Valparaíso","provincias":[{"nombre":"Valparaíso","comunas":["Valparaíso","Casablanca","Concón","Juan Fernández","Puchuncaví","Quintero","Viña del Mar"]},{"nombre":"Isla de Pascua","comunas":["Isla de Pascua"]},{"nombre":"Los Andes","comunas":["Los Andes","Calle Larga","Rinconada","San Esteban"]},{"nombre":"Petorca","comunas":["La Ligua","Cabildo","Papudo","Petorca","Zapallar"]},{"nombre":"Quillota","comunas":["Quillota","La Calera","Hijuelas","La Cruz","Nogales"]},{"nombre":"San Antonio","comunas":["San Antonio","Algarrobo","Cartagena","El Quisco","El Tabo","Santo Domingo"]},{"nombre":"San Felipe de Aconcagua","comunas":["San Felipe","Catemu","Llaillay","Panquehue","Putaendo","Santa María"]},{"nombre":"Marga Marga","comunas":["Quilpué","Limache","Olmué","Villa Alemana"]}]},{"nombre":"Región Metropolitana de Santiago","provincias":[{"nombre":"Santiago","comunas":["Santiago","Cerrillos","Cerro Navia","Conchalí","El Bosque","Estación Central","Huechuraba","Independencia","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maipú","Ñuñoa","Pedro Aguirre Cerda","Peñalolén","Providencia","Pudahuel","Quilicura","Quinta Normal","Recoleta","Renca","San Joaquín","San Miguel","San Ramón","Vitacura"]},{"nombre":"Cordillera","comunas":["Puente Alto","Pirque","San José de Maipo"]},{"nombre":"Chacabuco","comunas":["Colina","Lampa","Tiltil"]},{"nombre":"Maipo","comunas":["San Bernardo","Buin","Calera de Tango","Paine"]},{"nombre":"Melipilla","comunas":["Melipilla","Alhué","Curacaví","María Pinto","San Pedro"]},{"nombre":"Talagante","comunas":["Talagante","El Monte","Isla de Maipo","Padre Hurtado","Peñaflor"]}]},{"nombre":"Región del Libertador General Bernardo O'Higgins","provincias":[{"nombre":"Cachapoal","comunas":["Rancagua","Codegua","Coinco","Coltauco","Doñihue","Graneros","Las Cabras","Machalí","Malloa","Mostazal","Olivar","Peumo","Pichidegua","Quinta de Tilcoco","Rengo","Requínoa","San Vicente"]},{"nombre":"Cardenal Caro","comunas":["Pichilemu","La Estrella","Litueche","Marchihue","Navidad","Paredones"]},{"nombre":"Colchagua","comunas":["San Fernando","Chépica","Chimbarongo","Lolol","Nancagua","Palmilla","Peralillo","Placilla","Pumanque","Santa Cruz"]}]},{"nombre":"Región del Maule","provincias":[{"nombre":"Talca","comunas":["Talca","Constitución","Curepto","Empedrado","Maule","Pelarco","Pencahue","Río Claro","San Clemente","San Rafael"]},{"nombre":"Cauquenes","comunas":["Cauquenes","Chanco","Pelluhue"]},{"nombre":"Curicó","comunas":["Curicó","Hualañé","Licantén","Molina","Rauco","Romeral","Sagrada Familia","Teno","Vichuquén"]},{"nombre":"Linares","comunas":["Linares","Colbún","Longaví","Parral","Retiro","San Javier","Villa Alegre","Yerbas Buenas"]}]},{"nombre":"Región de Ñuble","provincias":[{"nombre":"Diguillín","comunas":["Bulnes","Chillán","Chillán Viejo","El Carmen","Pemuco","Pinto","Quillón","San Ignacio","Yungay"]},{"nombre":"Itata","comunas":["Cobquecura","Coelemu","Ninhue","Portezuelo","Quirihue","Ránquil","Treguaco"]},{"nombre":"Punilla","comunas":["Coihueco","Ñiquén","San Carlos","San Fabián","San Nicolás"]}]},{"nombre":"Región del Biobío","provincias":[{"nombre":"Concepción","comunas":["Concepción","Coronel","Chiguayante","Florida","Hualqui","Lota","Penco","San Pedro de la Paz","Santa Juana","Talcahuano","Tomé","Hualpén"]},{"nombre":"Arauco","comunas":["Lebu","Arauco","Cañete","Contulmo","Curanilahue","Los Álamos","Tirúa"]},{"nombre":"Biobío","comunas":["Los Ángeles","Antuco","Cabrero","Laja","Mulchén","Nacimiento","Negrete","Quilaco","Quilleco","San Rosendo","Santa Bárbara","Tucapel","Yumbel","Alto Biobío"]}]},{"nombre":"Región de La Araucanía","provincias":[{"nombre":"Cautín","comunas":["Temuco","Carahue","Cunco","Curarrehue","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufquén","Pucón","Saavedra","Teodoro Schmidt","Toltén","Vilcún","Villarrica","Cholchol"]},{"nombre":"Malleco","comunas":["Angol","Collipulli","Curacautín","Ercilla","Lonquimay","Los Sauces","Lumaco","Purén","Renaico","Traiguén","Victoria"]}]},{"nombre":"Región de Los Ríos","provincias":[{"nombre":"Valdivia","comunas":["Valdivia","Corral","Lanco","Los Lagos","Máfil","Mariquina","Paillaco","Panguipulli"]},{"nombre":"Ranco","comunas":["La Unión","Futrono","Lago Ranco","Río Bueno"]}]},{"nombre":"Región de Los Lagos","provincias":[{"nombre":"Llanquihue","comunas":["Puerto Montt","Calbuco","Cochamó","Fresia","Frutillar","Los Muermos","Llanquihue","Maullín","Puerto Varas"]},{"nombre":"Chiloé","comunas":["Castro","Ancud","Chonchi","Curaco de Vélez","Dalcahue","Puqueldón","Queilén","Quellón","Quemchi","Quinchao"]},{"nombre":"Osorno","comunas":["Osorno","Puerto Octay","Purranque","Puyehue","Río Negro","San Juan de la Costa","San Pablo"]},{"nombre":"Palena","comunas":["Chaitén","Futaleufú","Hualaihué","Palena"]}]},{"nombre":"Región de Aysén del General Carlos Ibáñez del Campo","provincias":[{"nombre":"Coyhaique","comunas":["Coyhaique","Lago Verde"]},{"nombre":"Aysén","comunas":["Aysén","Cisnes","Guaitecas"]},{"nombre":"Capitán Pratt","comunas":["Cochrane","O’Higgins","Tortel"]},{"nombre":"General Carrera","comunas":["Chile Chico","Río Ibáñez"]}]},{"nombre":"Región de Magallanes y de la Antártica Chilena","provincias":[{"nombre":"Magallanes","comunas":["Punta Arenas","Laguna Blanca","Río Verde","San Gregorio"]},{"nombre":"Antártica Chilena","comunas":["Cabo de Hornos","Antártica"]},{"nombre":"Tierra del Fuego","comunas":["Porvenir","Primavera","Timaukel"]},{"nombre":"Última Esperanza","comunas":["Natales","Torres del Paine"]}]}];
 
     
 
     const CLASSIFICATION_HIERARCHY = {
       'Recurso Natural': {
-        'Área protegida': ['Áreas de conservación de múltiples usos', 'Áreas de conservación de pueblos indígenas', 'Área protegida privada', 'Monumento Natural', 'Parque Nacional', 'Reserva Nacional'],
-        'Costa': ['Acantilado o farellón', 'Arrecife', 'Bahía', 'Desembocadura', 'Delta', 'Estuario', 'Duna o campo dunario', 'Estrecho', 'Fiordo', 'Canal', 'Isla', 'Archipiélago', 'Península', 'Cabo', 'Punta', 'Playa', 'Balneario', 'Salina', 'Seno', 'Ensenada'],
-        'Condición natural especial': ['Cielos oscuros', 'Olas'],
-        'Cuerpo y curso de agua': ['Cascada', 'Salto', 'Humedal', 'Bofedal', 'Lago', 'Laguna', 'Río', 'Estero'],
-        'Fuente termal o géiser': ['Fuente termal', 'Centro termal', 'Géiser'],
-        'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciares de valle', 'Glaciares de montaña', 'Glaciares rocosos', 'Glaciaretes'],
-        'Lugar de interés geológico o paleontológico': ['Geositios', 'Lugar de interés paleontológico'],
-        'Montaña': ['Altiplano', 'Área nevada', 'Cerro', 'Cerro isla', 'Cordillera', 'Montaña', 'Quebrada', 'Salar', 'Volcán'],
-        'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa', 'Llanura', 'Valle']
+        'Área protegida': [
+          'Áreas de conservación de múltiples usos',
+          'Áreas de conservación de pueblos indígenas',
+          'Área protegida privada',
+          'Monumento Natural',
+          'Parque Nacional',
+          'Reserva Nacional'
+        ],
+        'Costa': [
+          'Acantilado o farellón',
+          'Arrecife',
+          'Bahía',
+          'Desembocadura',
+          'Duna o campo dunario',
+          'Estrecho',
+          'Fiordo o canal',
+          'Isla o archipiélago',
+          'Península, cabo o punta',
+          'Playa o balneario',
+          'Salina',
+          'Seno o ensenada'
+        ],
+        'Condición natural especial': [
+          'Cielos oscuros',
+          'Olas'
+        ],
+        'Cuerpo y curso de agua': [
+          'Cascada o salto',
+          'Humedal o bofedal',
+          'Lago o laguna',
+          'Río o estero'
+        ],
+        'Fuente termal o géiser': [
+          'Fuente o centro termal',
+          'Géiser'
+        ],
+        'Glaciar o campo de hielo': [
+          'Campo de hielo',
+          'Glaciar'
+        ],
+        'Lugar de interés geológico o paleontológico': [
+          'Lugar de interés geológico',
+          'Lugar de interés paleontológico'
+        ],
+        'Montaña': [
+          'Altiplano',
+          'Área nevada',
+          'Cerro',
+          'Cordillera',
+          'Montaña',
+          'Quebrada',
+          'Salar',
+          'Volcán'
+        ],
+        'Planicie': [
+          'Desierto',
+          'Duna o campo dunario',
+          'Oasis',
+          'Pampa o Llanura',
+          'Valle'
+        ]
       },
       'Recurso Cultural': {
-        'Acontecimientos programados': ['Carnaval o fiesta costumbrista', 'Conmemoraciones', 'Representaciones históricas', 'Convenciones', 'Ferias', 'Exposiciones', 'Congresos', 'Evento de música, canto o danza', 'Evento deportivo', 'Evento enológico y/o gastronómico', 'Feria temática', 'Festival de cine', 'Fiesta religiosa'],
-        'Arquitectura': ['Barrios', 'Espacios públicos', 'Parque de atracciones', 'Casino de juegos', 'Monumento histórico', 'Obra de ingeniería', 'Otras infraestructuras de arquitectura'],
-        'Folklore': ['Artesanía', 'Feria artesanal y/o tradicional', 'Mercado tradicional', 'Representaciones y/o manifestaciones religiosas o creencias populares'],
-        'Manifestación Cultural': ['Caleta artesanal', 'Escultura', 'Instalaciones', 'Lugar o sitio histórico', 'Sitios de memoria', 'Mural', 'Arte urbano', 'Museo', 'Pueblos', 'Zonas Típicas o pintorescas', 'Sala de exposición museográfica', 'Ruina', 'Lugar de interés arqueológico'],
-        'Realizaciones técnicas y científicas contemporáneas': ['Acuario', 'Aviario', 'Mariposario', 'Zoológico', 'Granja educativa', 'Hacienda', 'Estancia', 'Jardín botánico', 'Observatorio astronómico', 'Planetario', 'Viñas', 'Bodegas', 'Cervecerías', 'Destilerías']
+        'Acontecimientos programados': [
+          'Carnaval o fiesta costumbrista',
+          'Conmemoraciones o representaciones históricas',
+          'Convenciones, ferias, exposiciones o congresos',
+          'Evento de música, canto o danza',
+          'Evento deportivo',
+          'Evento enológico y/o gastronómico',
+          'Feria temática',
+          'Festival de cine',
+          'Fiesta religiosa'
+        ],
+        'Arquitectura': [
+          'Barrios',
+          'Espacios públicos',
+          'Infraestructura recreativa',
+          'Monumento histórico',
+          'Obra de ingeniería',
+          'Otras infraestructuras de arquitectura'
+        ],
+        'Folklore': [
+          'Artesanía',
+          'Feria artesanal y/o tradicional',
+          'Mercado tradicional',
+          'Representaciones y/o manifestaciones religiosas o creencias populares'
+        ],
+        'Manifestación Cultural': [
+          'Caleta artesanal',
+          'Escultura o instalaciones',
+          'Lugar o sitio histórico o de memoria',
+          'Mural o arte urbano',
+          'Museo',
+          'Pueblo o Zona Típica o Pintoresca',
+          'Sala de exposición museográfica',
+          'Ruina o lugar de interés arqueológico'
+        ],
+        'Realizaciones técnicas y científicas contemporáneas': [
+          'Acuario, aviario, mariposario y/o zoológico',
+          'Granja educativa',
+          'Hacienda o estancia',
+          'Jardín botánico',
+          'Observatorio astronómico',
+          'Planetario',
+          'Viñas, bodegas, cervecerías o destilerías'
+        ]
       }
     };
 
@@ -2065,7 +2264,7 @@
         badge: 'Base',
         fields: [
           text('nombreRecurso', 'Nombre del recurso', 'Ej. Viña X / Salto Y / Plaza Z'),
-          text('idInterno', 'Código o ID interno', 'Se puede generar después del envío oficial', 'span-4'),
+          text('idInterno', 'Código interno del recurso', 'Se genera automáticamente desde el ID único. No incluye región, provincia ni comuna.', 'span-4', { readonly: true }),
           date('fechaRegistro', 'Fecha de registro', 'span-4'),
           text('responsable', 'Nombre del responsable del registro', '', 'span-4'),
           territorySelect('region', 'Región', 'region', 'span-4'),
@@ -2124,8 +2323,8 @@
         fields: [
           select('tipoAcceso', 'Principal tipo de acceso', OPTIONS.tipoAcceso, 'span-4'),
           checklist('mediosTransporte', 'Medio de transporte', OPTIONS.transportes, 'span-8'),
-          number('distanciaCapitalRegional', 'Distancia desde la capital regional (km)', 'span-6'),
-          number('distanciaCapitalComunal', 'Distancia desde la capital comunal (km)', 'span-6')
+          number('distanciaCapitalRegional', 'Distancia desde la capital regional (km)', 'span-6', { readonly: true, hint: 'Calculada automáticamente desde el punto georreferenciado. Distancia aproximada en línea recta.' }),
+          number('distanciaCapitalComunal', 'Distancia desde la capital comunal (km)', 'span-6', { readonly: true, hint: 'Calculada automáticamente desde el punto georreferenciado. Requiere comuna seleccionada e internet para estimar la capital comunal.' })
         ]
       },
       {
@@ -2581,7 +2780,12 @@
         input.value = state.values[field.name] || '';
       }
 
-      if (!['radio', 'checklist', 'territory-select', 'classification-select'].includes(field.type)) {
+      if (field.readonly && input instanceof HTMLInputElement) {
+        input.readOnly = true;
+        input.setAttribute('aria-readonly', 'true');
+      }
+
+      if (!['radio', 'checklist', 'territory-select', 'classification-select'].includes(field.type) && !field.readonly) {
         input.addEventListener('input', (e) => updateValue(field.name, e.target.value));
       }
       if (field.type === 'select') {
@@ -2630,6 +2834,7 @@
         syncProvinceSelect();
         syncComunaSelect();
         renderAdmissibility();
+        scheduleDistanceCalculation();
       });
 
       provinceSelect.addEventListener('change', () => {
@@ -2638,6 +2843,7 @@
         refreshDraftTerritoryId();
         autosave();
         syncComunaSelect();
+        scheduleDistanceCalculation();
       });
 
       comunaSelect.addEventListener('change', () => {
@@ -2645,6 +2851,7 @@
         refreshDraftTerritoryId();
         autosave();
         renderAdmissibility();
+        scheduleDistanceCalculation();
       });
     }
 
@@ -2780,6 +2987,7 @@
 
     let geoMapInstance = null;
     let geoMarker = null;
+    let geoLocationEditing = false;
 
     function renderClassificationHelp(content) {
       const block = document.createElement('div');
@@ -2880,7 +3088,14 @@
             </div>
           </div>
 
+          <div class="location-lock-toolbar" aria-label="Control de edición de ubicación">
+            <div class="location-lock-pill" id="locationLockPill">Ubicación protegida</div>
+            <button type="button" class="secondary" id="editLocationBtn">Editar ubicación</button>
+            <button type="button" class="primary" id="confirmLocationBtn">Confirmar ubicación</button>
+            <button type="button" class="ghost" id="cancelLocationEditBtn">Cancelar edición</button>
+          </div>
           <div id="geoMap"></div>
+          <div class="coord-note" id="mapLockStatus">La ubicación está protegida. Presiona Editar ubicación antes de cambiar el punto.</div>
           <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la búsqueda. Nota: la cartografía base y la búsqueda requieren conexión a internet para cargarse.</div>
         </div>
       `;
@@ -2915,7 +3130,13 @@
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(geoMapInstance);
 
-      geoMapInstance.on('click', (e) => setGeoPoint(e.latlng.lat, e.latlng.lng, { recenter: false }));
+      geoMapInstance.on('click', (e) => {
+        if (!geoLocationEditing) {
+          setMapStatusMessage('Ubicación bloqueada. Presiona Editar ubicación antes de cambiar el punto.');
+          return;
+        }
+        setGeoPoint(e.latlng.lat, e.latlng.lng, { recenter: false });
+      });
 
       if (hasStoredPoint) {
         setGeoPoint(initialLat, initialLng, { recenter: false, preserveZoom: true });
@@ -2925,6 +3146,9 @@
         geoMapInstance.setView([-35.6751, -71.5430], 5);
       });
 
+      document.getElementById('editLocationBtn')?.addEventListener('click', enableLocationEditing);
+      document.getElementById('confirmLocationBtn')?.addEventListener('click', confirmLocationEditing);
+      document.getElementById('cancelLocationEditBtn')?.addEventListener('click', cancelLocationEditing);
       document.getElementById('clearPointBtn')?.addEventListener('click', clearGeoPoint);
       document.getElementById('syncFromFieldsBtn')?.addEventListener('click', syncMapFromFields);
       document.getElementById('runGeoSearchBtn')?.addEventListener('click', runGeoSearch);
@@ -2939,6 +3163,127 @@
       });
 
       updateGeoSearchContext();
+      updateLocationEditState();
+    }
+
+    function setMapStatusMessage(message) {
+      const statusEl = document.getElementById('mapStatus');
+      if (statusEl) statusEl.textContent = message;
+    }
+
+    function updateLocationEditState() {
+      const lockEl = document.getElementById('mapLockStatus');
+      const pillEl = document.getElementById('locationLockPill');
+      const editBtn = document.getElementById('editLocationBtn');
+      const confirmBtn = document.getElementById('confirmLocationBtn');
+      const cancelBtn = document.getElementById('cancelLocationEditBtn');
+      if (lockEl) {
+        lockEl.textContent = geoLocationEditing
+          ? 'Ubicación en edición. Puedes hacer clic en el mapa, mover el marcador o usar la búsqueda. Luego presiona Confirmar ubicación.'
+          : 'La ubicación está protegida. Presiona Editar ubicación antes de cambiar el punto.';
+        lockEl.className = geoLocationEditing ? 'coord-note conditional-note' : 'coord-note';
+      }
+      if (pillEl) {
+        pillEl.textContent = geoLocationEditing ? 'Editando ubicación' : 'Ubicación protegida';
+        pillEl.classList.toggle('editing', geoLocationEditing);
+      }
+      if (editBtn) editBtn.disabled = geoLocationEditing;
+      if (confirmBtn) confirmBtn.disabled = !geoLocationEditing;
+      if (cancelBtn) cancelBtn.disabled = !geoLocationEditing;
+      if (geoMarker) {
+        if (geoLocationEditing) geoMarker.dragging.enable();
+        else geoMarker.dragging.disable();
+      }
+    }
+
+    function enableLocationEditing() {
+      geoLocationEditing = true;
+      updateLocationEditState();
+      setMapStatusMessage('Modo edición activo. Ajusta el punto y luego presiona Confirmar ubicación.');
+    }
+
+    function cancelLocationEditing() {
+      geoLocationEditing = false;
+      updateLocationEditState();
+      setMapStatusMessage('Edición cancelada. La ubicación sigue protegida.');
+    }
+
+    function confirmLocationEditing() {
+      if (!geoMarker) {
+        alert('Primero selecciona un punto en el mapa o usa la búsqueda.');
+        enableLocationEditing();
+        return;
+      }
+      geoLocationEditing = false;
+      updateLocationEditState();
+      autosave();
+      setMapStatusMessage('Ubicación confirmada y bloqueada para evitar cambios accidentales.');
+    }
+
+    function distanceKmBetween(lat1, lng1, lat2, lng2) {
+      const toRad = deg => deg * Math.PI / 180;
+      const earthRadiusKm = 6371;
+      const dLat = toRad(lat2 - lat1);
+      const dLng = toRad(lng2 - lng1);
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+      return 2 * earthRadiusKm * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function setDistanceField(fieldId, value) {
+      const formatted = Number.isFinite(value) ? value.toFixed(1) : '';
+      setFieldValue(fieldId, formatted);
+    }
+
+    function scheduleDistanceCalculation() {
+      clearTimeout(distanceCalcTimer);
+      distanceCalcTimer = setTimeout(() => calculateDistancesFromGeoPoint(), 500);
+    }
+
+    async function geocodeComunalCapital() {
+      const comuna = String(state.values.comuna || '').trim();
+      const provincia = String(state.values.provincia || '').trim();
+      const region = String(state.values.region || '').trim();
+      if (!comuna || !navigator.onLine) return null;
+      const query = [comuna, provincia, region, 'Chile'].filter(Boolean).join(', ');
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=cl&q=' + encodeURIComponent(query);
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const results = await response.json();
+      const first = Array.isArray(results) ? results[0] : null;
+      if (!first) return null;
+      const lat = Number(first.lat);
+      const lng = Number(first.lon);
+      return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng, name: comuna } : null;
+    }
+
+    async function calculateDistancesFromGeoPoint() {
+      const lat = parseCoordinate(state.values.latitud);
+      const lng = parseCoordinate(state.values.longitud);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setDistanceField('distanciaCapitalRegional', NaN);
+        setDistanceField('distanciaCapitalComunal', NaN);
+        return;
+      }
+
+      const regionalCapital = REGIONAL_CAPITAL_COORDS[state.values.region || ''];
+      if (regionalCapital) {
+        setDistanceField('distanciaCapitalRegional', distanceKmBetween(lat, lng, regionalCapital.lat, regionalCapital.lng));
+      } else {
+        setDistanceField('distanciaCapitalRegional', NaN);
+      }
+
+      if (!(state.values.comuna || '').trim()) {
+        setDistanceField('distanciaCapitalComunal', NaN);
+        return;
+      }
+
+      try {
+        const communalCapital = await geocodeComunalCapital();
+        if (communalCapital) {
+          setDistanceField('distanciaCapitalComunal', distanceKmBetween(lat, lng, communalCapital.lat, communalCapital.lng));
+        }
+      } catch (error) {
+        setDistanceField('distanciaCapitalComunal', NaN);
+      }
     }
 
     function parseCoordinate(value) {
@@ -2951,13 +3296,16 @@
 
       const currentZoom = geoMapInstance.getZoom();
       if (!geoMarker) {
-        geoMarker = L.marker([lat, lng], { draggable: true }).addTo(geoMapInstance);
+        geoMarker = L.marker([lat, lng], { draggable: geoLocationEditing }).addTo(geoMapInstance);
         geoMarker.on('dragend', () => {
+          if (!geoLocationEditing) return;
           const pos = geoMarker.getLatLng();
           setGeoPoint(pos.lat, pos.lng, { recenter: false, preserveZoom: true });
         });
+        updateLocationEditState();
       } else {
         geoMarker.setLatLng([lat, lng]);
+        updateLocationEditState();
       }
 
       if (recenter) {
@@ -2973,12 +3321,14 @@
       state.values.utmZona = utm.zoneLabel || '';
       autosave();
       renderAdmissibility();
+      scheduleDistanceCalculation();
 
       const statusEl = document.getElementById('mapStatus');
       if (statusEl) {
+        const suffix = geoLocationEditing ? ' Presiona Confirmar ubicación para bloquear el punto.' : '';
         statusEl.textContent = utm.zoneLabel
-          ? `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.`
-          : `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.`;
+          ? `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}, X ${utm.x.toFixed(2)}, Y ${utm.y.toFixed(2)}, zona ${utm.zoneLabel}.` + suffix
+          : `Punto seleccionado. Lat ${lat.toFixed(6)}, Lon ${lng.toFixed(6)}.` + suffix;
       }
     }
 
@@ -2989,6 +3339,11 @@
     }
 
     function clearGeoPoint() {
+      if (!geoLocationEditing) {
+        alert('Para limpiar o cambiar el punto, primero presiona Editar ubicación.');
+        return;
+      }
+      if (!confirm('Se eliminará el punto georreferenciado actual. ¿Continuar?')) return;
       if (geoMarker) {
         geoMapInstance.removeLayer(geoMarker);
         geoMarker = null;
@@ -3002,6 +3357,10 @@
     }
 
     function syncMapFromFields() {
+      if (!geoLocationEditing) {
+        alert('Para cambiar el punto desde latitud/longitud, primero presiona Editar ubicación.');
+        return;
+      }
       const lat = parseCoordinate(document.getElementById('latitud')?.value || state.values.latitud);
       const lng = parseCoordinate(document.getElementById('longitud')?.value || state.values.longitud);
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
@@ -3130,6 +3489,10 @@
         btn.addEventListener('click', () => {
           const idx = Number(btn.dataset.useResult);
           const result = results[idx];
+          if (!geoLocationEditing) {
+            alert('Para cambiar el punto desde la búsqueda, primero presiona Editar ubicación.');
+            return;
+          }
           const lat = Number(result.lat);
           const lon = Number(result.lon);
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
@@ -3238,15 +3601,19 @@
           <input id="photoInput" type="file" accept=".jpg,.jpeg,.heic,image/jpeg,image/heic,image/heif" multiple>
         </div>
         <small class="hint">Las imágenes se mantienen temporalmente en este navegador. Al subirlas, se guardarán en Google Drive dentro de una carpeta con el ID único del registro.</small>
-        <div class="toolbar" style="margin-top:12px;">
-          <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
+        <div class="photo-storage-status empty" id="photoStorageStatus">
+          <strong>Sin fotografías adjuntas</strong>
+          <span>Agrega entre 3 y 5 fotografías para respaldarlas en Google Drive.</span>
         </div>
         <div class="coord-note" id="photoDriveStatus" style="margin-top:10px;">Pendiente: las fotos todavía no están respaldadas en Google Drive.</div>
+        <div class="photo-grid" id="photoGrid"></div>
+        <div class="photo-drive-actions">
+          <button type="button" class="secondary" id="uploadPhotosDriveBtn">Subir / actualizar fotos en Drive</button>
+        </div>
         <div class="upload-progress" id="photoUploadProgress" aria-live="polite">
           <div class="upload-progress-track"><div class="upload-progress-bar" id="photoUploadProgressBar"></div></div>
           <div class="upload-progress-label" id="photoUploadProgressLabel">Esperando subida...</div>
         </div>
-        <div class="photo-grid" id="photoGrid"></div>
       `;
       content.appendChild(block);
 
@@ -3392,6 +3759,31 @@
       }
     }
 
+    function updatePhotoStorageStatus() {
+      const statusEl = document.getElementById('photoStorageStatus');
+      const driveEl = document.getElementById('photoDriveStatus');
+      if (!statusEl) return;
+
+      const localCount = state.photos.length;
+      const onlineCount = Number(state.values.fotos_cantidad || 0);
+      const hasDriveLinks = Boolean(String(state.values.fotos_links || '').trim() || String(state.values.fotos_carpeta_drive || '').trim());
+
+      statusEl.classList.remove('ok', 'warn', 'empty');
+      if (hasDriveLinks || onlineCount > 0) {
+        statusEl.classList.add('ok');
+        statusEl.innerHTML = '<strong>Fotografías almacenadas en Google Drive</strong><span>' + escapeHtml(String(onlineCount || localCount || '')) + ' foto(s) vinculadas al registro. Puedes volver a subir si necesitas reemplazarlas.</span>';
+        if (driveEl) driveEl.textContent = 'Respaldo online detectado: las fotografías tienen enlace/carpeta asociada en Google Sheet.';
+      } else if (localCount > 0) {
+        statusEl.classList.add('warn');
+        statusEl.innerHTML = '<strong>Fotografías adjuntas, aún sin respaldo online</strong><span>' + localCount + ' foto(s) listas para subir. Usa el botón de abajo para guardarlas en Google Drive.</span>';
+        if (driveEl) driveEl.textContent = 'Pendiente: las fotos están adjuntas localmente, pero todavía no están respaldadas en Google Drive.';
+      } else {
+        statusEl.classList.add('empty');
+        statusEl.innerHTML = '<strong>Sin fotografías adjuntas</strong><span>Agrega entre 3 y 5 fotografías para respaldarlas en Google Drive.</span>';
+        if (driveEl) driveEl.textContent = 'Pendiente: no hay fotografías adjuntas ni respaldadas para este recurso.';
+      }
+    }
+
     function renderPhotos() {
       const grid = document.getElementById('photoGrid');
       if (!grid) return;
@@ -3424,6 +3816,7 @@
       });
 
       document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
+      updatePhotoStorageStatus();
     }
 
     function getAdmissibilityStatus() {
@@ -3602,6 +3995,7 @@
       if (validateTerritoryForSave({ silent: true })) persistNamedDraft();
       updateLastSyncDisplay(state.values.fecha_actualizacion || state.values.fecha_sincronizacion || '—');
       updateUiSummary();
+      scheduleDistanceCalculation();
       setSyncStatus(statusText, status);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
@@ -4355,6 +4749,7 @@
       const alreadySyncedOnline = Boolean(state.values.fecha_sincronizacion || state.values.fotos_carpeta_drive || state.values.fotos_links);
 
       state.values.codigo_atractivo = attractionCode;
+      state.values.idInterno = 'A' + attractionCode;
 
       if (!existingId || isPlaceholderId || (territoryDoesNotMatch && !alreadySyncedOnline)) {
         state.values.id_unico = territorialId;
@@ -4438,6 +4833,7 @@
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
+        updatePhotoStorageStatus();
 
         if (verifiedRecord?.fotos_links || verifiedRecord?.fotos_carpeta_drive) {
           const folderLink = verifiedRecord.fotos_carpeta_drive
@@ -4742,8 +5138,9 @@
 
     function updateUniqueIdDisplay() {
       const idEl = document.getElementById('uniqueIdDisplay');
-      if (!idEl) return;
-      idEl.textContent = state.values.id_unico || 'Pendiente';
+      const internalInput = document.getElementById('idInterno');
+      if (idEl) idEl.textContent = state.values.id_unico || 'Pendiente';
+      if (internalInput) internalInput.value = state.values.idInterno || '';
     }
 
     function updateLastSyncDisplay(value = null) {
