@@ -650,6 +650,30 @@
       display: grid;
       gap: 10px;
       margin-top: 12px;
+      max-height: 430px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      padding-right: 6px;
+      scrollbar-gutter: stable;
+    }
+
+    .draft-list::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .draft-list::-webkit-scrollbar-track {
+      background: #edf4ff;
+      border-radius: 999px;
+    }
+
+    .draft-list::-webkit-scrollbar-thumb {
+      background: #b8cbe6;
+      border-radius: 999px;
+      border: 2px solid #edf4ff;
+    }
+
+    .draft-list::-webkit-scrollbar-thumb:hover {
+      background: #8fa8cc;
     }
 
     .draft-item {
@@ -1611,6 +1635,10 @@
 
       .photo-grid {
         grid-template-columns: 1fr;
+      }
+
+      .draft-list {
+        max-height: 320px;
       }
 
       .start-disclaimer-dialog {
@@ -3497,7 +3525,8 @@
           const lon = Number(result.lon);
           if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
           setGeoPoint(lat, lon, { recenter: true });
-          syncTerritoryFromSearchResult(result);
+          // La georreferenciación solo ajusta el punto del mapa.
+          // Región, Provincia y Comuna se mantienen como selección manual del formulario.
           if (!(state.values.localidad || '').trim()) {
             setFieldValue('localidad', (result.name || result.display_name || '').slice(0, 180));
           }
@@ -3521,73 +3550,9 @@
     }
 
     function syncTerritoryFromSearchResult(result) {
-      const address = result?.address || {};
-      const comunaCandidate = address.city || address.town || address.municipality || address.village || address.hamlet || address.suburb || '';
-      const provinceCandidate = address.county || address.state_district || '';
-      const regionCandidate = address.state || address.region || '';
-
-      const matchedRegion = CHILE_TERRITORY.find(region =>
-        normalizeText(region.nombre) === normalizeText(regionCandidate) ||
-        normalizeText(regionCandidate).includes(normalizeText(region.nombre)) ||
-        normalizeText(region.nombre).includes(normalizeText(regionCandidate))
-      );
-
-      if (!matchedRegion) return;
-
-      state.values.region = matchedRegion.nombre;
-      const regionInput = document.getElementById('region');
-      if (regionInput) regionInput.value = matchedRegion.nombre;
-
-      syncProvinceSelect({ preserveCurrent: false });
-
-      const matchedProvince = matchedRegion.provincias.find(prov =>
-        normalizeText(prov.nombre) === normalizeText(provinceCandidate) ||
-        normalizeText(provinceCandidate).includes(normalizeText(prov.nombre)) ||
-        normalizeText(prov.nombre).includes(normalizeText(provinceCandidate))
-      );
-
-      if (matchedProvince) {
-        state.values.provincia = matchedProvince.nombre;
-        const provinceInput = document.getElementById('provincia');
-        if (provinceInput) provinceInput.value = matchedProvince.nombre;
-      } else {
-        state.values.provincia = '';
-      }
-
-      syncComunaSelect({ preserveCurrent: false });
-
-      const provinceForComuna = matchedProvince || matchedRegion.provincias.find(prov =>
-        prov.comunas.some(comuna =>
-          normalizeText(comuna) === normalizeText(comunaCandidate) ||
-          normalizeText(comunaCandidate).includes(normalizeText(comuna)) ||
-          normalizeText(comuna).includes(normalizeText(comunaCandidate))
-        )
-      );
-
-      if (provinceForComuna) {
-        if (!matchedProvince) {
-          state.values.provincia = provinceForComuna.nombre;
-          const provinceInput = document.getElementById('provincia');
-          if (provinceInput) provinceInput.value = provinceForComuna.nombre;
-          syncComunaSelect({ preserveCurrent: false });
-        }
-
-        const matchedComuna = provinceForComuna.comunas.find(comuna =>
-          normalizeText(comuna) === normalizeText(comunaCandidate) ||
-          normalizeText(comunaCandidate).includes(normalizeText(comuna)) ||
-          normalizeText(comuna).includes(normalizeText(comunaCandidate))
-        );
-
-        if (matchedComuna) {
-          state.values.comuna = matchedComuna;
-          const comunaInput = document.getElementById('comuna');
-          if (comunaInput) comunaInput.value = matchedComuna;
-        }
-      }
-
-      autosave();
-      updateGeoSearchContext();
-      renderAdmissibility();
+      // Desactivado intencionalmente: la búsqueda/georreferenciación solo ubica el punto.
+      // Región, Provincia y Comuna se definen manualmente en los selectores del formulario.
+      return result;
     }
 
     function renderPhotosSection(content) {
