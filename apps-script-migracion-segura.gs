@@ -141,6 +141,23 @@ var HEADERS = [
   'zona_horaria_usuario'
 ];
 
+var TEXT_HEADERS = [
+  'id_unico',
+  'id_unico_formato',
+  'codigo_unico_territorial',
+  'codigo_region',
+  'codigo_provincia',
+  'codigo_comuna',
+  'codigo_atractivo',
+  'idInterno',
+  'telefonoResponsable',
+  'telefonoPropietario',
+  'telefonoAdministrador'
+];
+
+var DATE_ONLY_HEADERS = ['fechaRegistro', 'fechaReconocimiento'];
+var TIME_ONLY_HEADERS = ['horaDesde', 'horaHasta'];
+
 function doGet(e) {
   try {
     var action = e && e.parameter && e.parameter.action ? String(e.parameter.action) : '';
@@ -276,6 +293,7 @@ function saveRecord_(payload) {
     }
 
     var updateRow = mergeRow_(headers, existing, values);
+    applyTextFormatsToRows_(sheet, headers, foundRow, 1);
     sheet.getRange(foundRow, 1, 1, headers.length).setValues([updateRow]);
     return {
       mode: foundRows.length > 1 ? 'updated_with_duplicate_warning' : 'updated',
@@ -288,8 +306,10 @@ function saveRecord_(payload) {
 
   values.fecha_creacion = values.fecha_creacion || now_();
   var newRow = buildRow_(headers, values);
-  sheet.appendRow(newRow);
-  return { mode: 'created', row: sheet.getLastRow(), id_unico: id };
+  var targetRow = sheet.getLastRow() + 1;
+  applyTextFormatsToRows_(sheet, headers, targetRow, 1);
+  sheet.getRange(targetRow, 1, 1, headers.length).setValues([newRow]);
+  return { mode: 'created', row: targetRow, id_unico: id };
 }
 
 function getRecordById_(id) {
@@ -303,7 +323,7 @@ function getRecordById_(id) {
   var rowValues = sheet.getRange(row, 1, 1, headers.length).getValues()[0];
   var record = {};
   for (var i = 0; i < headers.length; i++) {
-    record[headers[i]] = rowValues[i];
+    record[headers[i]] = serializeRecordValue_(headers[i], rowValues[i]);
   }
   return record;
 }
@@ -325,13 +345,88 @@ function listRecords_() {
     for (var c = 0; c < headers.length; c++) {
       var value = row[c];
       if (value !== '' && value !== null && value !== undefined) empty = false;
-      record[headers[c]] = value;
+      record[headers[c]] = serializeRecordValue_(headers[c], value);
     }
 
     if (!empty) records.push(record);
   }
 
   return records;
+}
+
+function aplicarFormatosTextoSeguros() {
+  var sheet = getSheet_();
+  var headers = ensureHeaders_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) {
+    return { ok: true, rows: 0, message: 'No hay registros para normalizar.' };
+  }
+
+  var rowCount = lastRow - 1;
+  var values = sheet.getRange(2, 1, rowCount, headers.length).getValues();
+  var formulas = sheet.getRange(2, 1, rowCount, headers.length).getFormulas();
+  var idIndex = headers.indexOf('id_unico');
+  var normalized = {};
+
+  for (var t = 0; t < TEXT_HEADERS.length; t++) {
+    var header = TEXT_HEADERS[t];
+    var columnIndex = headers.indexOf(header);
+    if (columnIndex < 0) continue;
+
+    var columnValues = [];
+    for (var r = 0; r < rowCount; r++) {
+      var id = idIndex >= 0 ? String(values[r][idIndex] || '').trim() : '';
+      var value = values[r][columnIndex];
+
+      if (header === 'telefonoResponsable' || header === 'telefonoPropietario' || header === 'telefonoAdministrador') {
+        value = normalizePhoneForSheet_(value, formulas[r][columnIndex]);
+      } else if (header === 'codigo_region') {
+        value = normalizeTerritoryCode_(value || extractCodeFromId_(id, /R(\d+)/), 2);
+      } else if (header === 'codigo_provincia') {
+        value = normalizeTerritoryCode_(value || extractCodeFromId_(id, /-P(\d+)/), 3);
+      } else if (header === 'codigo_comuna') {
+        value = normalizeTerritoryCode_(value || extractCodeFromId_(id, /-C(\d+)/), 5);
+      } else if (header === 'codigo_atractivo') {
+        value = String(value || extractAttractionCode_(id));
+      } else if (header === 'idInterno') {
+        value = String(value || (extractAttractionCode_(id) ? 'A' + extractAttractionCode_(id) : ''));
+      } else if (value !== '' && value !== null && value !== undefined) {
+        value = String(value);
+      }
+
+      columnValues.push([value === null || value === undefined ? '' : value]);
+    }
+
+    var columnRange = sheet.getRange(2, columnIndex + 1, rowCount, 1);
+    columnRange.setNumberFormat('@');
+    columnRange.setValues(columnValues);
+    normalized[header] = rowCount;
+  }
+
+  var regionIndex = headers.indexOf('codigo_region');
+  var provinceIndex = headers.indexOf('codigo_provincia');
+  var comunaIndex = headers.indexOf('codigo_comuna');
+  var cutIndex = headers.indexOf('codigo_unico_territorial');
+  if (cutIndex >= 0 && regionIndex >= 0 && provinceIndex >= 0 && comunaIndex >= 0) {
+    var cutValues = [];
+    var refreshed = sheet.getRange(2, 1, rowCount, headers.length).getDisplayValues();
+    for (var i = 0; i < rowCount; i++) {
+      var region = normalizeTerritoryCode_(refreshed[i][regionIndex], 2);
+      var province = normalizeTerritoryCode_(refreshed[i][provinceIndex], 3);
+      var comuna = normalizeTerritoryCode_(refreshed[i][comunaIndex], 5);
+      cutValues.push([region && province && comuna ? [region, province, comuna].join('-') : refreshed[i][cutIndex]]);
+    }
+    var cutRange = sheet.getRange(2, cutIndex + 1, rowCount, 1);
+    cutRange.setNumberFormat('@');
+    cutRange.setValues(cutValues);
+  }
+
+  return {
+    ok: true,
+    rows: rowCount,
+    text_headers: TEXT_HEADERS.length,
+    message: 'Telefonos, identificadores y codigos territoriales normalizados como texto.'
+  };
 }
 
 function uploadPhotos_(payload) {
@@ -760,6 +855,58 @@ function cleanCellValue_(value) {
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return value;
+}
+
+function serializeRecordValue_(header, value) {
+  if (Object.prototype.toString.call(value) !== '[object Date]') return value;
+  if (DATE_ONLY_HEADERS.indexOf(header) !== -1) {
+    return Utilities.formatDate(value, TIMEZONE, 'yyyy-MM-dd');
+  }
+  if (TIME_ONLY_HEADERS.indexOf(header) !== -1) {
+    return Utilities.formatDate(value, TIMEZONE, 'HH:mm');
+  }
+  return Utilities.formatDate(value, TIMEZONE, "yyyy-MM-dd'T'HH:mm:ssXXX");
+}
+
+function applyTextFormatsToRows_(sheet, headers, startRow, rowCount) {
+  if (!sheet || startRow < 1 || rowCount < 1) return;
+  var endRow = startRow + rowCount - 1;
+  var ranges = [];
+  for (var i = 0; i < TEXT_HEADERS.length; i++) {
+    var columnIndex = headers.indexOf(TEXT_HEADERS[i]);
+    if (columnIndex < 0) continue;
+    var column = columnLetter_(columnIndex + 1);
+    ranges.push(column + startRow + ':' + column + endRow);
+  }
+  if (ranges.length) sheet.getRangeList(ranges).setNumberFormat('@');
+}
+
+function columnLetter_(columnNumber) {
+  var result = '';
+  var current = Number(columnNumber);
+  while (current > 0) {
+    current--;
+    result = String.fromCharCode(65 + (current % 26)) + result;
+    current = Math.floor(current / 26);
+  }
+  return result;
+}
+
+function normalizePhoneForSheet_(value, formula) {
+  var source = formula ? String(formula).replace(/^=/, '') : String(value || '');
+  var text = source.trim();
+  if (!text) return '';
+  var digits = text.replace(/\D/g, '');
+  if (/^\d{9}$/.test(digits)) return '+56' + digits;
+  if (/^56\d{8,9}$/.test(digits)) return '+' + digits;
+  return text;
+}
+
+function normalizeTerritoryCode_(value, length) {
+  var code = String(value || '').trim().replace(/\D/g, '');
+  if (!code) return '';
+  while (code.length < length) code = '0' + code;
+  return code;
 }
 
 function extractAttractionCode_(id) {

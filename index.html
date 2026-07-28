@@ -4736,8 +4736,72 @@
       container.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteNamedDraft(btn.dataset.delete)));
     }
 
+    function normalizeLoadedDateValue(value) {
+      const text = String(value ?? '').trim();
+      if (!text) return '';
+      const directMatch = text.match(/^(\d{4}-\d{2}-\d{2})/);
+      if (directMatch) return directMatch[1];
+      const parsed = new Date(text);
+      if (!Number.isFinite(parsed.getTime())) return '';
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Santiago',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(parsed);
+      const byType = Object.fromEntries(parts.map(part => [part.type, part.value]));
+      return `${byType.year}-${byType.month}-${byType.day}`;
+    }
+
+    function normalizeLoadedTimeValue(value) {
+      const text = String(value ?? '').trim();
+      if (!text) return '';
+      const directMatch = text.match(/^([01]\d|2[0-3]):([0-5]\d)/);
+      if (directMatch) return `${directMatch[1]}:${directMatch[2]}`;
+      const parsed = new Date(text);
+      if (!Number.isFinite(parsed.getTime())) return '';
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Santiago',
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23'
+      }).format(parsed);
+    }
+
+    function normalizeLoadedPhoneValue(value) {
+      const text = String(value ?? '').trim();
+      if (!text || text.startsWith('+')) return text;
+      const digits = text.replace(/\D/g, '');
+      if (/^\d{9}$/.test(digits)) return `+56${digits}`;
+      return /^56\d{8,9}$/.test(digits) ? `+${digits}` : text;
+    }
+
+    function normalizeLoadedFormValues(values = {}) {
+      const normalized = { ...values };
+      ['fechaRegistro', 'fechaReconocimiento'].forEach(field => {
+        normalized[field] = normalizeLoadedDateValue(normalized[field]);
+      });
+      ['horaDesde', 'horaHasta'].forEach(field => {
+        normalized[field] = normalizeLoadedTimeValue(normalized[field]);
+      });
+      ['telefonoResponsable', 'telefonoPropietario', 'telefonoAdministrador'].forEach(field => {
+        normalized[field] = normalizeLoadedPhoneValue(normalized[field]);
+      });
+      [
+        ['codigo_region', 2],
+        ['codigo_provincia', 3],
+        ['codigo_comuna', 5]
+      ].forEach(([field, length]) => {
+        const code = String(normalized[field] ?? '').trim();
+        if (code) normalized[field] = code.padStart(length, '0');
+      });
+      return normalized;
+    }
+
     function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
-      Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
+      const loadedState = normalizeState(JSON.parse(JSON.stringify(data || {})));
+      loadedState.values = normalizeLoadedFormValues(loadedState.values);
+      Object.assign(state, loadedState);
       updateLegacyIdPreservationFlag();
       if (validateTerritoryForSave({ silent: true })) {
         ensureUniqueId();
