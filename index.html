@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -418,6 +418,36 @@
       font-weight: 600;
     }
 
+    .required-marker {
+      color: #dc2626;
+      font-weight: 900;
+      margin-left: 4px;
+    }
+
+    .field-meta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .field-meta.required {
+      color: #b45309;
+    }
+
+    .field-meta.optional {
+      color: var(--muted);
+    }
+
+    .field.is-missing input,
+    .field.is-missing select,
+    .field.is-missing textarea {
+      border-color: #f97316;
+      box-shadow: 0 0 0 3px rgba(249, 115, 22, .14);
+    }
+
     .hint {
       display: block;
       margin-top: 4px;
@@ -489,6 +519,39 @@
     }
 
     .check-item input { width: auto; margin-top: 3px; }
+
+    .social-accounts {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfdff;
+    }
+
+    .social-account-row {
+      display: grid;
+      grid-template-columns: 150px minmax(180px, 1fr) minmax(220px, 1.2fr);
+      gap: 10px;
+      align-items: center;
+    }
+
+    .social-account-row strong {
+      font-size: 0.9rem;
+    }
+
+    .social-empty {
+      color: var(--muted);
+      font-size: 0.88rem;
+      padding: 4px 2px;
+    }
+
+    @media (max-width: 760px) {
+      .social-account-row {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+    }
 
     .photo-grid {
       display: grid;
@@ -1009,6 +1072,11 @@
       color: #166534;
     }
 
+    .section-status.in-progress {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
     .print-view-overlay {
       position: fixed;
       inset: 0;
@@ -1350,6 +1418,68 @@
       width: 100%;
       min-height: 42px;
       justify-content: center;
+    }
+
+    .map-coordinate-grid {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .map-coordinate-title {
+      grid-column: span 12;
+      margin: 0;
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .transport-groups {
+      display: grid;
+      gap: 12px;
+    }
+
+    .transport-group {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #f8fbff;
+    }
+
+    .transport-group strong {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--ink);
+    }
+
+    .distance-cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .distance-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fbff;
+    }
+
+    .distance-card label {
+      margin-bottom: 8px;
+      line-height: 1.25;
+    }
+
+    .distance-card input {
+      max-width: 180px;
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .distance-card .hint {
+      max-width: 640px;
+      line-height: 1.45;
     }
 
     .coord-note {
@@ -1758,6 +1888,7 @@
         </div>
         <div class="id-actions">
           <button type="button" class="secondary" id="copyUniqueIdBtn">Copiar ID</button>
+          <button type="button" class="ghost" id="regenerateUniqueIdBtn">Regenerar ID</button>
           <button type="button" class="ghost" id="newAttractionBtn">Nuevo recurso</button>
         </div>
         <div class="lookup-panel">
@@ -1926,7 +2057,7 @@
   <script>
     const STORAGE_KEY = 'catastro_prototipo_v3';
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
-    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbyWguV8wgWMhL68QS3ZbxdQkDPoP2hmMzLiJsBnxx9f5sZLTd6bVyfFu8VUO8YOrr_CPQ/exec';
+    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxD5_L3iuS_pxfIwqzIJ6aM6hlPKisCffju2itBZO80CpIa6z3WD2SS2yNFG7xWUnjlPg/exec';
     const MAX_PHOTO_BYTES = 15 * 1024 * 1024;
     const CHILE_LAT_RANGE = { min: -56.5, max: -17.0 };
     const CHILE_LNG_RANGE = { min: -76.5, max: -66.0 };
@@ -1950,6 +2081,28 @@
       'Región de Los Lagos': '10',
       'Región de Aysén del General Carlos Ibáñez del Campo': '11',
       'Región de Magallanes y de la Antártica Chilena': '12'
+    };
+
+    const CUT_CODE_OVERRIDES = {
+      'region de tarapaca|iquique|alto hospicio': { codigo_region: '01', codigo_provincia: '011', codigo_comuna: '01107' },
+      'region de tarapaca|del tamarugal|pozo almonte': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01401' },
+      'region de tarapaca|del tamarugal|camina': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01402' },
+      'region de tarapaca|del tamarugal|colchane': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01403' },
+      'region de tarapaca|del tamarugal|huara': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01404' },
+      'region de tarapaca|del tamarugal|pica': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01405' },
+      'region de valparaiso|valparaiso|quintero': { codigo_region: '05', codigo_provincia: '051', codigo_comuna: '05107' },
+      'region de valparaiso|valparaiso|vina del mar': { codigo_region: '05', codigo_provincia: '051', codigo_comuna: '05109' },
+      'region de valparaiso|quillota|nogales': { codigo_region: '05', codigo_provincia: '055', codigo_comuna: '05506' },
+      'region de nuble|diguillin|bulnes': { codigo_region: '16', codigo_provincia: '161', codigo_comuna: '16102' },
+      'region de nuble|diguillin|chillan': { codigo_region: '16', codigo_provincia: '161', codigo_comuna: '16101' },
+      'region de nuble|itata|cobquecura': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16202' },
+      'region de nuble|itata|coelemu': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16203' },
+      'region de nuble|itata|ninhue': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16204' },
+      'region de nuble|itata|portezuelo': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16205' },
+      'region de nuble|itata|quirihue': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16201' },
+      'region de nuble|punilla|coihueco': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16302' },
+      'region de nuble|punilla|niquen': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16303' },
+      'region de nuble|punilla|san carlos': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16301' }
     };
 
     const REGIONAL_CAPITAL_COORDS = {
@@ -2075,6 +2228,7 @@
           'Museo',
           'Pueblo o Zona Típica o Pintoresca',
           'Sala de exposición museográfica',
+          'Sitio gastronómico',
           'Ruina o lugar de interés arqueológico'
         ],
         'Realizaciones técnicas y científicas contemporáneas': [
@@ -2255,201 +2409,344 @@
       }
 };
 
+    const CLASSIFICATION_DEFINITIONS = {
+      'Recurso Natural': {
+        'Área protegida': {
+          'Áreas de conservación de múltiples usos': 'Área terrestre, acuática, marina, insular o continental, caracterizada por una interacción tradicional entre los seres humanos y la naturaleza, relevante para la conservación de la biodiversidad. Permite actividades de uso sustentable que no pongan en riesgo los servicios ecosistémicos.',
+          'Áreas de conservación de pueblos indígenas': 'Área ubicada en tierras indígenas o espacios costeros marinos de pueblos originarios, con especies nativas, hábitats o ecosistemas relevantes para la conservación de la biodiversidad y el patrimonio natural.',
+          'Área protegida privada': 'Espacio geográfico de propiedad particular destinado voluntariamente a la conservación de biodiversidad, ecosistemas y valores naturales, culturales o servicios ecosistémicos.',
+          'Monumento Natural': 'Área generalmente reducida en extensión, caracterizada por componentes naturales específicos o formaciones naturales de valor excepcional. Se prohíbe la explotación de recursos naturales con fines comerciales.',
+          'Parque Nacional': 'Área generalmente amplia con ambientes únicos o representativos del patrimonio natural del país, no alterados significativamente por la acción humana, de interés educativo, científico o recreativo.',
+          'Reserva Nacional': 'Área con comunidades biológicas, especies nativas, hábitats o sitios de reproducción relevantes para la protección de especies y ecosistemas, con valor para educación, ciencia y turismo.'
+        },
+        'Costa': {
+          'Acantilado o farellón': 'Formación rocosa escarpada y de pendiente pronunciada ubicada en el borde costero, modelada por la erosión y destacada por su valor paisajístico.',
+          'Arrecife': 'Formación rocosa antepuesta a la línea de costa, emergida o parcialmente sumergida, que constituye hábitat de biodiversidad marina y atractivo para buceo u observación de fauna.',
+          'Bahía': 'Entrada de mar en la costa, a veces en forma de media luna, usada como área natural para actividades portuarias, recreativas y turísticas.',
+          'Desembocadura': 'Sector donde un río finaliza su recorrido al unirse con el mar, lago u otro curso de agua. Puede incluir deltas o estuarios de alto valor natural y turístico.',
+          'Duna o campo dunario': 'Forma natural de acumulación de arena modelada por el viento en zonas costeras, apta para recreación, observación y turismo de naturaleza.',
+          'Estrecho': 'Paso angosto del mar que conecta grandes masas de agua y constituye una ruta natural de navegación con valor paisajístico y turístico.',
+          'Fiordo o canal': 'Entrante o paso natural de agua entre islas o masas de tierra, asociado a paisajes costeros de alto valor turístico, navegación y aventura.',
+          'Isla o archipiélago': 'Porción de territorio rodeada de agua o conjunto de islas próximas entre sí, aptas para experiencias de naturaleza, cultura y vida costera.',
+          'Península, cabo o punta': 'Formación litoral que se interna en el mar y destaca como hito paisajístico para contemplación, exploración, navegación o recreación costera.',
+          'Playa o balneario': 'Franja litoral o sector natural habilitado para baño, descanso, recreación y actividades turísticas asociadas al mar, ríos o lagos.',
+          'Salina': 'Planicie natural poco profunda del borde costero donde la evaporación permite acumulación de sales, con valor natural, cultural y productivo tradicional.',
+          'Seno o ensenada': 'Entrada natural del mar en la costa, generalmente protegida, apta para navegación, pesca recreativa, descanso o turismo costero.'
+        },
+        'Condición natural especial': {
+          'Cielos oscuros': 'Condición ambiental del cielo nocturno con mínima contaminación lumínica, que permite observación astronómica, contemplación y experiencias de astroturismo.',
+          'Olas': 'Formaciones dinámicas del mar generadas por el viento que, por su rompiente y calidad, permiten deportes náuticos como surf y bodyboard.'
+        },
+        'Cuerpo y curso de agua': {
+          'Cascada o salto': 'Salto natural de agua producido por un desnivel del terreno en un río o estero, destacado por su valor escénico y turístico.',
+          'Humedal o bofedal': 'Terreno húmedo, empapado o de altura con humedad permanente, alta biodiversidad y valor turístico para observación de naturaleza.',
+          'Lago o laguna': 'Acumulación natural de agua, de mayor o menor tamaño, asociada a paisajes de alto valor escénico, recreación, naturaleza o contemplación.',
+          'Río o estero': 'Curso natural de agua permanente o estacional, de distinto caudal, asociado a recreación, navegación, pesca, contemplación y turismo de naturaleza.'
+        },
+        'Fuente termal o géiser': {
+          'Fuente o centro termal': 'Manantial natural de aguas subterráneas que emergen con temperatura superior al entorno, aprovechable con fines terapéuticos, recreativos y turísticos.',
+          'Géiser': 'Manifestación natural donde agua caliente y vapor emergen a presión desde el subsuelo, formando columnas de vapor y agua de interés turístico.'
+        },
+        'Glaciar o campo de hielo': {
+          'Campo de hielo': 'Extensas capas de hielo continental que cubren amplias áreas del territorio y configuran paisajes de gran valor natural y turístico.',
+          'Glaciar': 'Masa de hielo de valle, montaña, roca o menor extensión que evidencia flujo presente o pasado y posee valor paisajístico, científico y turístico.'
+        },
+        'Lugar de interés geológico o paleontológico': {
+          'Lugar de interés geológico': 'Geositio o lugar con límites definidos que destaca por características geológicas, historia de la tierra, valor científico, educativo o paisajístico.',
+          'Lugar de interés paleontológico': 'Sitio natural con restos fósiles o evidencias de organismos del pasado, protegido por su valor científico y patrimonial.'
+        },
+        'Montaña': {
+          'Altiplano': 'Terreno relativamente llano situado a considerable altura, asociado a salares, volcanes, clima altoandino y paisajes de alto valor turístico.',
+          'Área nevada': 'Sector de montaña con presencia permanente o estacional de nieve, apto para actividades deportivas, recreativas y turísticas.',
+          'Cerro': 'Elevación natural de menor tamaño que una montaña, destacada en el paisaje local y apta para miradores, senderismo o interpretación del entorno.',
+          'Cordillera': 'Sistema natural de montañas unidas por constitución geológica y estructura, de gran extensión y valor escénico, ambiental y turístico.',
+          'Montaña': 'Elevación natural de gran altura y pendiente pronunciada que destaca en el paisaje y permite trekking, senderismo, montañismo y observación.',
+          'Quebrada': 'Abertura estrecha y profunda, generalmente en forma de V, formada por erosión y asociada a cursos de agua temporales o permanentes.',
+          'Salar': 'Planicie natural con depósitos de sales minerales, principalmente altoandina o cordillerana, de paisaje singular y alto valor turístico.',
+          'Volcán': 'Abertura de la corteza terrestre por donde afloran materiales del interior de la Tierra, activa o apagada, de interés natural y turístico.'
+        },
+        'Planicie': {
+          'Desierto': 'Extensa área de escasa precipitación y vegetación limitada o inexistente, con paisajes abiertos aptos para actividades turísticas.',
+          'Duna o campo dunario': 'Acumulación natural de arena modelada por el viento, asociada a zonas desérticas y actividades de naturaleza, recreación u observación.',
+          'Oasis': 'Lugar en el desierto con vegetación y agua superficial o subterránea, apto para agricultura, vida humana y turismo cultural o rural.',
+          'Pampa o Llanura': 'Superficie amplia de terreno plano, suavemente ondulada o quebrada, apta para observación paisajística, astroturismo o experiencias culturales.',
+          'Valle': 'Depresión natural del terreno, generalmente asociada a un curso de agua, que permite experiencias de naturaleza, cultura y gastronomía local.'
+        }
+      },
+      'Recurso Cultural': {
+        'Acontecimientos programados': {
+          'Carnaval o fiesta costumbrista': 'Celebración que muestra raíces folklóricas y culturales de un pueblo o comunidad, incluyendo expresiones tradicionales como jineteadas.',
+          'Conmemoraciones o representaciones históricas': 'Eventos o manifestaciones que rememoran hechos, personajes o procesos relevantes de la historia y fortalecen la memoria colectiva.',
+          'Convenciones, ferias, exposiciones o congresos': 'Reuniones o eventos periódicos que exponen productos, transmiten conocimientos o convocan públicos en torno a temas especializados.',
+          'Evento de música, canto o danza': 'Evento cultural relacionado con música, teatro, cine, pintura, danza u otras disciplinas escénicas que convoca público turístico.',
+          'Evento deportivo': 'Actividad organizada en torno a disciplinas deportivas que convoca participantes y público, generando impacto turístico, económico y social.',
+          'Evento enológico y/o gastronómico': 'Actividad abierta al público orientada a promoción de gastronomía o producción vitivinícola local mediante degustaciones, vendimias, catas o muestras.',
+          'Feria temática': 'Evento organizado en torno a una temática específica, integrando exhibición, venta, manifestaciones culturales y entretenimiento.',
+          'Festival de cine': 'Evento cinematográfico periódico que exhibe producciones audiovisuales y promueve el encuentro cultural asociado al arte y la industria del cine.',
+          'Fiesta religiosa': 'Celebración espiritual y comunitaria vinculada a una tradición o creencia religiosa, generalmente recurrente en el calendario.'
+        },
+        'Arquitectura': {
+          'Barrios': 'Área urbana delimitada que concentra atractivos, servicios, identidad y experiencias significativas para visitantes.',
+          'Espacios públicos': 'Bien nacional de uso público destinado a circulación y esparcimiento, como plazas, plazoletas, bulevares o parques integrables a circuitos turísticos.',
+          'Infraestructura recreativa': 'Instalaciones para recreación y diversión, como parques de atracciones o casinos, cuando aportan significativamente a la experiencia turística.',
+          'Monumento histórico': 'Bien inmueble o mueble declarado oficialmente por su valor histórico, artístico o patrimonial, integrable a circuitos de visita e interpretación.',
+          'Obra de ingeniería': 'Infraestructura como líneas férreas, puentes, túneles, embalses, represas, muelles, molinos, canales o proyectos de energía visitables.',
+          'Otras infraestructuras de arquitectura': 'Infraestructura permanente destinada a actividades culturales, artísticas, educativas, religiosas, comunitarias o patrimoniales.'
+        },
+        'Folklore': {
+          'Artesanía': 'Producción de objetos elaborados manualmente, con dominio técnico y expresión de creatividad, identidad cultural y pertenencia territorial.',
+          'Feria artesanal y/o tradicional': 'Espacio donde artesanos y productores locales elaboran y comercializan productos hechos a mano vinculados a saberes e identidad local.',
+          'Mercado tradicional': 'Espacio comercial local de productos alimentarios y elaboraciones del territorio, con valor gastronómico, cultural y de vida cotidiana.',
+          'Representaciones y/o manifestaciones religiosas o creencias populares': 'Expresiones vivas de fe y espiritualidad popular, como animitas, grutas, oratorios, santuarios o cruces de camino.'
+        },
+        'Manifestación Cultural': {
+          'Caleta artesanal': 'Asentamiento costero tradicional vinculado a pesca artesanal, acuicultura de pequeña escala, gastronomía, comercio y turismo.',
+          'Escultura o instalaciones': 'Obras artísticas tridimensionales o intervenciones espaciales que integran arte, paisaje y cultura como interés turístico.',
+          'Lugar o sitio histórico o de memoria': 'Espacio asociado a acontecimientos relevantes de la historia nacional o local, o a procesos de memoria y derechos humanos.',
+          'Mural o arte urbano': 'Arte visual realizado en calles y espacios públicos, desde murales y grafitis hasta instalaciones temporales o performance.',
+          'Museo': 'Institución abierta al público que resguarda, conserva, interpreta y exhibe patrimonio material o inmaterial.',
+          'Pueblo o Zona Típica o Pintoresca': 'Centro poblado o conjunto de bienes declarados por valor arquitectónico, cultural, histórico o territorial.',
+          'Sala de exposición museográfica': 'Espacio habilitado para exhibición temporal o permanente de bienes patrimoniales, sin desarrollar todas las funciones de un museo.',
+          'Sitio gastronómico': 'Establecimiento reconocido por trayectoria, historia, prácticas culinarias, recetas tradicionales, identidad territorial o valor cultural gastronómico.',
+          'Ruina o lugar de interés arqueológico': 'Lugar, ruina, yacimiento o pieza antropo-arqueológica sobre o bajo la superficie, visitable con fines turísticos, científicos o educativos.'
+        },
+        'Realizaciones técnicas y científicas contemporáneas': {
+          'Acuario, aviario, mariposario y/o zoológico': 'Instalación abierta al público destinada a exhibición y educación sobre fauna terrestre, aérea o acuática.',
+          'Granja educativa': 'Centro dedicado a enseñanza mediante contacto directo con naturaleza, animales o cultivos, promoviendo aprendizaje experiencial y respeto ambiental.',
+          'Hacienda o estancia': 'Predio rural de valor histórico o productivo que ofrece experiencias de vida de campo, patrimonio, actividades ecuestres o agroturismo.',
+          'Jardín botánico': 'Espacio abierto al público que conserva, investiga y exhibe colecciones de plantas, especialmente nativas o de valor científico.',
+          'Observatorio astronómico': 'Lugar especializado para observación e investigación astronómica con infraestructura y apertura al público.',
+          'Planetario': 'Sala o instalación diseñada para proyectar espectáculos educativos o de entretenimiento sobre astronomía y universo.',
+          'Viñas, bodegas, cervecerías o destilerías': 'Establecimientos vinculados a producción de vino, cerveza, gin, pisco u otras bebidas, abiertos al público con fines turísticos.'
+        }
+      }
+    };
+
     const OPTIONS = {
       categoria: ['Recurso Natural', 'Recurso Cultural'],
       tipoAcceso: ['Aéreo', 'Marítimo (Costero)', 'Marítimo (Lacustre o fluvial)', 'Terrestre'],
       transportes: ['Auto', 'Avión o avioneta', 'Barco o crucero', 'Bicicleta', 'Bus o minibús', 'Ferry o transbordador', 'Helicóptero', 'Lancha o bote', 'Metro o metrotrén', 'Moto', 'Taxi o colectivo', 'Teleférico', 'Tracción animal', 'Tren'],
-      experiencias: ['Astroturismo', 'Cultura y Patrimonio', 'Enoturismo y gastronomía', 'Turismo aventura y deporte', 'Turismo indígena', 'Turismo de naturaleza y ecoturismo', 'Turismo MICE', 'Turismo rural', 'Turismo urbano'],
-      instalacionesPublicas: ['Áreas de descanso', 'Áreas de picnic', 'Boletería', 'Centro de interpretación', 'Estacionamientos para bicicletas', 'Estacionamientos vehiculares', 'Miradores', 'Oficina de información turística', 'Pasarelas y puentes peatonales', 'Refugios', 'Señalética informativa', 'Señalética interpretativa', 'Señalética multilingüe', 'Senderos peatonales', 'Senderos pecuarios', 'Servicios higiénicos', 'Zonas de sombra y/o resguardo climático'],
-      actividades: ['Visitas guiadas', 'Visitas autoguiadas', 'Observación de paisajes', 'Avistamiento de aves', 'Cata de vinos', 'Recorrido por viñedos y bodegas', 'Hiking y trekking', 'Cabalgata', 'Kayak', 'Rafting', 'Compra de artesanía', 'Compra de productos locales', 'Actividades interactivas', 'Consumo cultural', 'Observación arquitectónica', 'Camping', 'Picnic', 'Actividad de culto', 'Participación en eventos', 'Observación de patrimonio material e inmaterial'],
-      propiedad: ['Pública', 'Privada', 'Otro'],
+      transportesPorAcceso: {
+        'Aéreo': ['Avión o avioneta', 'Helicóptero'],
+        'Marítimo (Costero)': ['Barco o crucero', 'Ferry o transbordador', 'Lancha o bote'],
+        'Marítimo (Lacustre o fluvial)': ['Barco o crucero', 'Ferry o transbordador', 'Lancha o bote'],
+        'Terrestre': ['Auto', 'Bicicleta', 'Bus o minibús', 'Metro o metrotrén', 'Moto', 'Taxi o colectivo', 'Teleférico', 'Tracción animal', 'Tren']
+      },
+      experiencias: ['Astroturismo', 'Cultura y Patrimonio', 'Enoturismo y/o gastronomía', 'Turismo aventura y/o deporte', 'Turismo indígena', 'Turismo de naturaleza y/o ecoturismo', 'Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)', 'Turismo rural', 'Turismo urbano'],
+      actividadesPorExperiencia: {
+        'Astroturismo': ['Astrofotografía', 'Contemplación del cielo (sin telescopio)', 'Eventos astronómicos especiales', 'Observación astronómica guiada'],
+        'Cultura y Patrimonio': ['Actividad de culto', 'Actividades interactivas', 'Consumo cultural', 'Demostraciones de oficios y saberes tradicionales', 'Experiencia inmersiva cultural y/o patrimonial', 'Observación de patrimonio material e inmaterial', 'Recreaciones históricas o culturales', 'Talleres culturales o patrimoniales', 'Visitas autoguiadas o recorridos interpretativos', 'Visitas guiadas patrimoniales'],
+        'Enoturismo y/o gastronomía': ['Cata de vinos', 'Clases de cocina', 'Cocina contemporánea', 'Cocina de mercado', 'Cocina del pacífico', 'Cocina tradicional', 'Experiencia de cosecha y/o pisada de uva', 'Maridaje', 'Picnic en viñedos', 'Recorrido por viñedos y bodegas', 'Taller de ensamblaje', 'Visitas guiadas'],
+        'Turismo aventura y/o deporte': ['Alta montaña', 'Barranquismo', 'Buceo en apnea', 'Buceo recreativo autónomo', 'Cabalgatas', 'Canotaje', 'Cicloturismo', 'Cruceros patagónicos', 'Descenso en balsa o rafting', 'Deslizamiento sobre arena o sandboard', 'Deslizamiento sobre nieve en áreas no delimitadas', 'Deslizamiento sobre olas', 'Desplazamiento en cables', 'Escalada en roca', 'Excursionismo o trekking', 'Hidrotrineo o hidrospeed', 'Montaña', 'Motos acuáticas y jetski', 'Mountain bike', 'Participación en eventos deportivos', 'Paseos en banano', 'Paseos náuticos', 'Pesca recreativa', 'Recorrido en vehículos todo terreno u off road', 'Senderismo o hiking', 'Vuelo ultra liviano no motorizado biplaza o parapente'],
+        'Turismo indígena': ['Demostraciones de oficios y saberes tradicionales', 'Expresiones culturales de pueblos originarios', 'Gastronomía indígena', 'Interpretación cultural y cosmovisión', 'Vida cotidiana'],
+        'Turismo de naturaleza y/o ecoturismo': ['Actividades de sol y playa', 'Avistamiento de aves', 'Avistamiento de cetáceos', 'Avistamiento de fauna', 'Bienestar y relajación', 'Camping', 'Observación de fauna nocturna', 'Observación de flora, hongos y/o líquenes', 'Observación de paisajes', 'Picnic', 'Turismo científico e investigación', 'Visita a áreas protegidas'],
+        'Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)': ['Participación en congresos y eventos'],
+        'Turismo rural': ['Compra de artesanía', 'Compra de productos locales', 'Observación de paisaje', 'Participación en actividades agropecuarias', 'Vida cotidiana'],
+        'Turismo urbano': ['Actividad recreativa (parques de atracción, juegos de azar u otros)', 'Cafés, bares y vida nocturna', 'Compras', 'Observación arquitectónica', 'Producción de artesanía', 'Recorrido y exploraciones urbanas diurnas', 'Recorrido y exploraciones urbanas nocturnas', 'Uso experiencial del transporte público urbano']
+      },
+      instalacionesPublicas: ['Áreas de descanso', 'Áreas de picnic', 'Boletería', 'Centro de interpretación', 'Estacionamientos para bicicletas', 'Estacionamientos vehiculares', 'Marina turística', 'Miradores', 'Muelles turísticos', 'Oficina de información turística', 'Pasarelas y puentes peatonales', 'Refugios', 'Señalética informativa (entrega información práctica u objetiva que ayuda al visitante)', 'Señalética interpretativa (entrega información para que el visitante comprenda y valore elementos del entorno)', 'Señalética multilingüe (la información está disponible en dos o más idiomas)', 'Senderos peatonales', 'Senderos pecuarios', 'Servicios higiénicos', 'Tracks de navegación', 'Zonas de sombra y/o resguardo climático'],
+      actividades: ['Astrofotografía', 'Contemplación del cielo (sin telescopio)', 'Eventos astronómicos especiales', 'Observación astronómica guiada', 'Actividad de culto', 'Actividades interactivas', 'Consumo cultural', 'Demostraciones de oficios y saberes tradicionales', 'Experiencia inmersiva cultural y/o patrimonial', 'Observación de patrimonio material e inmaterial', 'Recreaciones históricas o culturales', 'Talleres culturales o patrimoniales', 'Visitas autoguiadas o recorridos interpretativos', 'Visitas guiadas patrimoniales', 'Cata de vinos', 'Clases de cocina', 'Cocina contemporánea', 'Cocina de mercado', 'Cocina del pacífico', 'Cocina tradicional', 'Experiencia de cosecha y/o pisada de uva', 'Maridaje', 'Picnic en viñedos', 'Recorrido por viñedos y bodegas', 'Taller de ensamblaje', 'Visitas guiadas', 'Alta montaña', 'Barranquismo', 'Buceo en apnea', 'Buceo recreativo autónomo', 'Cabalgatas', 'Canotaje', 'Cicloturismo', 'Cruceros patagónicos', 'Descenso en balsa o rafting', 'Deslizamiento sobre arena o sandboard', 'Deslizamiento sobre nieve en áreas no delimitadas', 'Deslizamiento sobre olas', 'Desplazamiento en cables', 'Escalada en roca', 'Excursionismo o trekking', 'Hidrotrineo o hidrospeed', 'Montaña', 'Motos acuáticas y jetski', 'Mountain bike', 'Participación en eventos deportivos', 'Paseos en banano', 'Paseos náuticos', 'Pesca recreativa', 'Recorrido en vehículos todo terreno u off road', 'Senderismo o hiking', 'Vuelo ultra liviano no motorizado biplaza o parapente', 'Expresiones culturales de pueblos originarios', 'Gastronomía indígena', 'Interpretación cultural y cosmovisión', 'Vida cotidiana', 'Actividades de sol y playa', 'Avistamiento de aves', 'Avistamiento de cetáceos', 'Avistamiento de fauna', 'Bienestar y relajación', 'Camping', 'Observación de fauna nocturna', 'Observación de flora, hongos y/o líquenes', 'Observación de paisajes', 'Picnic', 'Turismo científico e investigación', 'Visita a áreas protegidas', 'Participación en congresos y eventos', 'Compra de artesanía', 'Compra de productos locales', 'Observación de paisaje', 'Participación en actividades agropecuarias', 'Actividad recreativa (parques de atracción, juegos de azar u otros)', 'Cafés, bares y vida nocturna', 'Compras', 'Observación arquitectónica', 'Producción de artesanía', 'Recorrido y exploraciones urbanas diurnas', 'Recorrido y exploraciones urbanas nocturnas', 'Uso experiencial del transporte público urbano'],
+      propiedad: ['Pública', 'Privada', 'No aplica', 'Otro'],
       organizacion: ['Natural', 'Jurídica'],
       alcance: ['Local', 'Regional', 'Nacional', 'Internacional'],
       ingreso: ['Libre', 'Pagado', 'Semi-restringido (previo permiso)'],
       pago: ['Online', 'Presencial', 'Ambas'],
+      medioPago: ['Efectivo', 'Electrónico', 'Transferencia', 'Otro'],
       reserva: ['Reserva anticipada', 'Sin reserva'],
       meses: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre', 'Todo el año'],
       dias: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo', 'Toda la semana'],
-      serviciosTuristicos: ['Agencia de viajes', 'Alojamiento turístico', 'Arriendo de vehículos', 'Culturales', 'Deportivo', 'Esparcimiento', 'Guía de turismo', 'Producción artesanal', 'Restaurantes y similares', 'Souvenir', 'Tour operador', 'Transporte de pasajeros', 'Turismo aventura'],
-      serviciosBasicos: ['Agua potable', 'Alcantarillado', 'Cobertura de internet móvil', 'Conexión a internet (Wifi)', 'Energía alternativa y/o limpia', 'Energía eléctrica', 'Recolección de residuos', 'Sistema alternativo de residuos', 'Telefonía fija o móvil'],
-      seguridad: ['Caseta de guardaparque o salvavidas', 'Puesto de primeros auxilios', 'Puntos de control o acceso', 'Puntos de encuentro (emergencia)', 'Señalética de seguridad'],
-      accesibilidadElementos: ['Accesos', 'Baños accesibles', 'Circulaciones horizontales o verticales', 'Estacionamiento', 'Información adaptada', 'Página web', 'Personal capacitado', 'Sendero interpretativo'],
+      serviciosTuristicos: ['Agencia de viajes', 'Alojamiento turístico', 'Arriendo de vehículos', 'Cultural', 'Deportivo', 'Esparcimiento', 'Guía de turismo', 'Producción artesanal', 'Restaurantes y similares', 'Souvenir', 'Tour operador', 'Transporte de pasajeros', 'Turismo aventura'],
+      serviciosBasicos: ['Agua potable', 'Alcantarillado', 'Baños químicos', 'Cobertura de internet móvil', 'Conexión a internet (Wifi)', 'Duchas públicas', 'Energía alternativa y/o limpia', 'Energía eléctrica', 'Fosa séptica', 'Lavamanos o puntos de higiene', 'Puntos de reciclaje, punto verde o punto limpio', 'Recolección de residuos sólidos domiciliarios y/o asimilables', 'Sistema de tratamiento alternativo de residuos', 'Telefonía fija o móvil'],
+      seguridad: ['Caseta de guardaparque o salvavidas', 'Caseta o punto de seguridad (carabineros, policia, municipal, otro)', 'Puesto de primeros auxilios', 'Puesto de control o acceso', 'Puntos de encuentro (emergencia)', 'Ronda de seguridad', 'Señalética de seguridad'],
+      idiomas: ['Español', 'Alemán', 'Chino', 'Francés', 'Inglés', 'Italiano', 'Portugués', 'Otro'],
+      lenguasOriginarias: ['Aymara', 'Ckunza', 'Kawésqar', 'Mapuzungún (lengua mapuche)', 'Quechua', 'Rapa nui', 'Yagán', 'Otro'],
+      accesibilidadElementos: ['Accesos', 'Baños', 'Circulaciones horizontales o verticales (ascensores, escaleras)', 'Estacionamiento', 'Información adaptada', 'Página web', 'Personal capacitado', 'Sendero interpretativo'],
       discapacidades: ['Intelectual y/o cognitiva', 'Física', 'Psíquica y/o psicosocial', 'Sensorial'],
-      amenazas: ['Aluviones', 'Calor intenso o extremo', 'Deslizamientos o remociones en masa', 'Erupciones volcánicas', 'Frío intenso o extremo', 'Incendios forestales', 'Inundaciones', 'Marejadas', 'Precipitaciones estivales altiplánicas', 'Sequías', 'Terremotos', 'Tornados o trombas marinas', 'Tormenta eléctrica', 'Tormenta de polvo', 'Tsunami', 'Otro'],
-      instrumentos: ['Estrategia Regional de Turismo', 'Plan Regional de Desarrollo Turístico', 'PLADETUR', 'Plan de acción ZOIT', 'PLADECO', 'Ordenanza Municipal de Turismo'],
+      amenazas: ['Aluviones', 'Anegamientos', 'Calor intenso o extremo', 'Deslizamientos o remociones en masa', 'Erupciones volcánicas', 'Frío intenso o extremo', 'Incendios forestales', 'Inundaciones', 'Marejadas', 'Precipitaciones estivales altiplánicas', 'Sequías', 'Terremotos', 'Tornados o trombas marinas', 'Tormenta eléctrica', 'Tormenta de polvo', 'Tsunami', 'Otro'],
+      instrumentos: ['Estrategia o politica regional de turismo', 'Plan regional de desarrollo turistico', 'Plan de desarrollo turistico (PLADETUR)', 'Plan de accion de Zona de Interes Turistico (ZOIT)', 'Plan de desarrollo comunal (PLADECO)', 'Ordenanza Municipal de Turismo', 'Oficios, instructivos o reglamentos de turismo'],
       reconocimientosAlcance: ['Local', 'Regional', 'Nacional', 'Internacional'],
       promocionEscala: ['Local', 'Regional', 'Nacional', 'Internacional'],
-      instrumentosPromocion: ['Chile es tuyo', 'Chile travel', 'Material promocional de empresas privadas', 'Plan de marketing turístico', 'Otro'],
-      redes: ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'X (antes Twitter)', 'Telegram', 'Otro'],
-      medios: ['Boletines', 'Documentales', 'Newsletters', 'Páginas web', 'Periódicos', 'Podcasts', 'Radios', 'Revistas', 'Streaming', 'Televisión', 'Otro']
+      instrumentosPromocion: ['Chile es tuyo', 'Chile travel', 'Material promocional de empresas privadas', 'Plan de marketing turistico (nacional, regional o local)', 'Otro'],
+      escalaComercializacion: ['No aplica', 'No se comercializa', 'Se comercializa a nivel local', 'Se comercializa a nivel regional', 'Se comercializa a nivel nacional', 'Se comercializa a nivel internacional'],
+      canalesComercializacion: ['Agencias de viaje receptivas', 'Operadores turisticos locales', 'Plataformas publicas o privadas', 'Otro'],
+      redes: ['Facebook', 'Instagram', 'Snapchat', 'Telegram', 'TikTok', 'X (antes Twitter)', 'Youtube'],
+      medios: ['Boletines', 'Cine', 'Documentales', 'Newsletters', 'Páginas web', 'Periódicos', 'Podcasts', 'Radios', 'Revistas', 'Streaming', 'Televisión', 'Otro']
     };
 
     const sections = [
       {
         id: 'datos-generales',
         title: '1. Datos generales',
-        description: 'Identificación, ubicación y responsable del registro. Región, provincia y comuna se completan mediante selección dependiente. Incluye un mapa abierto preliminar para capturar coordenadas y buscar ubicaciones a nivel nacional.',
+        description: 'Completa primero los datos basicos del recurso y del responsable. Puedes guardar borrador, pero para avanzar debes completar los campos obligatorios marcados con asterisco.',
         badge: 'Base',
+        requiredFields: ['nombreRecurso', 'region', 'provincia', 'comuna', 'responsable', 'correoResponsable', 'institucion', 'fechaRegistro'],
         fields: [
-          text('nombreRecurso', 'Nombre del recurso', 'Ej. Viña X / Salto Y / Plaza Z'),
-          text('idInterno', 'Código interno del recurso', 'Se genera automáticamente desde el ID único. No incluye región, provincia ni comuna.', 'span-4', { readonly: true }),
-          date('fechaRegistro', 'Fecha de registro', 'span-4'),
-          text('responsable', 'Nombre del responsable del registro', '', 'span-4'),
-          territorySelect('region', 'Región', 'region', 'span-4'),
-          territorySelect('provincia', 'Provincia', 'provincia', 'span-4'),
-          territorySelect('comuna', 'Comuna', 'comuna', 'span-4'),
-          text('localidad', 'Localidad o referencia', '', 'span-6'),
-          text('coordenadas', 'Punto geográfico / coordenadas', 'Latitud, longitud o referencia geográfica', 'span-6'),
-          text('latitud', 'Latitud', 'Se puede completar desde el mapa', 'span-3'),
-          text('longitud', 'Longitud', 'Se puede completar desde el mapa', 'span-3'),
-          text('coordX', 'X (UTM WGS84)', 'Calculada automáticamente', 'span-3'),
-          text('coordY', 'Y (UTM WGS84)', 'Calculada automáticamente', 'span-3'),
-          email('correoResponsable', 'Correo', '', 'span-6'),
-          tel('telefonoResponsable', 'Teléfono', '', 'span-6'),
-          text('institucion', 'Institución a la que pertenece', '', 'span-6')
+          text('nombreRecurso', 'Nombre del recurso turistico', 'Ej. Vina X / Salto Y / Plaza Z', 'span-12', { required: true }),
+          territorySelect('region', 'Region', 'region', 'span-4', { required: true }),
+          territorySelect('provincia', 'Provincia', 'provincia', 'span-4', { required: true }),
+          territorySelect('comuna', 'Comuna', 'comuna', 'span-4', { required: true }),
+          text('localidad', 'Localidad o referencia', 'Sector, hito cercano, direccion o referencia territorial', 'span-12'),
+          text('responsable', 'Nombre del responsable del registro', '', 'span-6', { required: true }),
+          email('correoResponsable', 'Correo', 'Ej. nombre@institucion.cl', 'span-6', { required: true }),
+          tel('telefonoResponsable', 'Telefono', 'Opcional. Si se ingresa, usar formato +56 seguido de 9 digitos.', 'span-6', { pattern: '^\\+56\\d{9}$', inputMode: 'tel' }),
+          text('institucion', 'Institucion a la que pertenece', '', 'span-6', { required: true }),
+          date('fechaRegistro', 'Fecha de registro', 'span-6', { required: true }),
+          text('codigo_unico_territorial', 'Codigo Unico Territorial (Region-Provincia-Comuna)', 'Se genera automaticamente con los codigos oficiales CUT del territorio seleccionado.', 'span-6', { readonly: true }),
+          text('idInterno', 'Codigo interno del recurso', 'Se genera automaticamente desde el ID unico. No incluye region, provincia ni comuna.', 'span-6', { readonly: true })
         ],
         custom: renderGeoMapSection
       },
       {
         id: 'clasificacion',
         title: '2. Clasificación del recurso turístico',
-        description: 'Categoría, tipo, subtipo y descripción breve.',
+        description: 'Selecciona categoria, tipo y subtipo del recurso turistico. Luego agrega una descripcion breve del atractivo registrado.',
         badge: 'Obligatorio',
+        requiredFields: ['categoria', 'tipoRecurso', 'subtipoRecurso', 'descripcion'],
         fields: [
-          select('categoria', 'Categoría', OPTIONS.categoria, 'span-4'),
-          classificationSelect('tipoRecurso', 'Tipo de recurso turístico', 'tipo', 'span-4'),
-          classificationSelect('subtipoRecurso', 'Subtipo de recurso turístico', 'subtipo', 'span-4'),
-          textarea('descripcion', 'Descripción del recurso turístico', 'Considerar características y vocación turística. Máx. 255 caracteres.', 'span-12', 255)
+          select('categoria', 'Categoria', OPTIONS.categoria, 'span-4', { required: true }),
+          classificationSelect('tipoRecurso', 'Tipo de recurso turistico', 'tipo', 'span-4', { required: true }),
+          classificationSelect('subtipoRecurso', 'Subtipo de recurso turistico', 'subtipo', 'span-4', { required: true }),
+          textarea('descripcion', 'Descripcion del recurso turistico', 'Considerar caracteristicas y vocacion turistica. Max. 255 caracteres.', 'span-12', 255, { required: true })
         ],
         custom: renderClassificationHelp
       },
       {
         id: 'administracion',
-        title: '4. Administración y representación',
-        description: 'Propiedad, administración, contacto y alcance.',
-        badge: 'Gestión',
+        title: '4. Administracion y representacion',
+        description: 'Identifica la propiedad del recurso y la entidad que administra, opera o representa el atractivo turistico.',
+        badge: 'Gestion',
+        requiredFields: ['administracion', 'nombreAdministrador', 'tipoOrgAdministrador', 'correoAdministrador', 'alcanceActuacion', 'patrocinioEvento'],
         fields: [
-          select('propiedad', 'Propiedad del recurso turístico', OPTIONS.propiedad, 'span-4'),
-          text('nombrePropietario', 'Nombre del propietario o entidad', '', 'span-4'),
-          select('tipoOrgPropietario', 'Tipo de organización', OPTIONS.organizacion, 'span-4'),
-          email('correoPropietario', 'Correo electrónico', '', 'span-4'),
-          tel('telefonoPropietario', 'Teléfono', '', 'span-4'),
-          select('administracion', 'Administración del recurso', OPTIONS.propiedad, 'span-4'),
-          text('nombreAdministrador', 'Nombre de quien administra', '', 'span-4'),
-          select('tipoOrgAdministrador', 'Tipo de organización administradora', OPTIONS.organizacion, 'span-4'),
+          select('propiedad', 'Propiedad del recurso turistico', OPTIONS.propiedad, 'span-4', { hint: 'Si es Bien Nacional de Uso Publico (BNUP), selecciona Publica y escribe Estado de Chile como nombre.' }),
+          text('nombrePropietario', 'Nombre', 'Nombre del propietario o entidad propietaria.', 'span-4'),
+          select('tipoOrgPropietario', 'Personalidad', OPTIONS.organizacion, 'span-4'),
+          email('correoPropietario', 'Correo electronico', '', 'span-4'),
+          tel('telefonoPropietario', 'Telefono', 'Opcional. Si se ingresa, usar formato +56 seguido de 9 digitos.', 'span-4', { pattern: '^\\+56\\d{9}$', inputMode: 'tel' }),
+          select('administracion', 'Administracion del recurso turistico', OPTIONS.propiedad, 'span-4', { required: true }),
+          text('nombreAdministrador', 'Nombre', 'Nombre de la persona u organizacion que administra el recurso.', 'span-4', { required: true }),
+          select('tipoOrgAdministrador', 'Personalidad', OPTIONS.organizacion, 'span-4', { required: true }),
+          email('correoAdministrador', 'Correo electronico', '', 'span-4', { required: true }),
+          tel('telefonoAdministrador', 'Telefono', 'Opcional. Si se ingresa, usar formato +56 seguido de 9 digitos.', 'span-4', { pattern: '^\\+56\\d{9}$', inputMode: 'tel' }),
           text('sitioWeb', 'Sitio web', 'https://...', 'span-4'),
-          select('alcanceActuacion', 'Alcance de actuación', OPTIONS.alcance, 'span-4'),
-          text('operacionConcesion', 'Operación o concesión del recurso turístico', '', 'span-4'),
-          select('patrocinioEvento', 'Patrocinio del evento', ['Sin patrocinio', ...OPTIONS.alcance], 'span-4')
+          select('alcanceActuacion', 'Alcance de actuacion de la organizacion a nivel administrativo', OPTIONS.alcance, 'span-6', { required: true, hint: 'Indica si la persona u organizacion administradora actua a nivel local, regional, nacional o internacional.' }),
+          text('operacionConcesion', 'Operacion o concesion del recurso turistico', 'Ingresar nombre solo si existe una entidad operadora o concesionaria distinta del propietario o administrador.', 'span-6'),
+          select('patrocinioEvento', 'Patrocinio del evento', ['Sin patrocinio', ...OPTIONS.alcance], 'span-6', { required: true, showWhen: { field: 'tipoRecurso', equals: 'Acontecimientos programados' }, conditionalHint: 'Obligatorio solo para acontecimientos programados.' })
         ]
       },
       {
         id: 'conectividad',
         title: '5. Ruta y conectividad al recurso',
-        description: 'Acceso principal, transporte y distancias.',
+        description: 'Selecciona uno o varios tipos de acceso. Luego marca los medios de transporte disponibles para cada tipo seleccionado.',
         badge: 'Admisibilidad',
+        requiredFields: ['tipoAcceso', 'mediosTransporte'],
         fields: [
-          select('tipoAcceso', 'Principal tipo de acceso', OPTIONS.tipoAcceso, 'span-4'),
-          checklist('mediosTransporte', 'Medio de transporte', OPTIONS.transportes, 'span-8'),
-          number('distanciaCapitalRegional', 'Distancia desde la capital regional (km)', 'span-6', { readonly: true, hint: 'Calculada automáticamente desde el punto georreferenciado. Distancia aproximada en línea recta.' }),
-          number('distanciaCapitalComunal', 'Distancia desde la capital comunal (km)', 'span-6', { readonly: true, hint: 'Calculada automáticamente desde el punto georreferenciado. Requiere comuna seleccionada e internet para estimar la capital comunal.' })
-        ]
+          checklist('tipoAcceso', 'Principal tipo de acceso', OPTIONS.tipoAcceso, 'span-12', { required: true, hint: 'Puedes seleccionar mas de un tipo de acceso si el recurso permite llegar por distintas vias.' })
+        ],
+        custom: renderAccessTransportSection
       },
       {
         id: 'experiencias',
         title: '6. Experiencias y actividades',
-        description: 'Debe existir al menos una experiencia y una actividad para pasar admisibilidad.',
+        description: 'Selecciona una o varias experiencias. Luego marca las actividades que se realizan actualmente dentro del recurso segun cada experiencia.',
         badge: 'Admisibilidad',
+        requiredFields: ['tiposExperiencia', 'actividades'],
         fields: [
-          checklist('tiposExperiencia', '¿Qué tipo de experiencia se desarrolla actualmente?', OPTIONS.experiencias),
-          checklist('actividades', '¿Qué actividades se desarrollan actualmente?', OPTIONS.actividades)
-        ]
+          checklist('tiposExperiencia', 'Que tipo de experiencia se desarrolla actualmente dentro del recurso', OPTIONS.experiencias, 'span-12', { required: true })
+        ],
+        custom: renderExperienceActivitiesSection
       },
       {
         id: 'instalaciones-publicas',
-        title: '7. Instalaciones de uso público',
-        description: 'Debe existir al menos una instalación de uso público.',
+        title: '7. Instalaciones de uso publico',
+        description: 'Indica si existen instalaciones de uso publico dentro del recurso turistico. Esta informacion forma parte de la admisibilidad del recurso.',
         badge: 'Admisibilidad',
+        requiredFields: ['tieneInstalaciones', 'instalacionesPublicas'],
         fields: [
-          radio('tieneInstalaciones', '¿Existen instalaciones de uso público dentro del recurso?', ['Sí', 'No'], 'span-4'),
-          checklist('instalacionesPublicas', '¿Cuáles?', OPTIONS.instalacionesPublicas)
+          radio('tieneInstalaciones', 'Existen instalaciones de uso publico dentro del recurso turistico', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('instalacionesPublicas', 'Cuales', OPTIONS.instalacionesPublicas, 'span-12', { required: true, showWhen: { field: 'tieneInstalaciones', equals: 'Sí' }, conditionalHint: 'Selecciona una o mas instalaciones si respondiste Si.' })
         ]
       },
       {
         id: 'capital-humano',
         title: '8. Capital humano',
-        description: 'Dotación, especialización e idiomas.',
-        badge: 'Operación',
+        description: 'Registra la dotacion humana asociada a la administracion y operacion del recurso turistico. Si no existen personas a cargo, ingresa 0.',
+        badge: 'Operacion',
+        requiredFields: ['nAdmin', 'nOperacion', 'idiomas'],
         fields: [
-          number('nAdmin', 'N° personas a cargo de la administración', 'span-3'),
-          number('nOperacion', 'N° personas a cargo de la operación', 'span-3'),
-          number('nTurismo', 'N° personas especializadas en turismo', 'span-3'),
-          number('nIdiomas', 'N° personas que manejan otro idioma', 'span-3'),
-          text('idiomas', 'Idiomas', 'Ej. inglés, portugués', 'span-6'),
-          text('lenguasOriginarias', 'Lenguas indígenas u originarias', '', 'span-6')
+          number('nAdmin', 'N° de personas a cargo de la administracion del recurso turistico', 'span-6', { required: true, min: 0, hint: 'Si no existen personas a cargo de la administracion del recurso, ingresar 0.' }),
+          number('nOperacion', 'N° de personas a cargo de la operacion del recurso turistico', 'span-6', { required: true, min: 0, hint: 'Personas que permiten la habilitacion o funcionamiento del recurso. Si no existen, ingresar 0.' }),
+          number('nTurismo', 'N° de personas especializadas en turismo en la operacion del recurso', 'span-6', { min: 0, hint: 'Si no existen personas especializadas, ingresar 0.' }),
+          number('nIdiomas', 'N° de personas que manejan algun idioma distinto al espanol en la operacion del recurso', 'span-6', { min: 0 }),
+          checklist('idiomas', 'Idiomas', OPTIONS.idiomas, 'span-12', { required: true, hint: 'Si las personas a cargo de la operacion son 0, seleccionar Otro.' }),
+          checklist('lenguasOriginarias', 'Lenguas indigenas u originarias', OPTIONS.lenguasOriginarias, 'span-12', { hint: 'Si no existen personas que dominen lenguas indigenas u originarias, pasar a la siguiente pregunta.' })
         ]
       },
       {
         id: 'operacion',
-        title: '9. Ingreso y operación del recurso',
-        description: 'Modalidad de acceso, reserva y periodos de operación.',
-        badge: 'Operación',
+        title: '9. Ingreso y operacion del recurso',
+        description: 'Registra modalidad de ingreso, pago, reserva, meses, dias, horarios y continuidad del recurso turistico.',
+        badge: 'Operacion',
+        requiredFields: ['tipoIngreso', 'tipoPago', 'medioPago', 'mesesOperacion', 'diasOperacion', 'continuidad'],
         fields: [
-          select('tipoIngreso', 'Tipo de ingreso', OPTIONS.ingreso, 'span-4'),
-          select('tipoPago', 'Tipo de pago', OPTIONS.pago, 'span-4', { showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Se completa solo si el ingreso es pagado.' }),
-          text('medioPago', 'Medio de pago', 'Efectivo / transferencia / electrónico / otro', 'span-4', { showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Se completa solo si el ingreso es pagado.' }),
+          select('tipoIngreso', 'Tipo de ingreso', OPTIONS.ingreso, 'span-4', { required: true }),
+          select('tipoPago', 'Tipo de pago', OPTIONS.pago, 'span-4', { required: true, showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Obligatorio solo si el ingreso es pagado.' }),
+          checklist('medioPago', 'Medio de pago', OPTIONS.medioPago, 'span-4', { required: true, showWhen: { field: 'tipoIngreso', equals: 'Pagado' }, conditionalHint: 'Obligatorio solo si el ingreso es pagado.' }),
           select('reserva', 'Reserva', OPTIONS.reserva, 'span-4'),
           select('tipoReserva', 'Tipo de reserva', ['Online', 'Telefónica', 'Presencial'], 'span-4', { showWhen: { field: 'reserva', equals: 'Reserva anticipada' }, conditionalHint: 'Se completa solo cuando requiere reserva anticipada.' }),
           radio('ingresoMascotas', '¿Se permite ingreso de mascotas?', ['Sí', 'No'], 'span-4'),
-          checklist('mesesOperacion', 'Meses de operación', OPTIONS.meses),
-          checklist('diasOperacion', 'Días de operación', OPTIONS.dias),
+          checklist('mesesOperacion', 'Meses de operacion', OPTIONS.meses, 'span-12', { required: true }),
+          checklist('diasOperacion', 'Dias de operacion', OPTIONS.dias, 'span-12', { required: true }),
           time('horaDesde', 'Horario desde', 'span-6'),
           time('horaHasta', 'Horario hasta', 'span-6'),
           checklist('mesesRecomendados', 'Meses recomendados para la visita', OPTIONS.meses),
-          number('continuidad', 'Continuidad (años consecutivos, si aplica)', 'span-4')
+          number('continuidad', 'Continuidad (numero de anos consecutivos del acontecimiento)', 'span-4', { required: true, min: 0 })
         ]
       },
       {
         id: 'visitas',
         title: '10. Registro de la visita',
-        description: 'Sistema de registro, reportes y visitantes.',
-        badge: 'Jerarquización',
+        description: 'Registra si existe sistema de visitantes, reportes estadisticos y volumen anual de visitas.',
+        badge: 'Jerarquizacion',
+        requiredFields: ['sistemaVisitas', 'tipoRegistro', 'ultimoAnoRegistro', 'reportesVisita', 'frecuenciaReportes', 'visitantesTotal'],
         fields: [
-          radio('sistemaVisitas', '¿Posee sistema de registro de visitantes?', ['Sí', 'No'], 'span-4'),
-          select('tipoRegistro', 'Tipo', ['Digital', 'Papel'], 'span-4'),
-          number('ultimoAnoRegistro', 'Último año de registro', 'span-4'),
-          radio('reportesVisita', '¿Genera reporte de estadísticas?', ['Sí', 'No'], 'span-4'),
-          select('frecuenciaReportes', 'Frecuencia de reportes', ['Diaria', 'Semanal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Bianual o más'], 'span-4'),
-          number('visitantesNacionales', 'N° visitantes nacionales (anual)', 'span-4'),
-          number('visitantesExtranjeros', 'N° visitantes extranjeros (anual)', 'span-4')
+          radio('sistemaVisitas', 'Posee un sistema de registro de visitantes', ['Sí', 'No'], 'span-4', { required: true }),
+          select('tipoRegistro', 'Tipo', ['Digital', 'Papel'], 'span-4', { required: true, showWhen: { field: 'sistemaVisitas', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si posee sistema de registro de visitantes.' }),
+          number('ultimoAnoRegistro', 'Ultimo ano de registro', 'span-4', { required: true, min: 0, showWhen: { field: 'sistemaVisitas', equals: 'Sí' } }),
+          radio('reportesVisita', 'Se genera reporte de estadisticas de visita', ['Sí', 'No'], 'span-4', { required: true, showWhen: { field: 'sistemaVisitas', equals: 'Sí' } }),
+          select('frecuenciaReportes', 'Cual es la frecuencia de los reportes', ['Diaria', 'Semanal', 'Mensual', 'Trimestral', 'Semestral', 'Anual', 'Bianual o más'], 'span-4', { required: true, showWhen: { field: 'reportesVisita', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si se generan reportes estadisticos.' }),
+          number('visitantesTotal', 'N° total de visitantes (anual)', 'span-4', { required: true, min: 0, showWhen: { field: 'sistemaVisitas', equals: 'Sí' } }),
+          number('visitantesNacionales', 'N° de visitantes nacional (anual)', 'span-4', { min: 0, showWhen: { field: 'sistemaVisitas', equals: 'Sí' } }),
+          number('visitantesExtranjeros', 'N° de visitantes extranjeros (anual)', 'span-4', { min: 0, showWhen: { field: 'sistemaVisitas', equals: 'Sí' } })
         ]
       },
       {
         id: 'servicios',
-        title: '11. Servicios turísticos y básicos',
-        description: 'Oferta complementaria y condiciones básicas.',
-        badge: 'Jerarquización',
+        title: '11. Servicios turisticos y basicos',
+        description: 'Indica si el recurso cuenta actualmente con servicios turisticos y servicios basicos dentro del recurso turistico.',
+        badge: 'Jerarquizacion',
+        requiredFields: ['tieneServiciosTuristicos', 'serviciosTuristicos', 'tieneServiciosBasicos', 'serviciosBasicos'],
         fields: [
-          radio('tieneServiciosTuristicos', '¿Posee servicios turísticos actuales?', ['Sí', 'No'], 'span-4'),
-          checklist('serviciosTuristicos', '¿Cuáles?', OPTIONS.serviciosTuristicos),
-          radio('tieneServiciosBasicos', '¿Posee servicios básicos?', ['Sí', 'No'], 'span-4'),
-          checklist('serviciosBasicos', '¿Cuáles?', OPTIONS.serviciosBasicos)
+          radio('tieneServiciosTuristicos', 'El recurso turistico cuenta actualmente con servicios turisticos', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('serviciosTuristicos', 'Cuales servicios turisticos', OPTIONS.serviciosTuristicos, 'span-12', { required: true, showWhen: { field: 'tieneServiciosTuristicos', equals: 'Sí' }, conditionalHint: 'Selecciona uno o mas servicios turisticos si respondiste Si.' }),
+          radio('tieneServiciosBasicos', 'Posee servicios basicos dentro del recurso turistico', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('serviciosBasicos', 'Cuales servicios basicos', OPTIONS.serviciosBasicos, 'span-12', { required: true, showWhen: { field: 'tieneServiciosBasicos', equals: 'Sí' }, conditionalHint: 'Selecciona uno o mas servicios basicos si respondiste Si.' })
         ]
       },
       {
         id: 'seguridad-accesibilidad',
         title: '12. Seguridad y accesibilidad',
-        description: 'Instalaciones de seguridad, accesibilidad universal y apoyos.',
-        badge: 'Jerarquización',
+        description: 'Registra instalaciones de seguridad, condiciones de accesibilidad y permisos de ingreso de animales de asistencia.',
+        badge: 'Jerarquizacion',
+        requiredFields: ['tieneSeguridad', 'instalacionesSeguridad', 'accesibilidadUniversal', 'elementosAccesibles', 'aptoDiscapacidades', 'fichaIdat', 'perrosGuia'],
         fields: [
-          radio('tieneSeguridad', '¿Existen instalaciones de seguridad?', ['Sí', 'No'], 'span-4'),
-          checklist('instalacionesSeguridad', '¿Cuáles?', OPTIONS.seguridad),
-          radio('accesibilidadUniversal', '¿Cuenta con accesibilidad universal?', ['Sí', 'No'], 'span-4'),
-          checklist('elementosAccesibles', 'Elementos accesibles', OPTIONS.accesibilidadElementos),
-          checklist('aptoDiscapacidades', 'Apto para personas con', OPTIONS.discapacidades),
-          radio('fichaIdat', '¿Cuenta con ficha IDA-T?', ['Sí', 'No'], 'span-4'),
-          radio('perrosGuia', '¿Se permite ingreso de perros guía?', ['Sí', 'No'], 'span-4'),
-          radio('apoyoEmocional', '¿Se permite animal de apoyo emocional?', ['Sí', 'No'], 'span-4')
+          radio('tieneSeguridad', 'Existen instalaciones de seguridad dentro del recurso turistico', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('instalacionesSeguridad', 'Cuales instalaciones de seguridad', OPTIONS.seguridad, 'span-12', { required: true, showWhen: { field: 'tieneSeguridad', equals: 'Sí' }, conditionalHint: 'Selecciona una o mas instalaciones de seguridad si respondiste Si.' }),
+          radio('accesibilidadUniversal', 'El atractivo cuenta con accesibilidad universal', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('elementosAccesibles', 'Indique los elementos accesibles', OPTIONS.accesibilidadElementos, 'span-12', { required: true, showWhen: { field: 'accesibilidadUniversal', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el atractivo cuenta con accesibilidad universal.' }),
+          checklist('aptoDiscapacidades', 'El recurso es apto para personas con las siguientes discapacidades', OPTIONS.discapacidades, 'span-12', { required: true, showWhen: { field: 'accesibilidadUniversal', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el atractivo cuenta con accesibilidad universal.' }),
+          radio('fichaIdat', 'El atractivo cuenta con la Ficha IDA-T (Indice de Accesibilidad Turistica)', ['Sí', 'No'], 'span-12', { required: true, showWhen: { field: 'accesibilidadUniversal', equals: 'Sí' } }),
+          radio('perrosGuia', 'Se permite el ingreso de perros guia', ['Sí', 'No'], 'span-12', { required: true }),
+          radio('apoyoEmocional', 'Se permite el ingreso de animal de apoyo emocional', ['Sí', 'No'], 'span-12', { showWhen: { field: 'perrosGuia', equals: 'Sí' }, conditionalHint: 'Se consulta solo si se permite el ingreso de perros guia.' })
         ]
       },
       {
@@ -2457,23 +2754,24 @@
         title: '13. Reconocimientos',
         description: 'Declaratorias, premios o menciones del recurso.',
         badge: 'Jerarquización',
+        requiredFields: ['tieneReconocimiento', 'alcanceReconocimiento', 'institucionReconocimiento', 'denominacionReconocimiento', 'fechaReconocimiento'],
         fields: [
-          radio('tieneReconocimiento', '¿El recurso cuenta con reconocimiento?', ['Sí', 'No'], 'span-4'),
-          select('alcanceReconocimiento', 'Alcance del reconocimiento', OPTIONS.reconocimientosAlcance, 'span-4'),
-          text('institucionReconocimiento', 'Institución que otorga la mención', '', 'span-4'),
-          text('denominacionReconocimiento', 'Denominación', '', 'span-6'),
-          date('fechaReconocimiento', 'Fecha de declaración', 'span-6')
+          radio('tieneReconocimiento', 'El recurso cuenta con reconocimiento', ['Sí', 'No'], 'span-12', { required: true }),
+          select('alcanceReconocimiento', 'Alcance del reconocimiento', OPTIONS.reconocimientosAlcance, 'span-4', { required: true, showWhen: { field: 'tieneReconocimiento', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el recurso cuenta con reconocimiento.' }),
+          text('institucionReconocimiento', 'Institucion que otorga la mencion', '', 'span-4', { required: true, showWhen: { field: 'tieneReconocimiento', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el recurso cuenta con reconocimiento.' }),
+          text('denominacionReconocimiento', 'Denominacion', 'Nombre otorgado', 'span-4', { required: true, showWhen: { field: 'tieneReconocimiento', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el recurso cuenta con reconocimiento.' }),
+          date('fechaReconocimiento', 'Fecha de declaracion', 'span-6', { required: true, showWhen: { field: 'tieneReconocimiento', equals: 'Sí' } })
         ]
       },
       {
         id: 'amenazas',
         title: '14. Amenazas naturales',
-        description: 'Riesgos presentes y existencia de planes.',
+        description: 'Identifica amenazas naturales presentes y si existen planes de gestion del riesgo.',
         badge: 'Riesgo',
         fields: [
-          checklist('amenazasNaturales', 'Tipo de amenaza', OPTIONS.amenazas),
-          radio('planRRD', '¿Cuenta con Plan de Reducción de Riesgo de Desastres?', ['Sí', 'No'], 'span-6'),
-          radio('planEmergencia', '¿Cuenta con Plan de Emergencia?', ['Sí', 'No'], 'span-6')
+          checklist('amenazasNaturales', 'Tipo de amenaza', OPTIONS.amenazas, 'span-12', { hint: 'Pregunta no obligatoria. Puedes seleccionar una o mas amenazas si corresponde.' }),
+          radio('planRRD', 'Cuenta con un Plan de Reduccion de Riesgo de Desastres (RRD)', ['Sí', 'No'], 'span-6'),
+          radio('planEmergencia', 'Cuenta con un Plan de Emergencia', ['Sí', 'No'], 'span-6')
         ]
       },
       {
@@ -2481,11 +2779,16 @@
         title: '15. Planificación y gestión del recurso',
         description: 'Instrumentos de planificación territorial y estudios.',
         badge: 'Gestión',
+        requiredFields: ['enPlanificacion', 'instrumentosGestion', 'capacidadCarga', 'resolucionSanitaria'],
         fields: [
-          radio('enPlanificacion', '¿Se encuentra dentro de la planificación turística territorial?', ['Sí', 'No'], 'span-4'),
-          checklist('instrumentosGestion', 'Instrumento en que se menciona', OPTIONS.instrumentos),
-          radio('capacidadCarga', '¿Cuenta con estudios de capacidad de carga?', ['Sí', 'No'], 'span-4'),
-          radio('resolucionSanitaria', '¿Cuenta con resolución sanitaria? (solo termas)', ['Sí', 'No'], 'span-4')
+          radio('enPlanificacion', 'El recurso se encuentra dentro de la planificacion turistica territorial', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('instrumentosGestion', 'Indique en que instrumento de gestion se menciona su recurso turistico', OPTIONS.instrumentos, 'span-12', { required: true, showWhen: { field: 'enPlanificacion', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el recurso esta dentro de la planificacion turistica territorial.' }),
+          radio('capacidadCarga', 'Cuenta con estudios o analisis de capacidad de carga', ['Sí', 'No'], 'span-6', { required: true }),
+          radio('resolucionSanitaria', 'Cuenta con resolucion sanitaria (solo termas)', ['Sí', 'No'], 'span-6', { required: true, showWhenAll: [
+            { field: 'categoria', equals: 'Recurso Natural' },
+            { field: 'tipoRecurso', equals: 'Fuente termal o géiser' },
+            { field: 'subtipoRecurso', equals: 'Fuente o centro termal' }
+          ], conditionalHint: 'Se consulta solo cuando el recurso es una fuente o centro termal.' })
         ]
       },
       {
@@ -2493,27 +2796,32 @@
         title: '16. Promoción y comercialización',
         description: 'Presencia promocional, comercialización y medios.',
         badge: 'Jerarquización',
+        requiredFields: ['sePromociona', 'escalaPromocion', 'instrumentoPromocion', 'instrumentosPromocion', 'escalaComercializacion'],
         fields: [
-          radio('sePromociona', '¿Se promociona dentro de un producto/destino turístico?', ['Sí', 'No'], 'span-4'),
-          select('escalaPromocion', '¿A qué escala se promociona?', OPTIONS.promocionEscala, 'span-4'),
-          radio('instrumentoPromocion', '¿Se incorpora explícitamente en un instrumento de promoción?', ['Sí', 'No'], 'span-4'),
-          checklist('instrumentosPromocion', '¿Cuáles?', OPTIONS.instrumentosPromocion),
-          select('escalaComercializacion', '¿A qué escala se comercializa?', ['No se comercializa', 'Se comercializa a nivel local', 'Se comercializa a nivel regional', 'Se comercializa a nivel nacional', 'Se comercializa a nivel internacional'], 'span-6'),
-          text('canalesComercializacion', 'Canales de comercialización identificados', 'Agencias, operadores, plataformas, etc.', 'span-6'),
-          radio('tieneWeb', '¿Cuenta con página web?', ['Sí', 'No'], 'span-3'),
-          text('urlWeb', 'Dirección URL', 'https://...', 'span-5'),
-          select('periodicidadWeb', 'Periodicidad del medio web', ['Esporádica', 'Permanente'], 'span-4'),
-          radio('tieneRedes', '¿Cuenta con redes sociales?', ['Sí', 'No'], 'span-3'),
-          checklist('redesSociales', '¿Qué red social?', OPTIONS.redes),
-          text('nombreCuenta', 'Nombre de la cuenta', '@cuenta', 'span-4'),
-          select('periodicidadRedes', 'Periodicidad redes', ['Esporádica', 'Permanente'], 'span-4'),
-          radio('mediosComunicacion', '¿Aparece en medios de comunicación?', ['Sí', 'No'], 'span-4'),
-          checklist('tiposMedios', '¿Cuáles?', OPTIONS.medios),
-          radio('feriasEventos', '¿Participa de ferias o eventos turísticos?', ['Sí', 'No'], 'span-4'),
-          text('nombreFeria', 'Nombre de la feria o evento', '', 'span-4'),
-          radio('folleteria', '¿Cuenta con folletería?', ['Sí', 'No'], 'span-4'),
-          select('tipoFolleteria', 'Tipo de folletería', ['Físico', 'Digital'], 'span-4'),
-          textarea('otrosMedios', 'Otros medios promocionales', 'Observaciones o detalles.', 'span-12', 500)
+          radio('sePromociona', 'El recurso turistico actualmente se promociona dentro de un producto turistico o dentro de la oferta de un destino turistico', ['Sí', 'No'], 'span-12', { required: true }),
+          select('escalaPromocion', 'A que escala se promociona el recurso turistico', OPTIONS.promocionEscala, 'span-6', { required: true, showWhen: { field: 'sePromociona', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si el recurso se promociona actualmente.' }),
+          radio('instrumentoPromocion', 'El recurso se encuentra incorporado explicitamente en algun instrumento de promocion', ['Sí', 'No'], 'span-12', { required: true }),
+          checklist('instrumentosPromocion', 'Cuales instrumentos de promocion', OPTIONS.instrumentosPromocion, 'span-12', { required: true, showWhen: { field: 'instrumentoPromocion', equals: 'Sí' }, conditionalHint: 'Obligatorio solo si esta incorporado en instrumentos de promocion.' }),
+          select('escalaComercializacion', 'A que escala se comercializa el recurso turistico en productos o paquetes turisticos', OPTIONS.escalaComercializacion, 'span-6', { required: true }),
+          checklist('canalesComercializacion', 'Canales de comercializacion identificados', OPTIONS.canalesComercializacion, 'span-12', { showWhen: { field: 'escalaComercializacion', equals: ['Se comercializa a nivel local', 'Se comercializa a nivel regional', 'Se comercializa a nivel nacional', 'Se comercializa a nivel internacional'] }, conditionalHint: 'Se consulta solo si el recurso se comercializa.' }),
+          radio('tieneWeb', 'Pagina web', ['Sí', 'No'], 'span-4'),
+          text('urlWeb', 'Direccion URL', 'https://...', 'span-4', { showWhen: { field: 'tieneWeb', equals: 'Sí' } }),
+          select('periodicidadWeb', 'Periodicidad de este medio promocional', ['Esporádica', 'Permanente'], 'span-4', { showWhen: { field: 'tieneWeb', equals: 'Sí' } }),
+          radio('tieneRedes', 'El recurso turistico cuenta actualmente con redes sociales', ['Sí', 'No'], 'span-4'),
+          checklist('redesSociales', 'Que red social', OPTIONS.redes, 'span-12', { showWhen: { field: 'tieneRedes', equals: 'Sí' } }),
+          socialAccounts('redesSocialesDetalle', 'Cuentas por red social', 'span-12', { showWhen: { field: 'tieneRedes', equals: 'Sí' }, hint: 'Agrega el nombre de cuenta o enlace por cada red seleccionada. Se guardara en Google Sheet como detalle estructurado.' }),
+          select('periodicidadRedes', 'Periodicidad de este medio promocional', ['Esporádica', 'Permanente'], 'span-4', { showWhen: { field: 'tieneRedes', equals: 'Sí' } }),
+          radio('puntoInfoTuristica', 'El recurso turistico se promociona actualmente en una oficina o punto de informacion turistica en la comuna', ['Sí', 'No'], 'span-12'),
+          select('periodicidadInfoTuristica', 'Periodicidad de este medio promocional', ['Esporádica', 'Permanente'], 'span-4', { showWhen: { field: 'puntoInfoTuristica', equals: 'Sí' } }),
+          radio('mediosComunicacion', 'Medios de comunicacion (considerar los ultimos 2 anos)', ['Sí', 'No'], 'span-4'),
+          checklist('tiposMedios', 'Cuales medios de comunicacion', OPTIONS.medios, 'span-12', { showWhen: { field: 'mediosComunicacion', equals: 'Sí' } }),
+          radio('feriasEventos', 'El recurso turistico se promociona en ferias y/o eventos turisticos', ['Sí', 'No'], 'span-4'),
+          text('nombreFeria', 'Nombre de la feria o evento', 'Feria 1, Feria 2, Feria 3', 'span-4', { showWhen: { field: 'feriasEventos', equals: 'Sí' } }),
+          select('periodicidadFerias', 'Periodicidad de este medio promocional', ['Esporádica', 'Permanente'], 'span-4', { showWhen: { field: 'feriasEventos', equals: 'Sí' } }),
+          radio('folleteria', 'Folleteria', ['Sí', 'No'], 'span-4'),
+          select('tipoFolleteria', 'Tipo', ['Físico', 'Digital'], 'span-4', { showWhen: { field: 'folleteria', equals: 'Sí' } }),
+          select('periodicidadFolleteria', 'Periodicidad de este medio promocional', ['Esporádica', 'Permanente'], 'span-4', { showWhen: { field: 'folleteria', equals: 'Sí' } }),
+          textarea('otrosMedios', 'Otros medios promocionales', 'Especifique otros medios promocionales.', 'span-12', 500)
         ]
       },
       {
@@ -2552,6 +2860,7 @@
     function classificationSelect(name, label, level, span = 'span-12', extra = {}) { return withFieldOptions({ type: 'classification-select', name, label, level, span }, extra); }
     function radio(name, label, options, span = 'span-12', extra = {}) { return withFieldOptions({ type: 'radio', name, label, options, span }, extra); }
     function checklist(name, label, options, span = 'span-12', extra = {}) { return withFieldOptions({ type: 'checklist', name, label, options, span }, extra); }
+    function socialAccounts(name, label, span = 'span-12', extra = {}) { return withFieldOptions({ type: 'social-accounts', name, label, span }, extra); }
 
     function loadState() {
       if (ALWAYS_START_NEW_RECORD) return normalizeState({});
@@ -2567,8 +2876,20 @@
       return {
         values: data && typeof data.values === 'object' && data.values !== null ? data.values : {},
         photos: Array.isArray(data?.photos) ? data.photos.filter(photo => photo && photo.dataUrl) : [],
-        lastSavedAt: data?.lastSavedAt || null
+        lastSavedAt: data?.lastSavedAt || null,
+        preserveLegacyId: Boolean(data?.preserveLegacyId)
       };
+    }
+
+    function isLegacyUniqueId(id) {
+      return /^R\d{2}-C\d{5}-A[A-Z0-9]+$/i.test(String(id || '').trim());
+    }
+
+    function updateLegacyIdPreservationFlag() {
+      state.preserveLegacyId = Boolean(state.preserveLegacyId || isLegacyUniqueId(state.values?.id_unico));
+      if (state.preserveLegacyId && isLegacyUniqueId(state.values?.id_unico)) {
+        state.values.id_unico_formato = 'legacy-cut-comuna';
+      }
     }
 
     function buildStorageSafeState(source = state) {
@@ -2576,7 +2897,8 @@
       return {
         values,
         photos: [],
-        lastSavedAt: source.lastSavedAt || null
+        lastSavedAt: source.lastSavedAt || null,
+        preserveLegacyId: Boolean(source.preserveLegacyId)
       };
     }
 
@@ -2645,6 +2967,7 @@
           nextBtn.className = index === sections.length - 1 ? 'primary' : 'secondary';
           nextBtn.textContent = index === sections.length - 1 ? 'Ir a guardar' : 'Siguiente';
           nextBtn.addEventListener('click', () => {
+            if (!validateSectionBeforeNext(section)) return;
             const targetId = index === sections.length - 1 ? null : sections[index + 1].id;
             if (targetId) openSection(targetId);
             const target = targetId ? document.getElementById(targetId) : document.getElementById('downloadPayloadBtn');
@@ -2674,6 +2997,8 @@
       renderAdmissibility();
       renderDrafts();
       initMapPicker();
+      updateClassificationHelp();
+      updateDigitalizationRecommendation();
       updateConditionalFields();
     }
 
@@ -2726,11 +3051,20 @@
       if (field.showWhen) {
         wrap.dataset.conditionalField = field.showWhen.field;
         wrap.dataset.conditionalEquals = field.showWhen.equals;
+      } else if (field.showWhenAll) {
+        wrap.dataset.conditionalField = '__all__';
       }
 
       const label = document.createElement('label');
       label.htmlFor = field.name;
       label.textContent = field.label;
+      if (field.required) {
+        const marker = document.createElement('span');
+        marker.className = 'required-marker';
+        marker.textContent = '*';
+        marker.title = 'Campo obligatorio';
+        label.appendChild(marker);
+      }
       wrap.appendChild(label);
 
       let input;
@@ -2785,7 +3119,7 @@
       } else if (field.type === 'checklist') {
         input = document.createElement('div');
         input.className = 'check-grid';
-        const current = new Set(state.values[field.name] || []);
+        const current = new Set(asArrayValue(state.values[field.name]));
         field.options.forEach(opt => {
           const row = document.createElement('label');
           row.className = 'check-item';
@@ -2800,6 +3134,12 @@
           row.appendChild(span);
           input.appendChild(row);
         });
+      } else if (field.type === 'social-accounts') {
+        input = document.createElement('div');
+        input.className = 'social-accounts';
+        input.id = field.name;
+        input.dataset.socialAccounts = 'true';
+        renderSocialAccountRows(input);
       } else {
         input = document.createElement('input');
         input.type = field.type;
@@ -2813,7 +3153,24 @@
         input.setAttribute('aria-readonly', 'true');
       }
 
-      if (!['radio', 'checklist', 'territory-select', 'classification-select'].includes(field.type) && !field.readonly) {
+      if (field.required && input instanceof HTMLElement) {
+        input.required = true;
+        input.setAttribute('aria-required', 'true');
+      }
+
+      if (field.pattern && input instanceof HTMLInputElement) {
+        input.pattern = field.pattern;
+      }
+
+      if (field.min !== undefined && input instanceof HTMLInputElement) {
+        input.min = field.min;
+      }
+
+      if (field.inputMode && input instanceof HTMLInputElement) {
+        input.inputMode = field.inputMode;
+      }
+
+      if (!['radio', 'checklist', 'social-accounts', 'territory-select', 'classification-select'].includes(field.type) && !field.readonly) {
         input.addEventListener('input', (e) => updateValue(field.name, e.target.value));
       }
       if (field.type === 'select') {
@@ -2824,6 +3181,13 @@
       }
 
       wrap.appendChild(input);
+
+      if (!field.readonly && !['radio', 'checklist', 'social-accounts'].includes(field.type)) {
+        const meta = document.createElement('span');
+        meta.className = field.required ? 'field-meta required' : 'field-meta optional';
+        meta.textContent = field.required ? 'Obligatorio' : 'Opcional';
+        wrap.appendChild(meta);
+      }
 
       if (field.hint) {
         const hint = document.createElement('small');
@@ -2902,6 +3266,9 @@
         syncTypeSelect();
         syncSubtypeSelect();
         updateClassificationHelp();
+        updateDigitalizationRecommendation();
+        updateConditionalFields();
+        updateUiSummary();
       });
 
       typeSelect.addEventListener('change', () => {
@@ -2910,12 +3277,18 @@
         autosave();
         syncSubtypeSelect();
         updateClassificationHelp();
+        updateDigitalizationRecommendation();
+        updateConditionalFields();
+        updateUiSummary();
       });
 
       subtypeSelect.addEventListener('change', () => {
         state.values.subtipoRecurso = subtypeSelect.value || '';
         autosave();
         updateClassificationHelp();
+        updateDigitalizationRecommendation();
+        updateConditionalFields();
+        updateUiSummary();
       });
     }
 
@@ -3022,7 +3395,7 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <div class="coord-note" id="classificationHelp">
-          Selecciona categoría, tipo y subtipo para ver la definición oficial y la recomendación de digitalización del punto.
+          Selecciona categoria, tipo y subtipo para ver la definicion del recurso turistico.
         </div>
       `;
       content.appendChild(block);
@@ -3038,8 +3411,10 @@
         .trim();
     }
 
-    function getClassificationHelpEntry(subtype) {
+    function getClassificationHelpEntry(category, type, subtype) {
       if (!subtype) return null;
+      const cleanEntry = CLASSIFICATION_DEFINITIONS?.[category]?.[type]?.[subtype];
+      if (cleanEntry) return { definicion: cleanEntry };
       if (CLASSIFICATION_HELP[subtype]) return CLASSIFICATION_HELP[subtype];
       const normalized = normalizeLookupText(subtype);
       const match = Object.entries(CLASSIFICATION_HELP).find(([key]) => {
@@ -3056,22 +3431,214 @@
       const category = state.values.categoria || '';
       const type = state.values.tipoRecurso || '';
       const subtype = state.values.subtipoRecurso || '';
-      const entry = getClassificationHelpEntry(subtype);
+      const entry = getClassificationHelpEntry(category, type, subtype);
 
       if (!category || !type || !subtype) {
-        el.innerHTML = 'Selecciona categoría, tipo y subtipo para ver la definición oficial y la recomendación de digitalización del punto.';
+        el.innerHTML = 'Selecciona categoria, tipo y subtipo para ver la definicion del recurso turistico.';
         return;
       }
 
       const rows = [];
-      rows.push('<strong>Ayuda según formulario oficial</strong>');
+      rows.push('<strong>Definicion segun clasificacion seleccionada</strong>');
       if (entry?.codigo) rows.push('<span class="pill ok" style="margin-top:8px;">Código subtipo: ' + escapeHtml(entry.codigo) + '</span>');
-      rows.push('<div style="margin-top:10px;"><strong>Clasificación:</strong> ' + escapeHtml(category + ' / ' + type + ' / ' + subtype) + '</div>');
-      if (entry?.definicion) rows.push('<div style="margin-top:10px;"><strong>Definición:</strong> ' + escapeHtml(entry.definicion) + '</div>');
+      rows.push('<div style="margin-top:10px;"><strong>Clasificacion:</strong> ' + escapeHtml(category + ' / ' + type + ' / ' + subtype) + '</div>');
+      if (entry?.definicion) rows.push('<div style="margin-top:10px;"><strong>Definicion:</strong> ' + escapeHtml(entry.definicion) + '</div>');
       if (entry?.digitalizacion) rows.push('<div style="margin-top:10px;"><strong>Digitalización del punto:</strong> ' + escapeHtml(entry.digitalizacion) + '</div>');
-      if (!entry?.definicion && !entry?.digitalizacion) rows.push('<div style="margin-top:10px;">No hay una definición específica cargada para este subtipo en esta versión del prototipo.</div>');
+      if (!entry?.definicion && !entry?.digitalizacion) rows.push('<div style="margin-top:10px;">No hay una definicion especifica cargada para este subtipo en esta version del prototipo.</div>');
 
       el.innerHTML = rows.join('');
+    }
+
+    function updateDigitalizationRecommendation() {
+      const el = document.getElementById('digitalizationRecommendation');
+      if (!el) return;
+
+      const category = state.values.categoria || '';
+      const type = state.values.tipoRecurso || '';
+      const subtype = state.values.subtipoRecurso || '';
+      const entry = getClassificationHelpEntry(category, type, subtype);
+
+      if (!category || !type || !subtype) {
+        el.innerHTML = '<strong>Recomendacion de digitalizacion:</strong> selecciona categoria, tipo y subtipo en la seccion 2 para ver donde conviene colocar el punto.';
+        return;
+      }
+
+      const digitalization = entry?.digitalizacion || getDefaultDigitalizationRecommendation(category, type, subtype);
+      el.innerHTML = '<strong>Recomendacion de digitalizacion:</strong> ' +
+        escapeHtml(digitalization) +
+        '<div class="small" style="margin-top:6px;">Clasificacion usada: ' +
+        escapeHtml(category + ' / ' + type + ' / ' + subtype) +
+        '</div>';
+    }
+
+    function getDefaultDigitalizationRecommendation(category, type, subtype) {
+      const normalizedType = normalizeLookupText(type);
+      const normalizedSubtype = normalizeLookupText(subtype);
+      if (normalizedType.includes('acontecimientos programados')) return 'Colocar el punto en el area principal donde se desarrolla la actividad. Si existe ingreso controlado, usar ese acceso.';
+      if (normalizedType.includes('arquitectura') || normalizedSubtype.includes('museo') || normalizedSubtype.includes('sala de exposicion')) return 'Colocar el punto en el ingreso principal al espacio o inmueble.';
+      if (normalizedType.includes('folklore')) return 'Colocar el punto en el lugar principal de venta, representacion o manifestacion.';
+      if (normalizedSubtype.includes('playa')) return 'Colocar el punto en la mitad de la linea o tramo principal de la playa o balneario.';
+      if (normalizedSubtype.includes('cascada') || normalizedSubtype.includes('salto')) return 'Colocar el punto en la base de la cascada o salto.';
+      if (normalizedSubtype.includes('cerro') || normalizedSubtype.includes('cordillera') || normalizedSubtype.includes('volcan') || normalizedSubtype.includes('montana')) return 'Colocar el punto en la cota mas alta, cumbre o sector representativo de observacion/actividad turistica.';
+      if (normalizedType.includes('costa') || normalizedSubtype.includes('campo de hielo') || normalizedSubtype.includes('glaciar') || normalizedSubtype.includes('salar')) return 'Colocar el punto en el centroide del poligono o en el sector representativo de observacion/actividad turistica.';
+      return 'Colocar el punto en el acceso principal, centroide o lugar donde se desarrolla la experiencia turistica, segun corresponda al recurso.';
+    }
+
+    function asArrayValue(value) {
+      if (Array.isArray(value)) return value;
+      if (value === undefined || value === null || value === '') return [];
+      return [value];
+    }
+
+    function getAllowedTransportOptions() {
+      const selectedAccess = asArrayValue(state.values.tipoAcceso);
+      const allowed = [];
+      selectedAccess.forEach(access => {
+        (OPTIONS.transportesPorAcceso[access] || []).forEach(item => {
+          if (!allowed.includes(item)) allowed.push(item);
+        });
+      });
+      return allowed;
+    }
+
+    function renderAccessTransportSection(content) {
+      const transportBlock = document.createElement('div');
+      transportBlock.className = 'field span-12';
+      transportBlock.dataset.field = 'mediosTransporte';
+      transportBlock.innerHTML = `
+        <label>Medio de transporte<span class="required-marker" title="Campo obligatorio">*</span></label>
+        <span class="field-meta required">Obligatorio</span>
+        <small class="hint">Selecciona primero uno o varios tipos de acceso. Luego marca los medios disponibles para esos accesos.</small>
+        <div class="transport-groups" id="transportGroups"></div>
+      `;
+      content.appendChild(transportBlock);
+
+      const distanceGrid = document.createElement('div');
+      distanceGrid.className = 'distance-cards';
+      [
+        number('distanciaCapitalRegional', 'Distancia en kilometros desde la capital regional', '', { readonly: true, hint: 'Se mantiene calculada desde el punto georreferenciado. Idealmente usar distancia por ruta desde km 0, plaza o centro poblado.' }),
+        number('distanciaCapitalComunal', 'Distancia en kilometros desde la capital comunal', '', { readonly: true, hint: 'Se mantiene calculada desde el punto georreferenciado. Idealmente usar distancia por ruta desde km 0, plaza o centro poblado.' })
+      ].forEach(field => {
+        const rendered = renderField(field);
+        rendered.className = 'distance-card';
+        distanceGrid.appendChild(rendered);
+      });
+      content.appendChild(distanceGrid);
+
+      updateTransportOptionsByAccess();
+    }
+
+    function updateTransportOptionsByAccess() {
+      const groupsEl = document.getElementById('transportGroups');
+      if (!groupsEl) return;
+
+      const selectedAccess = asArrayValue(state.values.tipoAcceso);
+      const allowed = getAllowedTransportOptions();
+      const current = new Set(asArrayValue(state.values.mediosTransporte).filter(item => allowed.includes(item)));
+      state.values.mediosTransporte = Array.from(current);
+
+      groupsEl.innerHTML = '';
+      if (!selectedAccess.length) {
+        groupsEl.innerHTML = '<div class="coord-note">Selecciona al menos un tipo de acceso para ver los medios de transporte disponibles.</div>';
+        return;
+      }
+
+      selectedAccess.forEach(access => {
+        const options = OPTIONS.transportesPorAcceso[access] || [];
+        const group = document.createElement('div');
+        group.className = 'transport-group';
+        const title = document.createElement('strong');
+        title.textContent = access;
+        group.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'check-grid';
+        options.forEach(option => {
+          const row = document.createElement('label');
+          row.className = 'check-item';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = option;
+          checkbox.checked = current.has(option);
+          checkbox.addEventListener('change', () => toggleArrayValue('mediosTransporte', option, checkbox.checked));
+          row.appendChild(checkbox);
+          const span = document.createElement('span');
+          span.textContent = option;
+          row.appendChild(span);
+          grid.appendChild(row);
+        });
+        group.appendChild(grid);
+        groupsEl.appendChild(group);
+      });
+    }
+
+    function getAllowedActivityOptions() {
+      const selectedExperiences = asArrayValue(state.values.tiposExperiencia);
+      const allowed = [];
+      selectedExperiences.forEach(experience => {
+        (OPTIONS.actividadesPorExperiencia[experience] || []).forEach(item => {
+          if (!allowed.includes(item)) allowed.push(item);
+        });
+      });
+      return allowed;
+    }
+
+    function renderExperienceActivitiesSection(content) {
+      const activityBlock = document.createElement('div');
+      activityBlock.className = 'field span-12';
+      activityBlock.dataset.field = 'actividades';
+      activityBlock.innerHTML = `
+        <label>Que tipo de actividades se desarrollan actualmente dentro del recurso<span class="required-marker" title="Campo obligatorio">*</span></label>
+        <span class="field-meta required">Obligatorio</span>
+        <small class="hint">Selecciona primero una o varias experiencias. Luego marca las actividades disponibles para cada experiencia.</small>
+        <div class="transport-groups" id="activityGroups"></div>
+      `;
+      content.appendChild(activityBlock);
+      updateActivitiesByExperience();
+    }
+
+    function updateActivitiesByExperience() {
+      const groupsEl = document.getElementById('activityGroups');
+      if (!groupsEl) return;
+
+      const selectedExperiences = asArrayValue(state.values.tiposExperiencia);
+      const allowed = getAllowedActivityOptions();
+      const current = new Set(asArrayValue(state.values.actividades).filter(item => allowed.includes(item)));
+      state.values.actividades = Array.from(current);
+
+      groupsEl.innerHTML = '';
+      if (!selectedExperiences.length) {
+        groupsEl.innerHTML = '<div class="coord-note">Selecciona al menos un tipo de experiencia para ver sus actividades disponibles.</div>';
+        return;
+      }
+
+      selectedExperiences.forEach(experience => {
+        const options = OPTIONS.actividadesPorExperiencia[experience] || [];
+        const group = document.createElement('div');
+        group.className = 'transport-group';
+        const title = document.createElement('strong');
+        title.textContent = experience;
+        group.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'check-grid';
+        options.forEach(option => {
+          const row = document.createElement('label');
+          row.className = 'check-item';
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = option;
+          checkbox.checked = current.has(option);
+          checkbox.addEventListener('change', () => toggleArrayValue('actividades', option, checkbox.checked));
+          row.appendChild(checkbox);
+          const span = document.createElement('span');
+          span.textContent = option;
+          row.appendChild(span);
+          grid.appendChild(row);
+        });
+        group.appendChild(grid);
+        groupsEl.appendChild(group);
+      });
     }
 
     function renderGeoMapSection(content) {
@@ -3125,9 +3692,27 @@
           </div>
           <div class="coord-note" id="mapLockStatus">La ubicación está protegida. Presiona Editar ubicación antes de cambiar el punto.</div>
           <div class="coord-note" id="mapStatus">Seleccione un punto en el mapa o use la búsqueda. Nota: la cartografía base y la búsqueda requieren conexión a internet para cargarse.</div>
+          <div class="coord-note" id="digitalizationRecommendation">
+            <strong>Recomendacion de digitalizacion:</strong> selecciona categoria, tipo y subtipo en la seccion 2 para ver donde conviene colocar el punto.
+          </div>
         </div>
       `;
       content.appendChild(block);
+
+      const coordinateGrid = document.createElement('div');
+      coordinateGrid.className = 'grid map-coordinate-grid';
+      const title = document.createElement('h3');
+      title.className = 'map-coordinate-title';
+      title.textContent = 'Coordenadas confirmadas';
+      coordinateGrid.appendChild(title);
+      [
+        text('coordenadas', 'Punto geografico / coordenadas', 'Latitud, longitud o referencia geografica', 'span-6'),
+        text('latitud', 'Latitud', 'Se puede completar desde el mapa', 'span-3'),
+        text('longitud', 'Longitud', 'Se puede completar desde el mapa', 'span-3'),
+        text('coordX', 'X (UTM WGS84)', 'Calculada automaticamente', 'span-3'),
+        text('coordY', 'Y (UTM WGS84)', 'Calculada automaticamente', 'span-3')
+      ].forEach(field => coordinateGrid.appendChild(renderField(field)));
+      block.querySelector('.map-card')?.appendChild(coordinateGrid);
     }
 
     function initMapPicker() {
@@ -3595,13 +4180,13 @@
       block.className = 'field span-12';
       block.innerHTML = `
         <div class="panel" style="padding:16px; background:#f8fbff;">
-          <h3>Validación local del prototipo</h3>
-          <p class="small" style="margin-top:8px;">Este botón no envía a ArcGIS ni a una base real. Puedes validar, descargar el JSON o abrir una versión imprimible para guardarla como PDF desde el navegador.</p>
+          <h3>Revision, respaldo y cierre</h3>
+          <p class="small" style="margin-top:8px;">Revisar formulario verifica admisibilidad y faltantes. Guardar online sincroniza el registro con Google Sheet. Exportar ficha a PDF abre una version imprimible. Descargar respaldo guarda la ficha en formato JSON.</p>
           <div class="toolbar" style="margin-top:12px;">
             <button type="button" class="secondary" id="validateBtn">Revisar formulario</button>
             <button type="button" class="primary" id="finalSaveBtn">Guardar online</button>
-            <button type="button" class="ghost" id="exportPdfBtn">Guardar PDF</button>
-            <button type="button" class="ghost" id="downloadPayloadBtn">Descargar respaldo</button>
+            <button type="button" class="ghost" id="exportPdfBtn">Exportar ficha a PDF</button>
+            <button type="button" class="ghost" id="downloadPayloadBtn">Descargar respaldo JSON</button>
           </div>
           <div id="validationResult" class="footer-note" style="display:none; margin-top:12px;"></div>
         </div>
@@ -3615,6 +4200,9 @@
 
     function conditionMatches(condition) {
       if (!condition) return true;
+      if (Array.isArray(condition.all)) {
+        return condition.all.every(item => conditionMatches(item));
+      }
       const current = state.values[condition.field];
       if (Array.isArray(condition.equals)) return condition.equals.includes(current);
       return current === condition.equals;
@@ -3622,7 +4210,8 @@
 
     function updateConditionalFields() {
       document.querySelectorAll('[data-conditional-field]').forEach(wrap => {
-        const condition = {
+        const field = findFieldConfig(wrap.dataset.field);
+        const condition = field?.showWhenAll ? { all: field.showWhenAll } : field?.showWhen || {
           field: wrap.dataset.conditionalField,
           equals: wrap.dataset.conditionalEquals
         };
@@ -3636,6 +4225,90 @@
 
     function updateValue(name, value) {
       state.values[name] = value;
+      if (name === 'tieneInstalaciones' && value === 'No') {
+        state.values.instalacionesPublicas = [];
+      }
+      if (name === 'tipoIngreso' && value !== 'Pagado') {
+        state.values.tipoPago = '';
+        state.values.medioPago = [];
+      }
+      if (name === 'reserva' && value !== 'Reserva anticipada') {
+        state.values.tipoReserva = '';
+      }
+      if (name === 'sistemaVisitas' && value !== 'Sí') {
+        state.values.tipoRegistro = '';
+        state.values.ultimoAnoRegistro = '';
+        state.values.reportesVisita = '';
+        state.values.frecuenciaReportes = '';
+        state.values.visitantesTotal = '';
+        state.values.visitantesNacionales = '';
+        state.values.visitantesExtranjeros = '';
+      }
+      if (name === 'reportesVisita' && value !== 'Sí') {
+        state.values.frecuenciaReportes = '';
+      }
+      if (name === 'tieneServiciosTuristicos' && value !== 'Sí') {
+        state.values.serviciosTuristicos = [];
+      }
+      if (name === 'tieneServiciosBasicos' && value !== 'Sí') {
+        state.values.serviciosBasicos = [];
+      }
+      if (name === 'tieneSeguridad' && value !== 'Sí') {
+        state.values.instalacionesSeguridad = [];
+      }
+      if (name === 'accesibilidadUniversal' && value !== 'Sí') {
+        state.values.elementosAccesibles = [];
+        state.values.aptoDiscapacidades = [];
+        state.values.fichaIdat = '';
+      }
+      if (name === 'perrosGuia' && value !== 'Sí') {
+        state.values.apoyoEmocional = '';
+      }
+      if (name === 'tieneReconocimiento' && value !== 'Sí') {
+        state.values.alcanceReconocimiento = '';
+        state.values.institucionReconocimiento = '';
+        state.values.denominacionReconocimiento = '';
+        state.values.fechaReconocimiento = '';
+      }
+      if (name === 'enPlanificacion' && value !== 'Sí') {
+        state.values.instrumentosGestion = [];
+      }
+      if (['categoria', 'tipoRecurso', 'subtipoRecurso'].includes(name) && !isThermalResource()) {
+        state.values.resolucionSanitaria = '';
+      }
+      if (name === 'sePromociona' && value !== 'Sí') {
+        state.values.escalaPromocion = '';
+      }
+      if (name === 'instrumentoPromocion' && value !== 'Sí') {
+        state.values.instrumentosPromocion = [];
+      }
+      if (name === 'escalaComercializacion' && ['No aplica', 'No se comercializa'].includes(value)) {
+        state.values.canalesComercializacion = [];
+      }
+      if (name === 'tieneWeb' && value !== 'Sí') {
+        state.values.urlWeb = '';
+        state.values.periodicidadWeb = '';
+      }
+      if (name === 'tieneRedes' && value !== 'Sí') {
+        state.values.redesSociales = [];
+        state.values.nombreCuenta = '';
+        state.values.redesSocialesDetalle = '';
+        state.values.periodicidadRedes = '';
+      }
+      if (name === 'puntoInfoTuristica' && value !== 'Sí') {
+        state.values.periodicidadInfoTuristica = '';
+      }
+      if (name === 'mediosComunicacion' && value !== 'Sí') {
+        state.values.tiposMedios = [];
+      }
+      if (name === 'feriasEventos' && value !== 'Sí') {
+        state.values.nombreFeria = '';
+        state.values.periodicidadFerias = '';
+      }
+      if (name === 'folleteria' && value !== 'Sí') {
+        state.values.tipoFolleteria = '';
+        state.values.periodicidadFolleteria = '';
+      }
       autosave();
       updateConditionalFields();
       renderAdmissibility();
@@ -3643,12 +4316,120 @@
     }
 
     function toggleArrayValue(name, value, checked) {
-      const arr = new Set(state.values[name] || []);
+      const arr = new Set(asArrayValue(state.values[name]));
       if (checked) arr.add(value); else arr.delete(value);
-      state.values[name] = Array.from(arr);
+      if ((name === 'mesesOperacion' || name === 'mesesRecomendados') && value === 'Todo el año') {
+        state.values[name] = checked ? [...OPTIONS.meses] : [];
+      } else if ((name === 'mesesOperacion' || name === 'mesesRecomendados') && value !== 'Todo el año') {
+        if (!checked) arr.delete('Todo el año');
+        state.values[name] = Array.from(arr);
+      } else if (name === 'diasOperacion' && value === 'Toda la semana') {
+        state.values[name] = checked ? [...OPTIONS.dias] : [];
+      } else if (name === 'diasOperacion' && value !== 'Toda la semana') {
+        if (!checked) arr.delete('Toda la semana');
+        state.values[name] = Array.from(arr);
+      } else {
+        state.values[name] = Array.from(arr);
+      }
+      if (name === 'tipoAcceso' || name === 'mediosTransporte') updateTransportOptionsByAccess();
+      if (name === 'tiposExperiencia' || name === 'actividades') updateActivitiesByExperience();
+      if (name === 'redesSociales') {
+        syncSocialNetworkDetails();
+        renderSocialAccountRows();
+      }
+      syncChecklistInputs(name);
       autosave();
       renderAdmissibility();
       updateUiSummary();
+    }
+
+    function syncChecklistInputs(name) {
+      const selected = new Set(asArrayValue(state.values[name]));
+      document.querySelectorAll('[data-field="' + name + '"] input[type="checkbox"]').forEach(input => {
+        input.checked = selected.has(input.value);
+      });
+    }
+
+    function parseSocialNetworkDetails() {
+      const raw = state.values.redesSocialesDetalle;
+      if (Array.isArray(raw)) return raw;
+      if (raw && typeof raw === 'object') return Object.values(raw);
+      if (typeof raw === 'string' && raw.trim()) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) return parsed;
+          if (parsed && typeof parsed === 'object') return Object.values(parsed);
+        } catch {}
+      }
+      return [];
+    }
+
+    function syncSocialNetworkDetails() {
+      const selected = asArrayValue(state.values.redesSociales);
+      const previous = parseSocialNetworkDetails();
+      const previousByNetwork = new Map(previous.map(item => [String(item.red || '').trim(), item]));
+      const details = selected.map(red => {
+        const current = previousByNetwork.get(red) || {};
+        return {
+          red,
+          cuenta: String(current.cuenta || '').trim(),
+          url: String(current.url || '').trim()
+        };
+      });
+      state.values.redesSocialesDetalle = JSON.stringify(details);
+      state.values.nombreCuenta = details
+        .filter(item => item.cuenta)
+        .map(item => `${item.red}: ${item.cuenta}`)
+        .join(' | ');
+    }
+
+    function updateSocialNetworkDetail(red, key, value) {
+      syncSocialNetworkDetails();
+      const details = parseSocialNetworkDetails().map(item => (
+        item.red === red ? { ...item, [key]: value } : item
+      ));
+      state.values.redesSocialesDetalle = JSON.stringify(details);
+      state.values.nombreCuenta = details
+        .filter(item => item.cuenta)
+        .map(item => `${item.red}: ${item.cuenta}`)
+        .join(' | ');
+      autosave();
+      updateUiSummary();
+    }
+
+    function renderSocialAccountRows(target = null) {
+      const containers = target ? [target] : Array.from(document.querySelectorAll('[data-social-accounts="true"]'));
+      if (!containers.length) return;
+      syncSocialNetworkDetails();
+      const details = parseSocialNetworkDetails();
+      containers.forEach(container => {
+        container.innerHTML = '';
+        if (!details.length) {
+          const empty = document.createElement('div');
+          empty.className = 'social-empty';
+          empty.textContent = 'Selecciona una o mas redes sociales para ingresar la cuenta asociada a cada una.';
+          container.appendChild(empty);
+          return;
+        }
+        details.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'social-account-row';
+          const label = document.createElement('strong');
+          label.textContent = item.red;
+          const account = document.createElement('input');
+          account.type = 'text';
+          account.placeholder = '@cuenta o nombre de perfil';
+          account.value = item.cuenta || '';
+          account.addEventListener('input', event => updateSocialNetworkDetail(item.red, 'cuenta', event.target.value));
+          const url = document.createElement('input');
+          url.type = 'url';
+          url.placeholder = 'https://...';
+          url.value = item.url || '';
+          url.addEventListener('input', event => updateSocialNetworkDetail(item.red, 'url', event.target.value));
+          row.append(label, account, url);
+          container.appendChild(row);
+        });
+      });
     }
 
     function setupPhotoDropzone(dropzone, input) {
@@ -3783,6 +4564,7 @@
 
       document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
       updatePhotoStorageStatus();
+      updateUiSummary();
     }
 
     function getAdmissibilityStatus() {
@@ -3795,7 +4577,7 @@
         {
           key: 'rutas',
           label: 'Ruta y conectividad',
-          ok: Boolean(state.values.tipoAcceso) && Array.isArray(state.values.mediosTransporte) && state.values.mediosTransporte.length > 0
+          ok: asArrayValue(state.values.tipoAcceso).length > 0 && asArrayValue(state.values.mediosTransporte).length > 0
         },
         {
           key: 'experiencias',
@@ -3810,7 +4592,12 @@
         {
           key: 'instalaciones',
           label: 'Instalaciones de uso público',
-          ok: (state.values.tieneInstalaciones === 'Sí') && Array.isArray(state.values.instalacionesPublicas) && state.values.instalacionesPublicas.length > 0
+          ok: state.values.tieneInstalaciones === 'No'
+            || (state.values.tieneInstalaciones === 'Sí' && Array.isArray(state.values.instalacionesPublicas) && state.values.instalacionesPublicas.length > 0),
+          statusText: state.values.tieneInstalaciones === 'No' ? 'No aplica' : undefined,
+          detail: state.values.tieneInstalaciones === 'No'
+            ? 'El recurso declara que no tiene instalaciones de uso publico.'
+            : undefined
         }
       ];
 
@@ -3830,12 +4617,14 @@
       result.checks.forEach(check => {
         const item = document.createElement('div');
         item.className = `criterion ${check.ok ? 'ok' : 'fail'}`;
+        const statusText = check.statusText || (check.ok ? 'Cumple' : 'Pendiente');
+        const detail = check.detail || (check.ok ? 'Cumple el mínimo.' : 'Falta completar este criterio.');
         item.innerHTML = `
           <div>
             <strong>${check.label}</strong>
-            <div class="small">${check.ok ? 'Cumple el mínimo.' : 'Falta completar este criterio.'}</div>
+            <div class="small">${escapeHtml(detail)}</div>
           </div>
-          <span class="pill ${check.ok ? 'ok' : 'fail'}">${check.ok ? 'Cumple' : 'Pendiente'}</span>
+          <span class="pill ${check.ok ? 'ok' : 'fail'}">${escapeHtml(statusText)}</span>
         `;
         grid.appendChild(item);
       });
@@ -3949,6 +4738,7 @@
 
     function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
       Object.assign(state, normalizeState(JSON.parse(JSON.stringify(data || {}))));
+      updateLegacyIdPreservationFlag();
       if (validateTerritoryForSave({ silent: true })) {
         ensureUniqueId();
       }
@@ -4014,6 +4804,8 @@
           const data = JSON.parse(reader.result);
           if (!data || typeof data !== 'object') throw new Error('Formato inválido');
           Object.assign(state, normalizeState(data));
+          updateLegacyIdPreservationFlag();
+          if (validateTerritoryForSave({ silent: true })) ensureTerritoryCodes();
           saveState();
           renderForm();
           setupMobileNavigation();
@@ -4145,11 +4937,11 @@
         nOperacion: 8,
         nTurismo: 4,
         nIdiomas: 2,
-        idiomas: 'Inglés, portugués',
-        lenguasOriginarias: '',
+        idiomas: ['Inglés', 'Portugués'],
+        lenguasOriginarias: [],
         tipoIngreso: 'Pagado',
         tipoPago: 'Ambas',
-        medioPago: 'Efectivo, transferencia y electrónico',
+        medioPago: ['Efectivo', 'Transferencia', 'Electrónico'],
         reserva: 'Reserva anticipada',
         tipoReserva: 'Online',
         mesesOperacion: ['Todo el año'],
@@ -4163,6 +4955,7 @@
         ultimoAnoRegistro: new Date().getFullYear() - 1,
         reportesVisita: 'Sí',
         frecuenciaReportes: 'Mensual',
+        visitantesTotal: 13600,
         visitantesNacionales: 12000,
         visitantesExtranjeros: 1600,
         tieneServiciosTuristicos: 'Sí',
@@ -4172,7 +4965,7 @@
         tieneSeguridad: 'Sí',
         instalacionesSeguridad: ['Puntos de control o acceso', 'Señalética de seguridad', 'Puesto de primeros auxilios'],
         accesibilidadUniversal: 'Sí',
-        elementosAccesibles: ['Accesos', 'Baños accesibles', 'Estacionamiento', 'Página web'],
+        elementosAccesibles: ['Accesos', 'Baños', 'Estacionamiento', 'Página web'],
         aptoDiscapacidades: ['Física', 'Sensorial'],
         fichaIdat: 'No',
         perrosGuia: 'Sí',
@@ -4186,21 +4979,25 @@
         planRRD: 'Sí',
         planEmergencia: 'Sí',
         enPlanificacion: 'Sí',
-        instrumentosGestion: ['Plan de acción ZOIT', 'PLADETUR', 'PLADECO'],
+        instrumentosGestion: ['Plan de accion de Zona de Interes Turistico (ZOIT)', 'Plan de desarrollo turistico (PLADETUR)', 'Plan de desarrollo comunal (PLADECO)'],
         capacidadCarga: 'No',
         resolucionSanitaria: 'No',
         sePromociona: 'Sí',
         escalaPromocion: 'Nacional',
         instrumentoPromocion: 'Sí',
-        instrumentosPromocion: ['Material promocional de empresas privadas', 'Plan de marketing turístico'],
+        instrumentosPromocion: ['Material promocional de empresas privadas', 'Plan de marketing turistico (nacional, regional o local)'],
         escalaComercializacion: 'Se comercializa a nivel nacional',
-        canalesComercializacion: 'Operadores locales, web propia y OTA de experiencias',
+        canalesComercializacion: ['Operadores turisticos locales', 'Plataformas publicas o privadas'],
         tieneWeb: 'Sí',
         urlWeb: 'https://www.vinaejemplo.cl/turismo',
         periodicidadWeb: 'Permanente',
         tieneRedes: 'Sí',
         redesSociales: ['Instagram', 'Facebook'],
-        nombreCuenta: '@vinaejemplo',
+        redesSocialesDetalle: JSON.stringify([
+          { red: 'Instagram', cuenta: '@vinaejemplo_turismo', url: 'https://www.instagram.com/vinaejemplo_turismo' },
+          { red: 'Facebook', cuenta: 'Viña Ejemplo Turismo', url: 'https://www.facebook.com/vinaejemploturismo' }
+        ]),
+        nombreCuenta: 'Instagram: @vinaejemplo_turismo | Facebook: Viña Ejemplo Turismo',
         periodicidadRedes: 'Permanente',
         mediosComunicacion: 'Sí',
         tiposMedios: ['Páginas web', 'Revistas', 'Radios'],
@@ -4412,6 +5209,9 @@
     .data-table th { width:32%; background:#f8fbfe; color:#24425c; font-weight:600; }
     .data-table td { background:#fff; }
     .data-table tbody tr:nth-child(even) td { background:#fcfdff; }
+    .print-social-table { width:100%; border:1px solid var(--line); border-radius:10px; overflow:hidden; border-spacing:0; }
+    .print-social-table th { width:auto; background:#f8fbfe; color:#24425c; font-weight:600; font-size:12px; }
+    .print-social-table td { background:#fff; font-size:12px; word-break:break-word; }
     .muted { color:var(--muted); }
     .map-grid { display:grid; grid-template-columns: 1.55fr .95fr; gap:16px; align-items:start; }
     .map-panel { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#f4f8fc; min-height:350px; }
@@ -4577,7 +5377,30 @@
     }
 
     function getPrintableFieldValue(field) {
-
+      if (field.type === 'social-accounts' || field.name === 'redesSocialesDetalle') {
+        const details = parseSocialNetworkDetails();
+        if (!details.length) return '<span class="empty">—</span>';
+        return `
+          <table class="print-social-table">
+            <thead>
+              <tr>
+                <th>Red social</th>
+                <th>Cuenta</th>
+                <th>URL</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${details.map(item => `
+                <tr>
+                  <td>${escapeHtml(item.red || '—')}</td>
+                  <td>${escapeHtml(item.cuenta || '—')}</td>
+                  <td>${item.url ? `<a href="${escapeHtml(item.url)}">${escapeHtml(item.url)}</a>` : '<span class="empty">—</span>'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
       const value = state.values[field.name];
       if (Array.isArray(value)) {
         return value.length ? escapeHtml(value.join(', ')) : '<span class="empty">—</span>';
@@ -4595,23 +5418,35 @@
       if (!state.photos || !state.photos.length) {
         return `
           <section class="section">
-            <h2>Anexo fotográfico</h2>
-            <p class="empty">No hay fotografías adjuntas en este borrador.</p>
+            <div class="section-header">
+              <h2>Anexo fotografico</h2>
+              <p>Previsualizacion de las fotografias adjuntas al borrador antes de exportar.</p>
+            </div>
+            <div class="section-body">
+              <p class="empty">No hay fotografias adjuntas en este borrador.</p>
+            </div>
           </section>
         `;
       }
 
-      const cards = state.photos.map(photo => `
+      const cards = state.photos.map((photo, index) => `
         <div class="photo-card">
-          <img src="${photo.dataUrl}" alt="${escapeHtml(photo.name)}">
-          <p><strong>${escapeHtml(photo.name)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
+          ${photo.dataUrl
+            ? `<img src="${photo.dataUrl}" alt="${escapeHtml(photo.name || `Fotografia ${index + 1}`)}">`
+            : '<div class="map-empty">Vista previa no disponible para esta fotografia.</div>'}
+          <p><strong>Foto ${index + 1}. ${escapeHtml(photo.name || 'Fotografia adjunta')}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
         </div>
       `).join('');
 
       return `
         <section class="section">
-          <h2>Anexo fotográfico</h2>
-          <div class="photos">${cards}</div>
+          <div class="section-header">
+            <h2>Anexo fotografico</h2>
+            <p>${state.photos.length} fotografia(s) adjunta(s) al formulario para respaldo visual del recurso.</p>
+          </div>
+          <div class="section-body">
+            <div class="photos">${cards}</div>
+          </div>
         </section>
       `;
     }
@@ -4621,10 +5456,27 @@
       return parts.length ? parts.join(' / ') : 'Sin informar';
     }
 
+    function normalizeCutKey(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[’´`]/g, "'")
+        .toLowerCase()
+        .trim();
+    }
+
     function getTerritoryCodes() {
       const regionName = state.values.region || '';
       const provinceName = state.values.provincia || '';
       const comunaName = state.values.comuna || '';
+      const overrideKey = [regionName, provinceName, comunaName].map(normalizeCutKey).join('|');
+      const override = CUT_CODE_OVERRIDES[overrideKey];
+      if (override) {
+        return {
+          ...override,
+          codigo_unico_territorial: `${override.codigo_region}-${override.codigo_provincia}-${override.codigo_comuna}`
+        };
+      }
       const region = CHILE_TERRITORY.find(item => item.nombre === regionName);
       const codigoRegion = REGION_CODES[regionName] || '00';
 
@@ -4640,7 +5492,8 @@
       return {
         codigo_region: codigoRegion,
         codigo_provincia: codigoProvincia,
-        codigo_comuna: codigoComuna
+        codigo_comuna: codigoComuna,
+        codigo_unico_territorial: `${codigoRegion}-${codigoProvincia}-${codigoComuna}`
       };
     }
 
@@ -4649,6 +5502,7 @@
       state.values.codigo_region = codes.codigo_region;
       state.values.codigo_provincia = codes.codigo_provincia;
       state.values.codigo_comuna = codes.codigo_comuna;
+      state.values.codigo_unico_territorial = codes.codigo_unico_territorial;
       return codes;
     }
 
@@ -4670,7 +5524,7 @@
       if (!missing.length) return true;
 
       if (!options.silent) {
-        alert('Antes de guardar online u offline debes ingresar Nombre del recurso, Región, Provincia y Comuna.\n\nFalta completar o corregir: ' + missing.join(', ') + '.\n\nEstos datos son obligatorios para identificar el recurso, generar un ID único territorial y evitar duplicados.');
+        alert('Antes de guardar online u offline debes ingresar Nombre del recurso, Región, Provincia y Comuna.\n\nFalta completar o corregir: ' + missing.join(', ') + '.\n\nEstos datos son obligatorios para generar el ID único asociado al Código Único Territorial Región-Provincia-Comuna y evitar duplicados.');
         goToSection('datos-generales');
         requestAnimationFrame(() => {
           const firstMissing = missing[0] === 'nombre del recurso' ? 'nombreRecurso' : missing[0] === 'región' ? 'region' : missing[0] === 'provincia' ? 'provincia' : 'comuna';
@@ -4708,17 +5562,30 @@
       const existingCode = String(state.values.codigo_atractivo || '').trim();
       const idCodeMatch = existingId.match(/-A(.+)$/);
       const attractionCode = existingCode || (idCodeMatch ? idCodeMatch[1] : createAttractionCode());
-      const territorialId = `R${codes.codigo_region}-C${codes.codigo_comuna}-A${attractionCode}`;
-      const hasCompleteTerritory = codes.codigo_region !== '00' && !String(codes.codigo_comuna).endsWith('00');
-      const isPlaceholderId = /^R00-C0+-A/.test(existingId) || existingId.includes('-C00000-A');
-      const territoryDoesNotMatch = hasCompleteTerritory && existingId && !existingId.startsWith(`R${codes.codigo_region}-C${codes.codigo_comuna}-A`);
+      const territorialId = `R${codes.codigo_region}-P${codes.codigo_provincia}-C${codes.codigo_comuna}-A${attractionCode}`;
+      const hasCompleteTerritory = codes.codigo_region !== '00'
+        && !String(codes.codigo_provincia).endsWith('0')
+        && !String(codes.codigo_comuna).endsWith('00');
+      const isPlaceholderId = /^R00-(P0+-)?C0+-A/.test(existingId) || existingId.includes('-C00000-A');
+      const expectedPrefix = `R${codes.codigo_region}-P${codes.codigo_provincia}-C${codes.codigo_comuna}-A`;
+      const legacyExpectedPrefix = `R${codes.codigo_region}-C${codes.codigo_comuna}-A`;
+      const territoryDoesNotMatch = hasCompleteTerritory && existingId
+        && !existingId.startsWith(expectedPrefix)
+        && !existingId.startsWith(legacyExpectedPrefix);
       const alreadySyncedOnline = Boolean(state.values.fecha_sincronizacion || state.values.fotos_carpeta_drive || state.values.fotos_links);
 
       state.values.codigo_atractivo = attractionCode;
       state.values.idInterno = 'A' + attractionCode;
 
+      if (state.preserveLegacyId && isLegacyUniqueId(existingId)) {
+        state.values.id_unico_formato = 'legacy-cut-comuna';
+        autosave();
+        return state.values.id_unico;
+      }
+
       if (!existingId || isPlaceholderId || (territoryDoesNotMatch && !alreadySyncedOnline)) {
         state.values.id_unico = territorialId;
+        state.values.id_unico_formato = 'cut-region-provincia-comuna';
       }
 
       autosave();
@@ -4737,12 +5604,18 @@
 
     function buildPhotoUploadPayload() {
       const id = ensureUniqueId();
+      const now = localIsoWithOffset();
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
       return {
         action: 'uploadPhotos',
         id_unico: id,
         values: {
           ...state.values,
-          id_unico: id
+          id_unico: id,
+          fecha_creacion: state.values.fecha_creacion || now,
+          fecha_actualizacion: now,
+          fecha_sincronizacion: now,
+          zona_horaria_usuario: userTimeZone
         },
         photos: state.photos.map(photo => ({
           name: photo.name,
@@ -4847,17 +5720,24 @@
 
     function buildOnlinePayload() {
       const id = ensureUniqueId();
+      const now = localIsoWithOffset();
+      const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
+      const values = {
+        ...state.values,
+        id_unico: id,
+        codigo_atractivo: state.values.codigo_atractivo || '',
+        fecha_creacion: state.values.fecha_creacion || now,
+        fecha_actualizacion: now,
+        fecha_sincronizacion: now,
+        zona_horaria_usuario: userTimeZone
+      };
 
       return {
         action: 'saveRecord',
         estado: 'borrador',
         id_unico: id,
         codigo_atractivo: state.values.codigo_atractivo || '',
-        values: {
-          ...state.values,
-          id_unico: id,
-          codigo_atractivo: state.values.codigo_atractivo || ''
-        },
+        values,
         photos: state.photos.map(photo => ({
           name: photo.name,
           size: photo.size,
@@ -4876,10 +5756,12 @@
         const payload = buildOnlinePayload();
 
         await submitPayloadToGoogleSheet(payload);
+        const verifiedRecord = await verifyOnlineSave(payload);
 
         return {
           ok: true,
-          id_unico: payload.values.id_unico
+          id_unico: payload.values.id_unico,
+          record: verifiedRecord
         };
       } catch (error) {
         return {
@@ -4913,10 +5795,76 @@
       return new Promise(resolve => setTimeout(resolve, ms));
     }
 
+    function localIsoWithOffset(date = new Date()) {
+      const pad = value => String(value).padStart(2, '0');
+      const offsetMinutes = -date.getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? '+' : '-';
+      const absoluteOffset = Math.abs(offsetMinutes);
+
+      return [
+        date.getFullYear(), '-', pad(date.getMonth() + 1), '-', pad(date.getDate()),
+        'T', pad(date.getHours()), ':', pad(date.getMinutes()), ':', pad(date.getSeconds()),
+        '.', String(date.getMilliseconds()).padStart(3, '0'),
+        sign, pad(Math.floor(absoluteOffset / 60)), ':', pad(absoluteOffset % 60)
+      ].join('');
+    }
+
     function googleScriptUrl(params = {}) {
       const url = new URL(ONLINE_SYNC_URL);
       Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
       return url.toString();
+    }
+
+    async function fetchOnlineRecord(id) {
+      const response = await fetch(googleScriptUrl({
+        action: 'get',
+        id_unico: id,
+        t: Date.now()
+      }), { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Google Sheet respondió con estado ${response.status}.`);
+
+      const data = await response.json();
+      if (!data.ok || !data.record) {
+        throw new Error(data.message || 'El registro todavía no aparece en Google Sheet.');
+      }
+      return data.record;
+    }
+
+    function sameSavedVersion(record, payload) {
+      const expected = payload.values || {};
+      if (String(record.id_unico || '').trim().toUpperCase() !== String(payload.id_unico || '').trim().toUpperCase()) {
+        return false;
+      }
+
+      const expectedSync = String(expected.fecha_sincronizacion || '');
+      const actualSync = String(record.fecha_sincronizacion || '');
+      if (expectedSync && actualSync) {
+        const expectedTime = Date.parse(expectedSync);
+        const actualTime = Date.parse(actualSync);
+        if (Number.isFinite(expectedTime) && Number.isFinite(actualTime)) {
+          return Math.abs(expectedTime - actualTime) < 2000;
+        }
+        return expectedSync === actualSync;
+      }
+
+      return ['nombreRecurso', 'region', 'provincia', 'comuna'].every(key =>
+        String(record[key] ?? '') === String(expected[key] ?? '')
+      );
+    }
+
+    async function verifyOnlineSave(payload, attempts = 5) {
+      let lastError = null;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        if (attempt > 1) await sleep(1200);
+        try {
+          const record = await fetchOnlineRecord(payload.id_unico);
+          if (sameSavedVersion(record, payload)) return record;
+          lastError = new Error('Google Sheet aún muestra una versión anterior del registro.');
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error('No fue posible confirmar el guardado en Google Sheet.');
     }
 
     async function loadRecordByUniqueId(idOverride = '') {
@@ -4971,6 +5919,7 @@
       state.values = {};
       state.photos = [];
       state.lastSavedAt = null;
+      state.preserveLegacyId = false;
       saveState();
       renderForm();
       setupMobileNavigation();
@@ -4998,10 +5947,26 @@
       setSyncStatus('Nueva ficha iniciada', 'warn');
     }
 
+    function regenerateUniqueId() {
+      if (!validateTerritoryForSave({ silent: false })) return;
+      const currentId = String(state.values.id_unico || '').trim();
+      const message = currentId
+        ? 'Esto reemplazará el ID actual por uno nuevo basado en el Código Único Territorial Región-Provincia-Comuna. Si este registro ya existe en Google Sheet, podría crear una nueva referencia. ¿Continuar?'
+        : 'Se generará un ID nuevo basado en el Código Único Territorial Región-Provincia-Comuna. ¿Continuar?';
+      if (!confirm(message)) return;
+      state.preserveLegacyId = false;
+      state.values.id_unico = '';
+      ensureUniqueId();
+      updateUniqueIdDisplay();
+      updateUiSummary();
+      setSyncStatus('ID regenerado con CUT completo', 'warn');
+    }
+
     function setupIdActions() {
       document.getElementById('copyUniqueIdBtn')?.addEventListener('click', copyUniqueId);
+      document.getElementById('regenerateUniqueIdBtn')?.addEventListener('click', regenerateUniqueId);
       document.getElementById('newAttractionBtn')?.addEventListener('click', startNewAttraction);
-      document.getElementById('loadByIdBtn')?.addEventListener('click', loadRecordByUniqueId);
+      document.getElementById('loadByIdBtn')?.addEventListener('click', () => loadRecordByUniqueId());
       document.getElementById('lookupUniqueIdInput')?.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') loadRecordByUniqueId();
       });
@@ -5045,12 +6010,147 @@
       return value !== undefined && value !== null && String(value).trim() !== '';
     }
 
+    function findFieldConfig(name) {
+      for (const section of sections) {
+        const found = (section.fields || []).find(field => field.name === name);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function getFieldValueByName(name) {
+      const value = state.values[name];
+      return value === undefined || value === null ? '' : String(value).trim();
+    }
+
+    function isFieldValidByName(name) {
+      const field = findFieldConfig(name);
+      const value = getFieldValueByName(name);
+      if (!value) return false;
+      if (field?.type === 'number' && field.min !== undefined && Number(value) < Number(field.min)) return false;
+      if (field?.type === 'email') return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+      if (field?.pattern) return new RegExp(field.pattern).test(value);
+      return true;
+    }
+
+    function fieldIsApplicable(field) {
+      if (field?.showWhenAll) return conditionMatches({ all: field.showWhenAll });
+      return !field?.showWhen || conditionMatches(field.showWhen);
+    }
+
+    function getSectionRequiredFields(section) {
+      const fields = section.fields || [];
+      if (Array.isArray(section.requiredFields) && section.requiredFields.length) {
+        return section.requiredFields.filter(name => {
+          const field = fields.find(item => item.name === name);
+          return !field || fieldIsApplicable(field);
+        });
+      }
+      return fields.filter(field => field.required && fieldIsApplicable(field)).map(field => field.name);
+    }
+
+    function getMissingRequiredFields(section) {
+      const missing = getSectionRequiredFields(section).filter(name => !isFieldValidByName(name));
+      if (section.id === 'experiencias') {
+        const missingByExperience = getExperiencesWithoutActivities();
+        if (missingByExperience.length && !missing.includes('actividades')) missing.push('actividades');
+      }
+      return missing;
+    }
+
+    function getExperiencesWithoutActivities() {
+      const selectedExperiences = asArrayValue(state.values.tiposExperiencia);
+      const selectedActivities = new Set(asArrayValue(state.values.actividades));
+      return selectedExperiences.filter(experience => {
+        const options = OPTIONS.actividadesPorExperiencia[experience] || [];
+        return !options.some(activity => selectedActivities.has(activity));
+      });
+    }
+
+    function isThermalResource() {
+      return state.values.categoria === 'Recurso Natural'
+        && state.values.tipoRecurso === 'Fuente termal o géiser'
+        && state.values.subtipoRecurso === 'Fuente o centro termal';
+    }
+
+    function getInvalidOptionalFields(section) {
+      return (section.fields || []).filter(field => {
+        if (!fieldIsApplicable(field)) return false;
+        if (getSectionRequiredFields(section).includes(field.name)) return false;
+        const value = getFieldValueByName(field.name);
+        if (!value) return false;
+        if (field.type === 'email') return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        if (field.pattern) return !(new RegExp(field.pattern).test(value));
+        return false;
+      }).map(field => field.name);
+    }
+
+    function markMissingFields(section, missingNames) {
+      const missing = new Set(missingNames);
+      const sectionEl = document.getElementById(section.id);
+      sectionEl?.querySelectorAll('[data-field]').forEach(wrap => {
+        wrap.classList.toggle('is-missing', missing.has(wrap.dataset.field));
+      });
+    }
+
+    function validateSectionBeforeNext(section) {
+      const missing = getMissingRequiredFields(section);
+      const invalidOptional = getInvalidOptionalFields(section);
+      markMissingFields(section, missing.concat(invalidOptional));
+      updateFormProgress();
+      if (!missing.length && !invalidOptional.length) return true;
+      const messages = [];
+      if (missing.length) {
+        const labels = missing.map(name => name === 'actividades' ? 'Actividades por experiencia' : findFieldConfig(name)?.label || name);
+        messages.push('Campos obligatorios pendientes:\n- ' + labels.join('\n- '));
+      }
+      if (section.id === 'experiencias') {
+        const missingByExperience = getExperiencesWithoutActivities();
+        if (missingByExperience.length) {
+          messages.push('Cada experiencia seleccionada debe tener al menos una actividad marcada:\n- ' + missingByExperience.join('\n- '));
+        }
+      }
+      if (invalidOptional.length) {
+        const labels = invalidOptional.map(name => findFieldConfig(name)?.label || name);
+        messages.push('Campos opcionales con formato incorrecto:\n- ' + labels.join('\n- '));
+      }
+      alert('Para avanzar revisa esta seccion:\n\n' + messages.join('\n\n') + '\n\nPuedes guardar un borrador, pero esta seccion aun no esta finalizada.');
+      const first = document.getElementById(missing[0] || invalidOptional[0]);
+      first?.focus();
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+
     function getSectionProgress(section) {
       const fields = section.fields || [];
+      if (section.id === 'fotos') {
+        const localCount = Array.isArray(state.photos) ? state.photos.length : 0;
+        const onlineCount = Number(state.values.fotos_cantidad || 0);
+        const hasDrivePhotos = Boolean(String(state.values.fotos_links || '').trim() || String(state.values.fotos_carpeta_drive || '').trim() || onlineCount > 0);
+        if (hasDrivePhotos) {
+          return { filled: 1, total: 1, status: 'complete', complete: true };
+        }
+        if (localCount > 0) {
+          return { filled: 1, total: 1, status: 'in-progress', complete: false };
+        }
+        return { filled: 0, total: 1, status: 'pending', complete: false };
+      }
       if (!fields.length) return { filled: 0, total: 0, complete: true };
+      const requiredFields = getSectionRequiredFields(section);
+      if (requiredFields.length) {
+        const filledRequired = requiredFields.filter(name => getFieldValueByName(name)).length;
+        const missingRequired = getMissingRequiredFields(section).length;
+        const validRequired = requiredFields.length - missingRequired;
+        return {
+          filled: filledRequired,
+          total: requiredFields.length,
+          status: validRequired === requiredFields.length ? 'complete' : filledRequired > 0 ? 'in-progress' : 'pending',
+          complete: validRequired === requiredFields.length
+        };
+      }
       const filled = fields.filter(getFieldHasValue).length;
       const minimum = Math.max(1, Math.ceil(fields.length * 0.35));
-      return { filled, total: fields.length, complete: filled >= minimum };
+      return { filled, total: fields.length, status: filled >= minimum ? 'complete' : filled > 0 ? 'in-progress' : 'pending', complete: filled >= minimum };
     }
 
     function updateRecordSummary() {
@@ -5076,12 +6176,13 @@
         const sectionEl = document.getElementById(section.id);
         const statusEl = sectionEl?.querySelector('[data-section-status]');
         if (statusEl) {
-          statusEl.textContent = progress.complete ? 'Con avance' : 'Pendiente';
-          statusEl.className = progress.complete ? 'section-status complete' : 'section-status';
+          const status = progress.status || (progress.complete ? 'complete' : progress.filled > 0 ? 'in-progress' : 'pending');
+          statusEl.textContent = status === 'complete' ? 'Finalizado' : status === 'in-progress' ? 'Con avance' : 'Pendiente';
+          statusEl.className = 'section-status' + (status === 'complete' ? ' complete' : status === 'in-progress' ? ' in-progress' : '');
         }
       });
 
-      const percent = total ? Math.round((filled / total) * 100) : 0;
+      const percent = total ? Math.max(0, Math.min(100, Math.round((filled / total) * 100))) : 0;
       const percentEl = document.getElementById('progressPercent');
       const fillEl = document.getElementById('progressFill');
       const sectionsEl = document.getElementById('progressSections');
@@ -5105,8 +6206,10 @@
     function updateUniqueIdDisplay() {
       const idEl = document.getElementById('uniqueIdDisplay');
       const internalInput = document.getElementById('idInterno');
+      const cutInput = document.getElementById('codigo_unico_territorial');
       if (idEl) idEl.textContent = state.values.id_unico || 'Pendiente';
       if (internalInput) internalInput.value = state.values.idInterno || '';
+      if (cutInput) cutInput.value = state.values.codigo_unico_territorial || '';
     }
 
     function updateLastSyncDisplay(value = null) {
@@ -5226,12 +6329,15 @@
       const result = await syncDraftOnline();
 
       if (result.ok) {
-        const when = new Date().toLocaleString('es-CL');
-        state.values.fecha_sincronizacion = when;
+        const verified = result.record || {};
+        state.values.fecha_creacion = verified.fecha_creacion || state.values.fecha_creacion;
+        state.values.fecha_actualizacion = verified.fecha_actualizacion || state.values.fecha_actualizacion;
+        state.values.fecha_sincronizacion = verified.fecha_sincronizacion || state.values.fecha_sincronizacion;
+        state.values.zona_horaria_usuario = verified.zona_horaria_usuario || state.values.zona_horaria_usuario;
         saveState();
         persistNamedDraft();
         updateUniqueIdDisplay();
-        updateLastSyncDisplay(when);
+        updateLastSyncDisplay(state.values.fecha_sincronizacion);
         setSyncStatus('Sincronizado online', 'ok');
       } else {
         updateUniqueIdDisplay();
