@@ -24,6 +24,19 @@ const inlineScripts = [...indexHtml.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/s
   .map(match => match[1])
   .filter(source => source.includes("const STORAGE_KEY"));
 inlineScripts.forEach(source => new Function(source));
+const loadedHelpersMatch = indexHtml.match(
+  /function normalizeLoadedDateValue[\s\S]*?(?=\n    function applyLoadedState)/
+);
+if (!loadedHelpersMatch) throw new Error("No fue posible leer los normalizadores de carga.");
+const loadedHelpers = Function(`
+  ${loadedHelpersMatch[0]}
+  return {
+    normalizeLoadedDateValue,
+    normalizeLoadedTimeValue,
+    normalizeLoadedPhoneValue,
+    normalizeLoadedFormValues
+  };
+`)();
 
 const helpers = Function(`
   ${appScript}
@@ -85,7 +98,46 @@ const checks = {
     indexHtml.includes("verifyOnlineSave(payload)") &&
     indexHtml.includes("sameSavedVersion(record, payload)"),
   lookupButtonUsesWrapper:
-    indexHtml.includes("addEventListener('click', () => loadRecordByUniqueId())")
+    indexHtml.includes("addEventListener('click', () => loadRecordByUniqueId())"),
+  normalizesLoadedDateAndTime:
+    indexHtml.includes("normalizeLoadedFormValues") &&
+    indexHtml.includes("normalizeLoadedDateValue") &&
+    indexHtml.includes("normalizeLoadedTimeValue"),
+  serializesSheetDatesAndTimes:
+    appScript.includes("serializeRecordValue_") &&
+    appScript.includes("DATE_ONLY_HEADERS") &&
+    appScript.includes("TIME_ONLY_HEADERS"),
+  preservesPhonesAndCodesAsText:
+    appScript.includes("applyTextFormatsToRows_") &&
+    appScript.includes("normalizePhoneForSheet_") &&
+    appScript.includes("normalizeTerritoryCode_"),
+  loadedValuesAreHtmlCompatible:
+    loadedHelpers.normalizeLoadedDateValue("2026-07-28T04:00:00.000Z") === "2026-07-28" &&
+    loadedHelpers.normalizeLoadedTimeValue("1899-12-30T13:42:45.000Z") === "09:00" &&
+    loadedHelpers.normalizeLoadedTimeValue("1899-12-30T22:42:45.000Z") === "18:00" &&
+    loadedHelpers.normalizeLoadedPhoneValue("56912345678") === "+56912345678" &&
+    loadedHelpers.normalizeLoadedPhoneValue("912345678") === "+56912345678" &&
+    loadedHelpers.normalizeLoadedPhoneValue("5622750112") === "+5622750112" &&
+    loadedHelpers.normalizeLoadedFormValues({
+      codigo_region: 1,
+      codigo_provincia: 11,
+      codigo_comuna: 1107
+    }).codigo_unico_territorial === undefined &&
+    loadedHelpers.normalizeLoadedFormValues({
+      codigo_region: 1,
+      codigo_provincia: 11,
+      codigo_comuna: 1107
+    }).codigo_region === "01" &&
+    loadedHelpers.normalizeLoadedFormValues({
+      codigo_region: 1,
+      codigo_provincia: 11,
+      codigo_comuna: 1107
+    }).codigo_provincia === "011" &&
+    loadedHelpers.normalizeLoadedFormValues({
+      codigo_region: 1,
+      codigo_provincia: 11,
+      codigo_comuna: 1107
+    }).codigo_comuna === "01107"
 };
 
 const failed = Object.entries(checks)
