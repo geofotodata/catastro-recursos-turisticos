@@ -15,6 +15,7 @@ Tambien busca facilitar que distintos equipos puedan trabajar con una misma base
 - Formulario de catastro para ingresar y actualizar recursos turisticos.
 - Mapa para registrar la ubicacion geografica del recurso.
 - Borradores locales para continuar el trabajo desde el mismo navegador.
+- Carga masiva de hasta 20 atractivos como borradores para completar posteriormente.
 - Dashboard de consulta para revisar registros existentes.
 - Visualizador del manual tecnico de apoyo.
 - Exportacion de fichas para respaldo o revision.
@@ -23,6 +24,7 @@ Tambien busca facilitar que distintos equipos puedan trabajar con una misma base
 
 - `index.html`: formulario principal de registro.
 - `dashboard.html`: vista de consulta y revision de registros.
+- `carga-masiva.html`: preparacion e importacion de lotes de borradores.
 - `manual.html`: acceso al manual tecnico del catastro.
 - `manual-catastro-recursos-turisticos.pdf`: documento de referencia metodologica.
 - `index-copia-respaldo.html`: copia de trabajo usada para pruebas antes de actualizar la version principal.
@@ -37,7 +39,7 @@ El formulario inicia limpio cada vez que se abre, de modo que el ingreso de info
 
 Este repositorio corresponde a un prototipo funcional en HTML, CSS y JavaScript. Esta version permite operar de forma local y conectarse con servicios externos para respaldo y consulta de informacion.
 
-El proyecto puede seguir evolucionando hacia una plataforma con control de usuarios, permisos por comuna, validacion avanzada de datos, carga masiva de registros y reportes territoriales mas completos.
+El proyecto puede seguir evolucionando hacia una plataforma con control de usuarios, permisos por comuna, validacion avanzada de datos y reportes territoriales mas completos.
 
 ## Estado actual
 
@@ -47,6 +49,7 @@ La version actual considera:
 - Georreferenciacion manual mediante mapa.
 - Resguardo de la seleccion territorial ingresada manualmente.
 - Trabajo con borradores locales.
+- Importacion de borradores desde Excel, CSV, TSV o datos pegados desde una planilla.
 - Consulta de registros mediante dashboard.
 - Apoyo mediante manual tecnico integrado.
 

@@ -1929,6 +1929,7 @@
             <div class="hero-action-label">Formulario</div>
             <button class="primary" id="newResourceBtn">Nuevo recurso</button>
             <a class="button-like secondary" href="dashboard.html">Dashboard</a>
+            <a class="button-like secondary" href="carga-masiva.html">Carga masiva</a>
             <a class="button-like ghost" href="manual.html">Manual</a>
           </div>
           <div class="hero-action-group" aria-label="Borradores JSON">
@@ -2846,6 +2847,7 @@
 
     const ALWAYS_START_NEW_RECORD = true;
     const state = ALWAYS_START_NEW_RECORD ? normalizeState({}) : loadState();
+    let activeDraftId = null;
 
     function withFieldOptions(field, extra = {}) { return { ...field, ...extra }; }
     function text(name, label, hint = '', span = 'span-12', extra = {}) { return withFieldOptions({ type: 'text', name, label, hint, span }, extra); }
@@ -4666,13 +4668,15 @@
       const drafts = loadDrafts();
       const idUnico = String(state.values.id_unico || '').trim();
       const name = state.values.nombreRecurso || 'Borrador sin nombre';
-      const currentDraft = idUnico ? findLocalDraftByUniqueId(idUnico) : null;
+      const currentDraft = (activeDraftId && drafts.find(draft => draft.id === activeDraftId))
+        || (idUnico ? findLocalDraftByUniqueId(idUnico) : null);
       const payload = {
         id: currentDraft?.id || idUnico || crypto.randomUUID(),
         name,
         savedAt: new Date().toISOString(),
         data: buildStorageSafeState(state)
       };
+      activeDraftId = payload.id;
       const nextDrafts = normalizeDraftList([
         payload,
         ...drafts.filter(draft => {
@@ -4682,7 +4686,7 @@
         })
       ]);
       try {
-        localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts.slice(0, 10)));
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts.slice(0, 100)));
       } catch (error) {
         alert('No fue posible guardar el borrador local. Elimina borradores antiguos del navegador. Las fotos deben respaldarse en Google Drive, no en el borrador offline.');
       }
@@ -4798,7 +4802,8 @@
       return normalized;
     }
 
-    function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
+    function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok', options = {}) {
+      if (!options.keepDraftIdentity) activeDraftId = null;
       const loadedState = normalizeState(JSON.parse(JSON.stringify(data || {})));
       loadedState.values = normalizeLoadedFormValues(loadedState.values);
       Object.assign(state, loadedState);
@@ -4832,7 +4837,8 @@
     function loadNamedDraft(id) {
       const draft = loadDrafts().find(d => d.id === id);
       if (!draft) return false;
-      applyLoadedState(draft.data, 'Borrador local cargado', 'warn');
+      activeDraftId = draft.id;
+      applyLoadedState(draft.data, 'Borrador local cargado', 'warn', { keepDraftIdentity: true });
       return true;
     }
 
@@ -4845,6 +4851,7 @@
       const drafts = loadDrafts().filter(d => d.id !== id);
       try {
         localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+        if (activeDraftId === id) activeDraftId = null;
       } catch (error) {
         alert('No fue posible actualizar la lista de borradores.');
       }
@@ -5980,6 +5987,7 @@
     }
 
     function resetFormState() {
+      activeDraftId = null;
       state.values = {};
       state.photos = [];
       state.lastSavedAt = null;
@@ -6473,8 +6481,13 @@
     openStartDisclaimer();
 
     const initialParams = new URLSearchParams(window.location.search);
+    const initialDraftId = initialParams.get('draft') || '';
     const initialEditId = initialParams.get('id_unico') || initialParams.get('edit') || initialParams.get('id') || '';
-    if (initialEditId) {
+    if (initialDraftId) {
+      setTimeout(() => {
+        if (loadNamedDraft(initialDraftId)) closeStartDisclaimer();
+      }, 250);
+    } else if (initialEditId) {
       setTimeout(() => loadRecordByUniqueId(initialEditId), 250);
     }
   </script>

@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carga masiva de borradores - Catastro Nacional de Recursos Turísticos</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --panel: #ffffff;
+      --line: #d5deea;
+      --text: #122b42;
+      --muted: #60758a;
+      --teal: #0f766e;
+      --blue: #1d4ed8;
+      --blue-soft: #eaf1ff;
+      --green: #166534;
+      --green-soft: #dcfce7;
+      --amber: #92400e;
+      --amber-soft: #fef3c7;
+      --red: #b91c1c;
+      --red-soft: #fee2e2;
+      --shadow: 0 8px 24px rgba(15, 35, 58, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    .button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 13px;
+      background: #e8eef7;
+      color: var(--text);
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    button:hover,
+    .button:hover { filter: brightness(0.97); }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    .button.primary, button.primary { background: var(--blue); color: #fff; }
+    .button.teal, button.teal { background: var(--teal); color: #fff; }
+    .button.light, button.light { background: #fff; color: #17405a; }
+    .button.danger, button.danger { background: var(--red-soft); color: var(--red); }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 17px 18px;
+      background: #123b52;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .topbar h1 {
+      margin: 3px 0 4px;
+      font-size: 1.45rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 0;
+      max-width: 760px;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .kicker {
+      color: #a7f3d0;
+      font-size: 0.76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .nav-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 13px 15px;
+      border-right: 1px solid var(--line);
+    }
+
+    .stat:last-child { border-right: 0; }
+    .stat span { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 800; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 3px; font-size: 1.35rem; }
+
+    .tabs {
+      width: fit-content;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .tab {
+      min-height: 36px;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 12px;
+    }
+
+    .tab.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .panel {
+      width: 100%;
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .panel[hidden] { display: none; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 13px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.18rem;
+    }
+
+    .section-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .import-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 1.2fr) minmax(280px, 0.8fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .import-grid > *,
+    .source-tools {
+      min-width: 0;
+    }
+
+    .drop-zone {
+      min-height: 150px;
+      border: 2px dashed #9fb0c5;
+      border-radius: 8px;
+      background: #f8fbff;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .drop-zone strong { display: block; margin-bottom: 5px; }
+    .drop-zone span { color: var(--muted); font-size: 0.9rem; }
+
+    .source-tools {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .source-tools textarea {
+      width: 100%;
+      min-height: 94px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--text);
+    }
+
+    .source-actions,
+    .table-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .notice {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+      color: var(--muted);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .notice.ok { border-color: #86efac; background: #f0fdf4; color: var(--green); }
+    .notice.warn { border-color: #fcd34d; background: #fffbeb; color: var(--amber); }
+    .notice.fail { border-color: #fca5a5; background: #fff7f7; color: var(--red); }
+
+    .table-wrap {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 560px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1120px;
+      font-size: 0.88rem;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f1f5f9;
+      color: #29465e;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+    }
+
+    td:first-child,
+    th:first-child { width: 48px; text-align: center; }
+
+    td:last-child,
+    th:last-child { width: 52px; text-align: center; }
+
+    td input,
+    td select {
+      width: 100%;
+      min-width: 180px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 9px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    td input[aria-invalid="true"],
+    td select[aria-invalid="true"] {
+      border-color: #ef4444;
+      background: #fff7f7;
+    }
+
+    .row-status {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 0.76rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .row-status.ok { background: var(--green-soft); color: var(--green); }
+    .row-status.warn { background: var(--amber-soft); color: var(--amber); }
+    .row-status.fail { background: var(--red-soft); color: var(--red); }
+
+    .row-errors {
+      margin-top: 5px;
+      color: var(--red);
+      font-size: 0.74rem;
+      line-height: 1.3;
+    }
+
+    .remove-row {
+      width: 34px;
+      min-height: 34px;
+      padding: 0;
+      background: var(--red-soft);
+      color: var(--red);
+      font-size: 1.2rem;
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 13px;
+    }
+
+    .footer-actions .muted {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .draft-list {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      max-height: 620px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .draft-list table { min-width: 900px; }
+    .draft-list td:first-child,
+    .draft-list th:first-child { width: auto; text-align: left; }
+    .draft-list td:last-child,
+    .draft-list th:last-child { width: 210px; text-align: left; }
+
+    .draft-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .empty {
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .topbar { flex-direction: column; }
+      .nav-actions { justify-content: flex-start; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat:nth-child(2) { border-right: 0; }
+      .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .import-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { padding: 10px; }
+      .panel { padding: 12px; }
+      .topbar { padding: 14px; }
+      .topbar h1 { font-size: 1.25rem; }
+      .stats { grid-template-columns: 1fr; }
+      .stat { border-right: 0; border-bottom: 1px solid var(--line); }
+      .stat:last-child { border-bottom: 0; }
+      .tabs { width: 100%; }
+      .tab { flex: 1; }
+      .source-actions,
+      .table-actions,
+      .footer-actions { align-items: stretch; }
+      .source-actions > *,
+      .table-actions > *,
+      .footer-actions button { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <span class="kicker">Borradores locales</span>
+        <h1>Carga masiva de atractivos</h1>
+        <p>Preparación de hasta 20 fichas para continuar su levantamiento en el formulario.</p>
+      </div>
+      <nav class="nav-actions" aria-label="Navegación">
+        <a class="button light" href="index.html">Formulario</a>
+        <a class="button light" href="dashboard.html">Dashboard</a>
+        <a class="button light" href="manual.html">Manual</a>
+      </nav>
+    </header>
+
+    <section class="stats" aria-label="Resumen de carga">
+      <div class="stat"><span>Filas en el lote</span><strong id="batchCount">0 / 20</strong></div>
+      <div class="stat"><span>Listas para guardar</span><strong id="validCount">0</strong></div>
+      <div class="stat"><span>Con observaciones</span><strong id="invalidCount">0</strong></div>
+      <div class="stat"><span>Borradores locales</span><strong id="draftCount">0</strong></div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Vistas de carga masiva">
+      <button class="tab active" id="prepareTab" type="button" role="tab" aria-selected="true" aria-controls="preparePanel">Preparar lote</button>
+      <button class="tab" id="draftsTab" type="button" role="tab" aria-selected="false" aria-controls="draftsPanel">Borradores guardados</button>
+    </div>
+
+    <section class="panel" id="preparePanel" role="tabpanel" aria-labelledby="prepareTab">
+      <div class="section-head">
+        <div>
+          <h2>Importar atractivos</h2>
+          <p>Campos del lote: nombre, categoría, tipo y subtipo.</p>
+        </div>
+        <button type="button" id="downloadTemplateBtn">Descargar plantilla</button>
+      </div>
+
+      <div class="import-grid">
+        <label class="drop-zone" id="dropZone" for="batchFile" tabindex="0">
+          <span>
+            <strong>Seleccionar o arrastrar una planilla</strong>
+            <span>Excel, CSV o TSV. Máximo 20 filas por lote.</span>
+          </span>
+          <input id="batchFile" type="file" accept=".xlsx,.xls,.csv,.tsv,text/csv,text/tab-separated-values" hidden>
+        </label>
+
+        <div class="source-tools">
+          <label for="pasteInput"><strong>Pegar desde Excel o Google Sheets</strong></label>
+          <textarea id="pasteInput" placeholder="nombreRecurso&#9;categoria&#9;tipoRecurso&#9;subtipoRecurso"></textarea>
+          <div class="source-actions">
+            <button type="button" id="pasteBtn">Incorporar filas</button>
+            <button type="button" id="addRowBtn">Agregar fila</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice" id="noticeBox" role="status" aria-live="polite">
+        Carga una planilla o agrega filas manualmente.
+      </div>
+
+      <div class="table-actions">
+        <button type="button" id="validateBtn">Validar lote</button>
+        <button type="button" class="danger" id="clearBtn">Limpiar lote</button>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-label="Atractivos preparados para carga masiva">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre del recurso</th>
+              <th>Categoría</th>
+              <th>Tipo</th>
+              <th>Subtipo</th>
+              <th>Estado</th>
+              <th>Quitar</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="footer-actions">
+        <span class="muted">Los borradores quedan en este navegador hasta que se guarden online desde el formulario.</span>
+        <button type="button" class="primary" id="saveDraftsBtn">Guardar borradores válidos</button>
+      </div>
+    </section>
+
+    <section class="panel" id="draftsPanel" role="tabpanel" aria-labelledby="draftsTab" hidden>
+      <div class="section-head">
+        <div>
+          <h2>Borradores guardados</h2>
+          <p>Fichas disponibles en este equipo y navegador.</p>
+        </div>
+        <button type="button" id="refreshDraftsBtn">Actualizar lista</button>
+      </div>
+      <div class="draft-list" id="draftList"></div>
+    </section>
+  </main>
+
+  <script>
+    const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
+    const MAX_BATCH_ROWS = 20;
+    const MAX_STORED_DRAFTS = 100;
+
+    const CLASSIFICATION_HIERARCHY = {
+      'Recurso Natural': {
+        'Área protegida': [
+          'Áreas de conservación de múltiples usos',
+          'Áreas de conservación de pueblos indígenas',
+          'Área protegida privada',
+          'Monumento Natural',
+          'Parque Nacional',
+          'Reserva Nacional'
+        ],
+        'Costa': [
+          'Acantilado o farellón',
+          'Arrecife',
+          'Bahía',
+          'Desembocadura',
+          'Duna o campo dunario',
+          'Estrecho',
+          'Fiordo o canal',
+          'Isla o archipiélago',
+          'Península, cabo o punta',
+          'Playa o balneario',
+          'Salina',
+          'Seno o ensenada'
+        ],
+        'Condición natural especial': ['Cielos oscuros', 'Olas'],
+        'Cuerpo y curso de agua': [
+          'Cascada o salto',
+          'Humedal o bofedal',
+          'Lago o laguna',
+          'Río o estero'
+        ],
+        'Fuente termal o géiser': ['Fuente o centro termal', 'Géiser'],
+        'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciar'],
+        'Lugar de interés geológico o paleontológico': [
+          'Lugar de interés geológico',
+          'Lugar de interés paleontológico'
+        ],
+        'Montaña': [
+          'Altiplano',
+          'Área nevada',
+          'Cerro',
+          'Cordillera',
+          'Montaña',
+          'Quebrada',
+          'Salar',
+          'Volcán'
+        ],
+        'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa o Llanura', 'Valle']
+      },
+      'Recurso Cultural': {
+        'Acontecimientos programados': [
+          'Carnaval o fiesta costumbrista',
+          'Conmemoraciones o representaciones históricas',
+          'Convenciones, ferias, exposiciones o congresos',
+          'Evento de música, canto o danza',
+          'Evento deportivo',
+          'Evento enológico y/o gastronómico',
+          'Feria temática',
+          'Festival de cine',
+          'Fiesta religiosa'
+        ],
+        'Arquitectura': [
+          'Barrios',
+          'Espacios públicos',
+          'Infraestructura recreativa',
+          'Monumento histórico',
+          'Obra de ingeniería',
+          'Otras infraestructuras de arquitectura'
+        ],
+        'Folklore': [
+          'Artesanía',
+          'Feria artesanal y/o tradicional',
+          'Mercado tradicional',
+          'Representaciones y/o manifestaciones religiosas o creencias populares'
+        ],
+        'Manifestación Cultural': [
+          'Caleta artesanal',
+          'Escultura o instalaciones',
+          'Lugar o sitio histórico o de memoria',
+          'Mural o arte urbano',
+          'Museo',
+          'Pueblo o Zona Típica o Pintoresca',
+          'Sala de exposición museográfica',
+          'Sitio gastronómico',
+          'Ruina o lugar de interés arqueológico'
+        ],
+        'Realizaciones técnicas y científicas contemporáneas': [
+          'Acuario, aviario, mariposario y/o zoológico',
+          'Granja educativa',
+          'Hacienda o estancia',
+          'Jardín botánico',
+          'Observatorio astronómico',
+          'Planetario',
+          'Viñas, bodegas, cervecerías o destilerías'
+        ]
+      }
+    };
+
+    const HEADER_ALIASES = {
+      nombre: 'nombreRecurso',
+      nombrerecurso: 'nombreRecurso',
+      nombredelrecurso: 'nombreRecurso',
+      nombredelrecursoturistico: 'nombreRecurso',
+      categoria: 'categoria',
+      tiporecurso: 'tipoRecurso',
+      tipoderecurso: 'tipoRecurso',
+      tipoderecursoturistico: 'tipoRecurso',
+      tipo: 'tipoRecurso',
+      subtiporecurso: 'subtipoRecurso',
+      subtipoderecurso: 'subtipoRecurso',
+      subtipoderecursoturistico: 'subtipoRecurso',
+      subtipo: 'subtipoRecurso'
+    };
+
+    let batchRows = [];
+
+    function createLocalId() {
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+      }
+      return 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    function normalizeText(value) {
+      return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function canonicalValue(options, value) {
+      const normalized = normalizeText(value);
+      if (!normalized) return '';
+      return options.find(option => normalizeText(option) === normalized) || String(value ?? '').trim();
+    }
+
+    function canonicalizeRow(input = {}) {
+      const categories = Object.keys(CLASSIFICATION_HIERARCHY);
+      const categoria = canonicalValue(categories, input.categoria);
+      const types = Object.keys(CLASSIFICATION_HIERARCHY[categoria] || {});
+      const tipoRecurso = canonicalValue(types, input.tipoRecurso);
+      const subtypes = CLASSIFICATION_HIERARCHY[categoria]?.[tipoRecurso] || [];
+      const subtipoRecurso = canonicalValue(subtypes, input.subtipoRecurso);
+      return {
+        id: input.id || createLocalId(),
+        nombreRecurso: String(input.nombreRecurso ?? '').trim(),
+        categoria,
+        tipoRecurso,
+        subtipoRecurso
+      };
+    }
+
+    function classificationKey(values = {}) {
+      return [
+        values.nombreRecurso,
+        values.categoria,
+        values.tipoRecurso,
+        values.subtipoRecurso
+      ].map(normalizeText).join('|');
+    }
+
+    function getStoredDrafts() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function normalizeDrafts(drafts) {
+      const seen = new Set();
+      return drafts
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))
+        .filter(draft => {
+          const uniqueId = String(draft?.data?.values?.id_unico || '').trim();
+          const key = uniqueId ? 'id:' + uniqueId : 'draft:' + String(draft.id || '').trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    function validateBatch(rows = batchRows, storedDrafts = getStoredDrafts()) {
+      const keys = rows.map(classificationKey);
+      const storedKeys = new Set(storedDrafts.map(draft => classificationKey(draft?.data?.values || {})));
+      return rows.map((row, index) => {
+        const errors = [];
+        if (!row.nombreRecurso) errors.push('Falta nombre');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]) errors.push('Categoría no reconocida');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso]) errors.push('Tipo no corresponde a la categoría');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso]?.includes(row.subtipoRecurso)) {
+          errors.push('Subtipo no corresponde al tipo');
+        }
+        const key = keys[index];
+        if (key && keys.indexOf(key) !== index) errors.push('Duplicado dentro del lote');
+        if (key && storedKeys.has(key)) errors.push('Ya existe como borrador local');
+        return { valid: errors.length === 0, errors };
+      });
+    }
+
+    function detectDelimiter(text) {
+      const firstLine = String(text || '').split(/\r?\n/, 1)[0] || '';
+      const candidates = ['\t', ';', ','];
+      return candidates
+        .map(delimiter => ({ delimiter, count: firstLine.split(delimiter).length }))
+        .sort((a, b) => b.count - a.count)[0].delimiter;
+    }
+
+    function parseDelimited(text, delimiter = detectDelimiter(text)) {
+      const rows = [];
+      let row = [];
+      let value = '';
+      let quoted = false;
+      const source = String(text || '').replace(/^\uFEFF/, '');
+
+      for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+        const next = source[i + 1];
+        if (char === '"') {
+          if (quoted && next === '"') {
+            value += '"';
+            i++;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (char === delimiter && !quoted) {
+          row.push(value);
+          value = '';
+        } else if ((char === '\n' || char === '\r') && !quoted) {
+          if (char === '\r' && next === '\n') i++;
+          row.push(value);
+          if (row.some(cell => String(cell).trim())) rows.push(row);
+          row = [];
+          value = '';
+        } else {
+          value += char;
+        }
+      }
+
+      row.push(value);
+      if (row.some(cell => String(cell).trim())) rows.push(row);
+      return rows;
+    }
+
+    function matrixToObjects(matrix) {
+      const cleanMatrix = (Array.isArray(matrix) ? matrix : [])
+        .map(row => Array.isArray(row) ? row : [])
+        .filter(row => row.some(cell => String(cell ?? '').trim()));
+      if (!cleanMatrix.length) return [];
+
+      const first = cleanMatrix[0].map(cell => HEADER_ALIASES[normalizeText(cell)] || '');
+      const recognizedHeaders = first.filter(Boolean).length;
+      const hasHeader = recognizedHeaders >= 2;
+      const headers = hasHeader
+        ? first
+        : ['nombreRecurso', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      const dataRows = hasHeader ? cleanMatrix.slice(1) : cleanMatrix;
+
+      return dataRows.map(row => {
+        const values = {};
+        headers.forEach((header, index) => {
+          if (header) values[header] = row[index] ?? '';
+        });
+        return values;
+      }).filter(values => [
+        values.nombreRecurso,
+        values.categoria,
+        values.tipoRecurso,
+        values.subtipoRecurso
+      ].some(value => String(value ?? '').trim())).map(canonicalizeRow);
+    }
+
+    function appendRows(rows, sourceLabel = 'lote') {
+      const available = MAX_BATCH_ROWS - batchRows.length;
+      if (available <= 0) {
+        showNotice('El lote ya alcanzó el máximo de 20 filas.', 'warn');
+        return 0;
+      }
+      const accepted = rows.slice(0, available);
+      batchRows = [...batchRows, ...accepted];
+      renderBatch();
+      const omitted = rows.length - accepted.length;
+      showNotice(
+        accepted.length + ' fila(s) incorporada(s) desde ' + sourceLabel
+          + (omitted > 0 ? '. Se omitieron ' + omitted + ' por el límite de 20.' : '.'),
+        omitted > 0 ? 'warn' : 'ok'
+      );
+      return accepted.length;
+    }
+
+    async function readBatchFile(file) {
+      if (!file) return [];
+      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB.');
+      const extension = String(file.name || '').split('.').pop().toLowerCase();
+      if (extension === 'xlsx' || extension === 'xls') {
+        if (!globalThis.XLSX) throw new Error('No fue posible cargar el lector de Excel. Usa CSV o vuelve a intentar con conexión.');
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        return matrixToObjects(XLSX.utils.sheet_to_json(firstSheet, {
+          header: 1,
+          defval: '',
+          raw: false
+        }));
+      }
+      const text = await file.text();
+      return matrixToObjects(parseDelimited(text));
+    }
+
+    function optionMarkup(options, selected, placeholder) {
+      return '<option value="">' + escapeHtml(placeholder) + '</option>'
+        + options.map(option => '<option value="' + escapeHtml(option) + '"'
+          + (option === selected ? ' selected' : '') + '>' + escapeHtml(option) + '</option>').join('');
+    }
+
+    function renderBatch() {
+      const tbody = document.getElementById('batchTableBody');
+      const validations = validateBatch();
+      if (!batchRows.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty">El lote está vacío.</td></tr>';
+        updateStats(validations);
+        return;
+      }
+
+      tbody.innerHTML = batchRows.map((row, index) => {
+        const validation = validations[index];
+        const types = Object.keys(CLASSIFICATION_HIERARCHY[row.categoria] || {});
+        const subtypes = CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso] || [];
+        const invalid = validation.valid ? 'false' : 'true';
+        return '<tr data-row-id="' + escapeHtml(row.id) + '">'
+          + '<td>' + (index + 1) + '</td>'
+          + '<td><input data-field="nombreRecurso" value="' + escapeHtml(row.nombreRecurso) + '" aria-label="Nombre del recurso fila ' + (index + 1) + '" aria-invalid="' + invalid + '"></td>'
+          + '<td><select data-field="categoria" aria-label="Categoría fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(Object.keys(CLASSIFICATION_HIERARCHY), row.categoria, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="tipoRecurso" aria-label="Tipo fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(types, row.tipoRecurso, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="subtipoRecurso" aria-label="Subtipo fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(subtypes, row.subtipoRecurso, 'Seleccione') + '</select></td>'
+          + '<td><span class="row-status ' + (validation.valid ? 'ok' : 'fail') + '">'
+          + (validation.valid ? 'Lista' : 'Revisar') + '</span>'
+          + (validation.errors.length ? '<div class="row-errors">' + escapeHtml(validation.errors.join(' · ')) + '</div>' : '')
+          + '</td>'
+          + '<td><button type="button" class="remove-row" data-remove-row="' + escapeHtml(row.id) + '" title="Quitar fila" aria-label="Quitar fila ' + (index + 1) + '">×</button></td>'
+          + '</tr>';
+      }).join('');
+
+      updateStats(validations);
+    }
+
+    function updateStats(validations = validateBatch()) {
+      const valid = validations.filter(item => item.valid).length;
+      document.getElementById('batchCount').textContent = batchRows.length + ' / ' + MAX_BATCH_ROWS;
+      document.getElementById('validCount').textContent = String(valid);
+      document.getElementById('invalidCount').textContent = String(batchRows.length - valid);
+      document.getElementById('draftCount').textContent = String(getStoredDrafts().length);
+      document.getElementById('addRowBtn').disabled = batchRows.length >= MAX_BATCH_ROWS;
+      document.getElementById('saveDraftsBtn').disabled = valid === 0;
+    }
+
+    function showNotice(message, type = '') {
+      const notice = document.getElementById('noticeBox');
+      notice.className = 'notice' + (type ? ' ' + type : '');
+      notice.textContent = message;
+    }
+
+    function createDraft(row, savedAt, batchId) {
+      return {
+        id: createLocalId(),
+        name: row.nombreRecurso,
+        savedAt,
+        source: 'bulk-import',
+        batchId,
+        data: {
+          values: {
+            estado_registro: 'borrador',
+            nombreRecurso: row.nombreRecurso,
+            categoria: row.categoria,
+            tipoRecurso: row.tipoRecurso,
+            subtipoRecurso: row.subtipoRecurso
+          },
+          photos: [],
+          lastSavedAt: savedAt,
+          preserveLegacyId: false
+        }
+      };
+    }
+
+    function saveValidDrafts() {
+      const existing = getStoredDrafts();
+      const validations = validateBatch(batchRows, existing);
+      const validRows = batchRows.filter((row, index) => validations[index].valid);
+      if (!validRows.length) {
+        showNotice('No hay filas válidas para guardar.', 'fail');
+        return;
+      }
+
+      const savedAt = new Date().toISOString();
+      const batchId = 'bulk-' + savedAt.replace(/\D/g, '').slice(0, 14);
+      const newDrafts = validRows.map(row => createDraft(row, savedAt, batchId));
+      const nextDrafts = normalizeDrafts([...newDrafts, ...existing]).slice(0, MAX_STORED_DRAFTS);
+
+      try {
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts));
+      } catch {
+        showNotice('El navegador no pudo almacenar el lote. Elimina borradores antiguos o revisa el espacio disponible.', 'fail');
+        return;
+      }
+
+      const validIds = new Set(validRows.map(row => row.id));
+      batchRows = batchRows.filter(row => !validIds.has(row.id));
+      renderBatch();
+      renderDrafts();
+      showNotice(newDrafts.length + ' borrador(es) guardado(s). Ya pueden abrirse en el formulario.', 'ok');
+      activateTab('drafts');
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return Number.isFinite(date.getTime()) ? date.toLocaleString('es-CL') : 'Sin fecha';
+    }
+
+    function renderDrafts() {
+      const container = document.getElementById('draftList');
+      const drafts = normalizeDrafts(getStoredDrafts());
+      document.getElementById('draftCount').textContent = String(drafts.length);
+      if (!drafts.length) {
+        container.innerHTML = '<div class="empty">No hay borradores locales.</div>';
+        return;
+      }
+
+      container.innerHTML = '<table aria-label="Borradores locales"><thead><tr>'
+        + '<th>Recurso</th><th>Clasificación</th><th>ID único</th><th>Guardado</th><th>Acción</th>'
+        + '</tr></thead><tbody>'
+        + drafts.map(draft => {
+          const values = draft?.data?.values || {};
+          const classification = [values.categoria, values.tipoRecurso, values.subtipoRecurso].filter(Boolean).join(' / ');
+          const draftId = String(draft.id || '');
+          return '<tr>'
+            + '<td><strong>' + escapeHtml(draft.name || values.nombreRecurso || 'Sin nombre') + '</strong></td>'
+            + '<td>' + escapeHtml(classification || 'Pendiente') + '</td>'
+            + '<td>' + escapeHtml(values.id_unico || 'Pendiente de territorio') + '</td>'
+            + '<td>' + escapeHtml(formatDate(draft.savedAt)) + '</td>'
+            + '<td><div class="draft-actions">'
+            + '<a class="button teal" href="index.html?draft=' + encodeURIComponent(draftId) + '">Abrir formulario</a>'
+            + '<button type="button" class="danger" data-delete-draft="' + escapeHtml(draftId) + '">Eliminar</button>'
+            + '</div></td>'
+            + '</tr>';
+        }).join('')
+        + '</tbody></table>';
+    }
+
+    function deleteDraft(id) {
+      const drafts = getStoredDrafts();
+      const target = drafts.find(draft => String(draft.id) === String(id));
+      if (!target) return;
+      if (!confirm('Eliminar el borrador local "' + (target.name || 'Sin nombre') + '" de este navegador?')) return;
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts.filter(draft => String(draft.id) !== String(id))));
+      renderDrafts();
+      updateStats();
+    }
+
+    function activateTab(tabName) {
+      const prepare = tabName === 'prepare';
+      document.getElementById('prepareTab').classList.toggle('active', prepare);
+      document.getElementById('draftsTab').classList.toggle('active', !prepare);
+      document.getElementById('prepareTab').setAttribute('aria-selected', String(prepare));
+      document.getElementById('draftsTab').setAttribute('aria-selected', String(!prepare));
+      document.getElementById('preparePanel').hidden = !prepare;
+      document.getElementById('draftsPanel').hidden = prepare;
+      if (!prepare) renderDrafts();
+    }
+
+    function downloadTemplate() {
+      const headers = ['nombreRecurso', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      if (globalThis.XLSX) {
+        const blankRows = Array.from({ length: MAX_BATCH_ROWS }, () => ['', '', '', '']);
+        const workbook = XLSX.utils.book_new();
+        const loadSheet = XLSX.utils.aoa_to_sheet([headers, ...blankRows]);
+        loadSheet['!cols'] = [{ wch: 42 }, { wch: 22 }, { wch: 46 }, { wch: 60 }];
+        const catalogRows = [['categoria', 'tipoRecurso', 'subtipoRecurso']];
+        Object.entries(CLASSIFICATION_HIERARCHY).forEach(([category, types]) => {
+          Object.entries(types).forEach(([type, subtypes]) => {
+            subtypes.forEach(subtype => catalogRows.push([category, type, subtype]));
+          });
+        });
+        const catalogSheet = XLSX.utils.aoa_to_sheet(catalogRows);
+        catalogSheet['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 65 }];
+        XLSX.utils.book_append_sheet(workbook, loadSheet, 'Carga');
+        XLSX.utils.book_append_sheet(workbook, catalogSheet, 'Clasificacion');
+        XLSX.writeFile(workbook, 'plantilla-carga-masiva-catastro.xlsx');
+        return;
+      }
+
+      const content = '\uFEFF' + headers.join(';') + '\n';
+      const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plantilla-carga-masiva-catastro.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function init() {
+      const fileInput = document.getElementById('batchFile');
+      const dropZone = document.getElementById('dropZone');
+      const tbody = document.getElementById('batchTableBody');
+
+      document.getElementById('prepareTab').addEventListener('click', () => activateTab('prepare'));
+      document.getElementById('draftsTab').addEventListener('click', () => activateTab('drafts'));
+      document.getElementById('refreshDraftsBtn').addEventListener('click', renderDrafts);
+      document.getElementById('downloadTemplateBtn').addEventListener('click', downloadTemplate);
+      document.getElementById('validateBtn').addEventListener('click', () => {
+        renderBatch();
+        const validations = validateBatch();
+        const valid = validations.filter(item => item.valid).length;
+        showNotice(valid + ' de ' + batchRows.length + ' fila(s) listas para guardar.', valid === batchRows.length ? 'ok' : 'warn');
+      });
+      document.getElementById('addRowBtn').addEventListener('click', () => appendRows([canonicalizeRow({})], 'edición manual'));
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        if (batchRows.length && !confirm('Limpiar todas las filas preparadas del lote?')) return;
+        batchRows = [];
+        renderBatch();
+        showNotice('Lote limpio.');
+      });
+      document.getElementById('saveDraftsBtn').addEventListener('click', saveValidDrafts);
+      document.getElementById('pasteBtn').addEventListener('click', () => {
+        const textarea = document.getElementById('pasteInput');
+        const rows = matrixToObjects(parseDelimited(textarea.value));
+        if (!rows.length) {
+          showNotice('No se reconocieron filas en el texto pegado.', 'fail');
+          return;
+        }
+        appendRows(rows, 'datos pegados');
+        textarea.value = '';
+      });
+
+      const handleFile = async file => {
+        try {
+          const rows = await readBatchFile(file);
+          if (!rows.length) throw new Error('La primera hoja no contiene filas reconocibles.');
+          appendRows(rows, file.name);
+        } catch (error) {
+          showNotice(String(error.message || error), 'fail');
+        } finally {
+          fileInput.value = '';
+        }
+      };
+
+      fileInput.addEventListener('change', event => handleFile(event.target.files[0]));
+      dropZone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          fileInput.click();
+        }
+      });
+      ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.add('dragover');
+      }));
+      ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.remove('dragover');
+      }));
+      dropZone.addEventListener('drop', event => handleFile(event.dataTransfer.files[0]));
+
+      tbody.addEventListener('change', event => {
+        const field = event.target.dataset.field;
+        const tr = event.target.closest('tr[data-row-id]');
+        if (!field || !tr) return;
+        const row = batchRows.find(item => item.id === tr.dataset.rowId);
+        if (!row) return;
+        row[field] = event.target.value;
+        if (field === 'categoria') {
+          row.tipoRecurso = '';
+          row.subtipoRecurso = '';
+        } else if (field === 'tipoRecurso') {
+          row.subtipoRecurso = '';
+        }
+        Object.assign(row, canonicalizeRow(row), { id: row.id });
+        renderBatch();
+      });
+
+      tbody.addEventListener('click', event => {
+        const button = event.target.closest('[data-remove-row]');
+        if (!button) return;
+        batchRows = batchRows.filter(row => row.id !== button.dataset.removeRow);
+        renderBatch();
+      });
+
+      document.getElementById('draftList').addEventListener('click', event => {
+        const button = event.target.closest('[data-delete-draft]');
+        if (button) deleteDraft(button.dataset.deleteDraft);
+      });
+
+      renderBatch();
+      renderDrafts();
+    }
+
+    const BULK_TEST_API = {
+      normalizeText,
+      canonicalizeRow,
+      classificationKey,
+      validateBatch,
+      detectDelimiter,
+      parseDelimited,
+      matrixToObjects,
+      createDraft
+    };
+
+    if (typeof document !== 'undefined') init();
+  </script>
+</body>
+</html>
