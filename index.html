@@ -3022,6 +3022,9 @@
       renderFloatingIndex();
       setupTerritorySelects();
       setupClassificationSelects();
+      updateTransportOptionsByAccess({ prune: false });
+      updateActivitiesByExperience({ prune: false });
+      renderSocialAccountRows();
       renderStatus();
       renderAdmissibility();
       renderDrafts();
@@ -3557,14 +3560,14 @@
       updateTransportOptionsByAccess();
     }
 
-    function updateTransportOptionsByAccess() {
+    function updateTransportOptionsByAccess({ prune = true } = {}) {
       const groupsEl = document.getElementById('transportGroups');
       if (!groupsEl) return;
 
       const selectedAccess = asArrayValue(state.values.tipoAcceso);
       const allowed = getAllowedTransportOptions();
       const current = new Set(asArrayValue(state.values.mediosTransporte).filter(item => allowed.includes(item)));
-      state.values.mediosTransporte = Array.from(current);
+      if (prune) state.values.mediosTransporte = Array.from(current);
 
       groupsEl.innerHTML = '';
       if (!selectedAccess.length) {
@@ -3626,14 +3629,14 @@
       updateActivitiesByExperience();
     }
 
-    function updateActivitiesByExperience() {
+    function updateActivitiesByExperience({ prune = true } = {}) {
       const groupsEl = document.getElementById('activityGroups');
       if (!groupsEl) return;
 
       const selectedExperiences = asArrayValue(state.values.tiposExperiencia);
       const allowed = getAllowedActivityOptions();
       const current = new Set(asArrayValue(state.values.actividades).filter(item => allowed.includes(item)));
-      state.values.actividades = Array.from(current);
+      if (prune) state.values.actividades = Array.from(current);
 
       groupsEl.innerHTML = '';
       if (!selectedExperiences.length) {
@@ -4611,18 +4614,18 @@
         {
           key: 'experiencias',
           label: 'Experiencias',
-          ok: Array.isArray(state.values.tiposExperiencia) && state.values.tiposExperiencia.length > 0
+          ok: asArrayValue(state.values.tiposExperiencia).length > 0
         },
         {
           key: 'actividades',
           label: 'Actividades',
-          ok: Array.isArray(state.values.actividades) && state.values.actividades.length > 0
+          ok: asArrayValue(state.values.actividades).length > 0
         },
         {
           key: 'instalaciones',
           label: 'Instalaciones de uso público',
           ok: state.values.tieneInstalaciones === 'No'
-            || (state.values.tieneInstalaciones === 'Sí' && Array.isArray(state.values.instalacionesPublicas) && state.values.instalacionesPublicas.length > 0),
+            || (state.values.tieneInstalaciones === 'Sí' && asArrayValue(state.values.instalacionesPublicas).length > 0),
           statusText: state.values.tieneInstalaciones === 'No' ? 'No aplica' : undefined,
           detail: state.values.tieneInstalaciones === 'No'
             ? 'El recurso declara que no tiene instalaciones de uso publico.'
@@ -4805,6 +4808,85 @@
       return /^56\d{8,9}$/.test(digits) ? `+${digits}` : text;
     }
 
+    const LOADED_ARRAY_FIELDS = [
+      'tipoAcceso',
+      'mediosTransporte',
+      'tiposExperiencia',
+      'actividades',
+      'instalacionesPublicas',
+      'idiomas',
+      'lenguasOriginarias',
+      'medioPago',
+      'mesesOperacion',
+      'diasOperacion',
+      'mesesRecomendados',
+      'serviciosTuristicos',
+      'serviciosBasicos',
+      'instalacionesSeguridad',
+      'elementosAccesibles',
+      'aptoDiscapacidades',
+      'amenazasNaturales',
+      'instrumentosGestion',
+      'instrumentosPromocion',
+      'canalesComercializacion',
+      'redesSociales',
+      'tiposMedios'
+    ];
+
+    function getLoadedArrayOptions(fieldName) {
+      if (fieldName === 'mediosTransporte') {
+        return [...new Set(Object.values(OPTIONS.transportesPorAcceso).flat())];
+      }
+      if (fieldName === 'actividades') {
+        return [...new Set(Object.values(OPTIONS.actividadesPorExperiencia).flat())];
+      }
+
+      for (const section of sections) {
+        const field = (section.fields || []).find(item => item.name === fieldName);
+        if (Array.isArray(field?.options)) return field.options;
+      }
+      return [];
+    }
+
+    function storedTextContainsOption(text, option) {
+      if (!text || !option) return false;
+      const escaped = String(option).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(?:^|,\\s*)${escaped}(?=,\\s*|$)`).test(text);
+    }
+
+    function normalizeLoadedArrayValue(fieldName, value) {
+      if (Array.isArray(value)) return [...new Set(value.filter(Boolean))];
+      if (value === undefined || value === null || value === '') return [];
+
+      const text = String(value).trim();
+      if (!text) return [];
+
+      if (text.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(text);
+          if (Array.isArray(parsed)) return [...new Set(parsed.filter(Boolean))];
+        } catch {}
+      }
+
+      const options = getLoadedArrayOptions(fieldName);
+      const matched = options.filter(option => storedTextContainsOption(text, option));
+      if (!matched.length) return [text];
+
+      let unmatched = text;
+      matched
+        .slice()
+        .sort((a, b) => b.length - a.length)
+        .forEach(option => {
+          unmatched = unmatched.replace(option, '');
+        });
+      unmatched = unmatched
+        .replace(/^\s*,\s*|\s*,\s*$/g, '')
+        .replace(/(?:\s*,\s*){2,}/g, ', ')
+        .trim();
+
+      return [...new Set([...matched, ...(unmatched ? [unmatched] : [])])];
+    }
+
     function normalizeLoadedFormValues(values = {}) {
       const normalized = { ...values };
       ['fechaRegistro', 'fechaReconocimiento'].forEach(field => {
@@ -4823,6 +4905,9 @@
       ].forEach(([field, length]) => {
         const code = String(normalized[field] ?? '').trim();
         if (code) normalized[field] = code.padStart(length, '0');
+      });
+      LOADED_ARRAY_FIELDS.forEach(field => {
+        normalized[field] = normalizeLoadedArrayValue(field, normalized[field]);
       });
       return normalized;
     }
@@ -5972,10 +6057,6 @@
       setSyncStatus('Buscando registro...', 'busy');
 
       const localDraft = findLocalDraftByUniqueId(id);
-      if (localDraft) {
-        applyLoadedState(localDraft.data, 'Borrador local cargado por ID', 'warn');
-        return;
-      }
 
       try {
         const response = await fetch(googleScriptUrl({ action: 'get', id_unico: id }));
@@ -5983,14 +6064,17 @@
 
         const record = data.record || data.values || data.data || null;
         if (!data.ok || !record) {
-          setSyncStatus('Registro no encontrado', 'fail');
-          alert(data.message || data.error || 'No se encontró un registro con ese ID. Si es un borrador local, revisa la lista de Borradores locales.');
-          return;
+          throw new Error(data.message || data.error || 'No se encontró el registro online.');
         }
 
         const loaded = record.values ? record : { values: record, photos: [] };
         applyLoadedState(loaded, 'Registro online cargado', 'ok');
       } catch (error) {
+        if (localDraft) {
+          applyLoadedState(localDraft.data, 'Borrador local cargado; versión online no disponible', 'warn');
+          alert('No fue posible recuperar la versión online desde Google Sheet. Se cargó el borrador local disponible en este navegador. Detalle: ' + String(error.message || error));
+          return;
+        }
         setSyncStatus('Error al cargar', 'fail');
         alert('No fue posible cargar el registro online. Revisa que el ID exista en Google Sheet y que Apps Script esté implementado. Detalle: ' + String(error.message || error));
       }

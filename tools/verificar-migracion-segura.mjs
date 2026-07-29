@@ -29,12 +29,31 @@ const loadedHelpersMatch = indexHtml.match(
 );
 if (!loadedHelpersMatch) throw new Error("No fue posible leer los normalizadores de carga.");
 const loadedHelpers = Function(`
+  const OPTIONS = {
+    transportesPorAcceso: {
+      Terrestre: ['Auto', 'Bicicleta']
+    },
+    actividadesPorExperiencia: {
+      'Cultura y Patrimonio': ['Consumo cultural'],
+      'Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)': ['Participación en congresos y eventos']
+    }
+  };
+  const sections = [{
+    fields: [{
+      name: 'tiposExperiencia',
+      options: [
+        'Cultura y Patrimonio',
+        'Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)'
+      ]
+    }]
+  }];
   ${loadedHelpersMatch[0]}
   return {
     normalizeLoadedDateValue,
     normalizeLoadedTimeValue,
     normalizeLoadedPhoneValue,
-    normalizeLoadedFormValues
+    normalizeLoadedFormValues,
+    normalizeLoadedArrayValue
   };
 `)();
 
@@ -70,6 +89,7 @@ const dateFixture = new Date("2026-07-28T12:00:00.000Z");
 const dateRow = helpers.buildRow_(headers, { fecha_creacion: dateFixture });
 
 const saveRecordBody = appScript.match(/function saveRecord_\(payload\) \{([\s\S]*?)\n\}/)?.[1] || "";
+const loadRecordBody = indexHtml.match(/async function loadRecordByUniqueId\(idOverride = ''\) \{([\s\S]*?)\n    \}/)?.[1] || "";
 const checks = {
   appsScriptSyntax: true,
   indexSyntax: inlineScripts.length === 1,
@@ -99,6 +119,20 @@ const checks = {
     indexHtml.includes("sameSavedVersion(record, payload)"),
   lookupButtonUsesWrapper:
     indexHtml.includes("addEventListener('click', () => loadRecordByUniqueId())"),
+  onlineRecordPrecedesLocalDraft:
+    loadRecordBody.indexOf("fetch(googleScriptUrl") >= 0 &&
+    loadRecordBody.indexOf("if (localDraft)") > loadRecordBody.indexOf("fetch(googleScriptUrl"),
+  restoresStoredMultipleSelections:
+    JSON.stringify(loadedHelpers.normalizeLoadedArrayValue(
+      "tiposExperiencia",
+      "Cultura y Patrimonio, Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)"
+    )) === JSON.stringify([
+      "Cultura y Patrimonio",
+      "Turismo de reuniones, viajes de incentivos, conferencias y exhibiciones (MICE)"
+    ]),
+  rebuildsDependentOptionsAfterRender:
+    indexHtml.includes("updateTransportOptionsByAccess({ prune: false })") &&
+    indexHtml.includes("updateActivitiesByExperience({ prune: false })"),
   normalizesLoadedDateAndTime:
     indexHtml.includes("normalizeLoadedFormValues") &&
     indexHtml.includes("normalizeLoadedDateValue") &&
