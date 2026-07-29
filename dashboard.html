@@ -8,8 +8,10 @@
   <style>
     :root { --bg:#f4f7fb; --panel:#fff; --line:#d8e0ec; --text:#14304a; --muted:#5c728a; --accent:#0f766e; --blue:#2563eb; --warn:#b45309; --shadow:0 10px 28px rgba(15,35,58,.08); --radius:14px; }
     * { box-sizing:border-box; }
+    html, body { width:100%; max-width:100%; overflow-x:hidden; }
     body { margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
-    .shell { max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; }
+    .shell { width:100%; max-width:1680px; margin:0 auto; padding:22px; display:grid; grid-template-columns:minmax(0,1fr); gap:16px; }
+    .shell > * { grid-column:1 / -1; min-width:0; }
     .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); overflow:hidden; }
     .topbar h1 { margin:6px 0 4px; font-size:1.55rem; line-height:1.2; }
     .topbar p { margin:0; color:rgba(255,255,255,.88); max-width:760px; }
@@ -21,7 +23,8 @@
     .primary { background:#fff; color:#0f3b4f; }
     .secondary { background:#dbeafe; color:#1d4ed8; }
     .online { background:#1d4ed8; color:#fff; }
-    .grid { display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+    .grid { display:grid; grid-template-columns:repeat(12,minmax(0,1fr)); gap:16px; }
+    .grid > * { min-width:0; }
     .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:16px; }
     .span-12 { grid-column:span 12; } .span-8 { grid-column:span 8; } .span-4 { grid-column:span 4; }
     .cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
@@ -31,14 +34,32 @@
     .filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; align-items:end; }
     .filter-search { grid-column:1 / -1; }
     .table-tools { display:flex; justify-content:space-between; gap:12px; align-items:end; flex-wrap:wrap; margin:14px 0 12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#fbfdff; }
-    .sort-controls { display:grid; grid-template-columns:minmax(180px,240px) minmax(140px,180px); gap:10px; align-items:end; }
-    .visible-count { color:var(--muted); font-weight:800; font-size:.9rem; }
+    .sort-controls { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)) auto; gap:10px; align-items:end; flex:1 1 900px; }
+    .latest-updated { white-space:nowrap; background:#dbeafe; color:#1d4ed8; }
+    .visible-count { display:grid; gap:3px; color:var(--muted); font-weight:800; font-size:.9rem; text-align:right; }
+    .visible-count span { font-size:.76rem; font-weight:700; }
     label { display:grid; gap:5px; font-size:.82rem; font-weight:800; color:#284760; }
     select, input { width:100%; border:1px solid var(--line); border-radius:10px; padding:10px 11px; font:inherit; color:var(--text); background:#fff; }
-    #map { height:560px; border-radius:12px; border:1px solid var(--line); background:#e9f0f7; }
+    #map { height:clamp(440px,54vh,640px); border-radius:12px; border:1px solid var(--line); background:#e9f0f7; }
     table { width:100%; border-collapse:collapse; font-size:.92rem; }
     th, td { padding:10px 9px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
     th { color:#284760; font-size:.78rem; text-transform:uppercase; letter-spacing:.04em; background:#f8fbfe; }
+    .sortable-heading { display:flex; align-items:center; justify-content:space-between; gap:7px; min-width:0; }
+    .column-sort {
+      width:28px;
+      height:28px;
+      min-height:28px;
+      flex:0 0 28px;
+      padding:0;
+      border:1px solid #cbd8e8;
+      border-radius:7px;
+      background:#fff;
+      color:#54708a;
+      font-size:.9rem;
+      line-height:1;
+    }
+    .column-sort:hover { background:#eef4ff; color:#1d4ed8; }
+    .column-sort.active { border-color:#93c5fd; background:#dbeafe; color:#1d4ed8; }
     tr:hover td { background:#fbfdff; }
     .muted { color:var(--muted); }
     .status { display:inline-flex; border-radius:999px; padding:5px 8px; font-size:.78rem; font-weight:800; background:#fef3c7; color:#92400e; }
@@ -46,7 +67,7 @@
     .edit-link { display:inline-flex; align-items:center; justify-content:center; border-radius:9px; padding:8px 10px; background:#dbeafe; color:#1d4ed8; font-weight:800; text-decoration:none; font-size:.85rem; }
     .edit-link:hover { background:#bfdbfe; }
     .status.ok { background:#dcfce7; color:#166534; }
-    .list { max-height:560px; overflow:auto; }
+    .list { max-height:clamp(440px,54vh,640px); overflow:auto; }
     .table-scroll { width:100%; overflow:auto; border:1px solid var(--line); border-radius:12px; }
     .table-scroll table { min-width:860px; }
     .section-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:8px; }
@@ -54,12 +75,18 @@
     .section-head p { margin:4px 0 0; }
     .mobile-hint { display:none; color:var(--muted); font-size:.84rem; font-weight:700; }
     .empty-row td { text-align:center; padding:18px; }
+    .group-row td { padding:10px 12px; background:#eaf2ff; border-bottom:1px solid #bfd3ef; color:#153a5b; }
+    .group-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .group-heading strong { font-size:.9rem; }
+    .group-heading span { color:var(--muted); font-size:.8rem; font-weight:800; white-space:nowrap; }
     .bar-row { display:grid; grid-template-columns:minmax(120px,1fr) 80px; gap:10px; align-items:center; padding:8px 0; border-bottom:1px solid #edf2f7; }
     .bar { height:10px; border-radius:999px; background:#e5edf7; overflow:hidden; margin-top:5px; }
     .bar-fill { height:100%; background:linear-gradient(90deg,#0f766e,#2563eb); border-radius:inherit; }
     .notice { border:1px solid #f7d889; background:#fff8e6; color:#7c4a03; border-radius:12px; padding:12px 14px; }
-    @media (max-width:1000px) { .grid { grid-template-columns:1fr; } .span-8,.span-4,.span-12 { grid-column:span 1; } .cards,.filters { grid-template-columns:1fr 1fr; } .filter-search { grid-column:1 / -1; } .topbar { flex-direction:column; } .actions { justify-items:stretch; width:100%; } .action-group { justify-content:flex-start; } .action-label { text-align:left; } #map { height:480px; } }
-    @media (max-width:760px) { .shell { padding:14px; gap:14px; } .panel { padding:14px; } .topbar { padding:16px; border-radius:12px; } .topbar h1 { font-size:1.32rem; } .topbar p { font-size:.92rem; } .cards { grid-template-columns:1fr 1fr; gap:10px; } .card { min-height:76px; padding:12px; } .card strong { font-size:1.26rem; } .filters,.sort-controls { grid-template-columns:1fr; } .table-tools { align-items:stretch; } .visible-count { width:100%; } #map { height:380px; } .action-group { display:grid; grid-template-columns:1fr 1fr; width:100%; } .action-label { grid-column:1 / -1; } .action-group .button, .action-group button { width:100%; } .mobile-hint { display:block; } .list { max-height:none; overflow:visible; } .table-scroll { overflow:visible; border:0; } .table-scroll table { min-width:0; } table, thead, tbody, tr, td { display:block; width:100%; } thead { display:none; } tbody { display:grid; gap:10px; } tr { border:1px solid var(--line); border-radius:12px; background:#fbfdff; padding:10px; } tr:hover td { background:transparent; } td { display:grid; grid-template-columns:112px 1fr; gap:10px; align-items:start; border-bottom:1px solid #edf2f7; padding:8px 2px; } td:last-child { border-bottom:0; } td::before { content:attr(data-label); color:#5c728a; font-size:.75rem; font-weight:900; text-transform:uppercase; letter-spacing:.04em; } .table-action { white-space:normal; } .edit-link { width:100%; min-height:38px; } }
+    @media (min-width:1400px) { .grid > .span-8 { grid-column:span 9; } .grid > .span-4 { grid-column:span 3; } }
+    @media (max-width:1200px) { .sort-controls { grid-template-columns:repeat(2,minmax(0,1fr)); } .latest-updated { width:100%; } }
+    @media (max-width:1000px) { .grid { grid-template-columns:1fr; } .grid > .span-8,.grid > .span-4,.grid > .span-12 { grid-column:span 1; } .cards,.filters { grid-template-columns:1fr 1fr; } .filter-search { grid-column:1 / -1; } .topbar { flex-direction:column; } .actions { justify-items:stretch; width:100%; } .action-group { justify-content:flex-start; } .action-label { text-align:left; } #map { height:480px; } }
+    @media (max-width:760px) { .shell { padding:14px; gap:14px; } .panel { padding:14px; } .topbar { padding:16px; border-radius:12px; } .topbar h1 { font-size:1.32rem; } .topbar p { font-size:.92rem; } .cards { grid-template-columns:1fr 1fr; gap:10px; } .card { min-height:76px; padding:12px; } .card strong { font-size:1.26rem; } .filters,.sort-controls { grid-template-columns:1fr; } .table-tools { align-items:stretch; } .visible-count { width:100%; text-align:left; } #map { height:380px; } .action-group { display:grid; grid-template-columns:1fr 1fr; width:100%; } .action-label { grid-column:1 / -1; } .action-group .button, .action-group button { width:100%; } .mobile-hint { display:block; } .list { max-height:none; overflow:visible; } .table-scroll { overflow:visible; border:0; } .table-scroll table { min-width:0; } table, thead, tbody, tr, td { display:block; width:100%; } thead { display:none; } tbody { display:grid; gap:10px; } tr { border:1px solid var(--line); border-radius:12px; background:#fbfdff; padding:10px; } tr:hover td { background:transparent; } td { display:grid; grid-template-columns:112px 1fr; gap:10px; align-items:start; border-bottom:1px solid #edf2f7; padding:8px 2px; } td:last-child { border-bottom:0; } td::before { content:attr(data-label); color:#5c728a; font-size:.75rem; font-weight:900; text-transform:uppercase; letter-spacing:.04em; } .group-row { padding:0; border:0; } .group-row td { display:block; padding:10px 12px; border:1px solid #bfd3ef; border-radius:10px; } .group-row td::before { display:none; } .table-action { white-space:normal; } .edit-link { width:100%; min-height:38px; } }
     @media (max-width:440px) { .shell { padding:10px; } .cards { grid-template-columns:1fr; } .action-group { grid-template-columns:1fr; } td { grid-template-columns:1fr; gap:4px; } #map { height:340px; } }
     .detail-panel { display:grid; gap:16px; }
     .detail-empty { padding:18px; border:1px dashed var(--line); border-radius:12px; background:#fbfdff; color:var(--muted); }
@@ -118,7 +145,7 @@
       </nav>
     </header>
 
-    <section class="panel span-12">
+    <section class="panel">
       <div class="filters">
         <label>Región<select id="regionFilter"><option value="">Todas</option></select></label>
         <label>Provincia<select id="provinceFilter"><option value="">Todas</option></select></label>
@@ -128,7 +155,7 @@
       </div>
     </section>
 
-    <section class="cards span-12" id="statsCards">
+    <section class="cards" id="statsCards">
       <div class="card"><span>Total registros</span><strong id="totalRecords">0</strong></div>
       <div class="card"><span>Con coordenadas</span><strong id="geoRecords">0</strong></div>
       <div class="card"><span>Comunas cubiertas</span><strong id="communesCount">0</strong></div>
@@ -148,7 +175,7 @@
       </aside>
     </section>
 
-    <section class="panel span-12">
+    <section class="panel">
       <div class="section-head">
         <div>
           <h2>Tabla de registros</h2>
@@ -158,28 +185,57 @@
       </div>
       <div class="table-tools">
         <div class="sort-controls">
+          <label>Actualizados
+            <select id="updatePeriod">
+              <option value="">Cualquier fecha</option>
+              <option value="today">Hoy</option>
+              <option value="7">Últimos 7 días</option>
+              <option value="30">Últimos 30 días</option>
+              <option value="90">Últimos 90 días</option>
+              <option value="no-date">Sin fecha informada</option>
+            </select>
+          </label>
+          <label>Agrupar por
+            <select id="groupField">
+              <option value="">Sin agrupar</option>
+              <option value="region">Región</option>
+              <option value="provincia">Provincia</option>
+              <option value="comuna">Comuna</option>
+            </select>
+          </label>
           <label>Ordenar por
             <select id="sortField">
               <option value="nombreRecurso">Recurso</option>
               <option value="comuna">Comuna</option>
               <option value="categoria">Categoría</option>
               <option value="id_unico">ID único</option>
-              <option value="fecha_actualizacion">Actualización</option>
+              <option value="fecha_actualizacion" selected>Actualización</option>
               <option value="hasGeo">Coordenadas</option>
             </select>
           </label>
           <label>Dirección
             <select id="sortDirection">
               <option value="asc">Ascendente</option>
-              <option value="desc">Descendente</option>
+              <option value="desc" selected>Descendente</option>
             </select>
           </label>
+          <button type="button" class="latest-updated" id="latestUpdatedBtn">↓ Últimos actualizados</button>
         </div>
         <div class="visible-count" id="visibleCount">0 registros visibles</div>
       </div>
       <div class="list table-scroll">
         <table>
-          <thead><tr><th>Recurso</th><th>Comuna</th><th>Categoría</th><th>ID único</th><th>Coordenadas</th><th>Actualización</th><th>Acción</th></tr></thead>
+          <thead>
+            <tr>
+              <th><span class="sortable-heading"><span>Recurso</span><button type="button" class="column-sort" data-sort-column="nombreRecurso" data-sort-label="Recurso" aria-label="Ordenar por recurso">↕</button></span></th>
+              <th><span class="sortable-heading"><span>Comuna</span><button type="button" class="column-sort" data-sort-column="comuna" data-sort-label="Comuna" aria-label="Ordenar por comuna">↕</button></span></th>
+              <th><span class="sortable-heading"><span>Categoría</span><button type="button" class="column-sort" data-sort-column="categoria" data-sort-label="Categoría" aria-label="Ordenar por categoría">↕</button></span></th>
+              <th><span class="sortable-heading"><span>ID único</span><button type="button" class="column-sort" data-sort-column="id_unico" data-sort-label="ID único" aria-label="Ordenar por ID único">↕</button></span></th>
+              <th><span class="sortable-heading"><span>Coordenadas</span><button type="button" class="column-sort" data-sort-column="hasGeo" data-sort-label="Coordenadas" data-default-direction="desc" aria-label="Ordenar por disponibilidad de coordenadas">↕</button></span></th>
+              <th><span class="sortable-heading"><span>Actualización</span><button type="button" class="column-sort" data-sort-column="fecha_actualizacion" data-sort-label="Actualización" data-default-direction="desc" aria-label="Mostrar primero los últimos actualizados">↕</button></span></th>
+              <th>Acción</th>
+            </tr>
+          </thead>
           <tbody id="recordsTable"><tr><td colspan="7" class="muted">Cargando datos...</td></tr></tbody>
         </table>
       </div>
@@ -202,7 +258,17 @@
     let selectedRecordId = null;
 
     const els = {
-      region: document.getElementById('regionFilter'), province: document.getElementById('provinceFilter'), commune: document.getElementById('communeFilter'), category: document.getElementById('categoryFilter'), search: document.getElementById('searchInput'), status: document.getElementById('statusBox'), sortField: document.getElementById('sortField'), sortDirection: document.getElementById('sortDirection'), visibleCount: document.getElementById('visibleCount')
+      region: document.getElementById('regionFilter'),
+      province: document.getElementById('provinceFilter'),
+      commune: document.getElementById('communeFilter'),
+      category: document.getElementById('categoryFilter'),
+      search: document.getElementById('searchInput'),
+      status: document.getElementById('statusBox'),
+      updatePeriod: document.getElementById('updatePeriod'),
+      groupField: document.getElementById('groupField'),
+      sortField: document.getElementById('sortField'),
+      sortDirection: document.getElementById('sortDirection'),
+      visibleCount: document.getElementById('visibleCount')
     };
 
     function initMap() {
@@ -215,6 +281,36 @@
     function normalizeSearch(value) { return asText(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
     function asNumber(value) { const n = Number(String(value || '').replace(',', '.')); return Number.isFinite(n) ? n : null; }
     function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
+
+    function getRecordUpdatedTimestamp(record) {
+      const raw = asText(record.fecha_actualizacion || record.fecha_sincronizacion || record.fechaRegistro || '').replace(/^"+|"+$/g, '');
+      const timestamp = Date.parse(raw);
+      return Number.isFinite(timestamp) ? timestamp : 0;
+    }
+
+    function matchesUpdatePeriod(record, period) {
+      if (!period) return true;
+      const timestamp = getRecordUpdatedTimestamp(record);
+      if (period === 'no-date') return timestamp === 0;
+      if (!timestamp) return false;
+      if (period === 'today') {
+        const updated = new Date(timestamp);
+        const today = new Date();
+        return updated.getFullYear() === today.getFullYear()
+          && updated.getMonth() === today.getMonth()
+          && updated.getDate() === today.getDate();
+      }
+      const days = Number(period);
+      return Number.isFinite(days) && timestamp >= Date.now() - (days * 86400000);
+    }
+
+    function formatUpdatedTimestamp(timestamp) {
+      if (!timestamp) return 'Sin fecha';
+      return new Intl.DateTimeFormat('es-CL', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+      }).format(new Date(timestamp));
+    }
 
     function normalizeRecord(row) {
       const lat = asNumber(row.latitud);
@@ -342,6 +438,7 @@
         if (els.province.value && asText(r.provincia) !== els.province.value) return false;
         if (els.commune.value && asText(r.comuna) !== els.commune.value) return false;
         if (els.category.value && asText(r.categoria) !== els.category.value) return false;
+        if (!matchesUpdatePeriod(r, els.updatePeriod?.value || '')) return false;
         if (q) {
           const haystack = [r.nombreRecurso, r.id_unico, r.region, r.provincia, r.comuna, r.categoria, r.tipoRecurso, r.subtipoRecurso].map(normalizeSearch).join(' ');
           if (!haystack.includes(q)) return false;
@@ -354,8 +451,21 @@
 
     function getSortValue(record, field) {
       if (field === 'hasGeo') return record.hasGeo ? 1 : 0;
-      if (field === 'fecha_actualizacion') return Date.parse(record.fecha_actualizacion || record.fecha_sincronizacion || record.fechaRegistro || '') || 0;
+      if (field === 'fecha_actualizacion') return getRecordUpdatedTimestamp(record);
       return normalizeSearch(record[field]);
+    }
+
+    function updateSortHeaderButtons(field, direction) {
+      document.querySelectorAll('[data-sort-column]').forEach(button => {
+        const active = button.dataset.sortColumn === field;
+        const label = button.dataset.sortLabel || 'columna';
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.textContent = active ? (direction === 'desc' ? '↓' : '↑') : '↕';
+        button.title = active
+          ? 'Orden ' + (direction === 'desc' ? 'descendente' : 'ascendente') + '. Presiona para invertir.'
+          : 'Ordenar por ' + label.toLowerCase();
+      });
     }
 
     function sortFilteredRecords() {
@@ -368,6 +478,7 @@
         if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * factor;
         return String(av).localeCompare(String(bv), 'es') * factor;
       });
+      updateSortHeaderButtons(field, direction);
     }
 
     function renderStats() {
@@ -407,16 +518,40 @@
 
     function renderTable() {
       const tbody = document.getElementById('recordsTable');
-      if (els.visibleCount) els.visibleCount.textContent = filtered.length + (filtered.length === 1 ? ' registro visible' : ' registros visibles');
+      const newestTimestamp = Math.max(0, ...filtered.map(getRecordUpdatedTimestamp));
+      if (els.visibleCount) {
+        const totalText = filtered.length + (filtered.length === 1 ? ' registro visible' : ' registros visibles');
+        els.visibleCount.innerHTML = escapeHtml(totalText) + '<span>Más reciente: ' + escapeHtml(formatUpdatedTimestamp(newestTimestamp)) + '</span>';
+      }
       if (!filtered.length) { tbody.innerHTML = '<tr class="empty-row"><td data-label="Estado" colspan="7" class="muted">Sin registros para los filtros seleccionados.</td></tr>'; return; }
-      tbody.innerHTML = filtered.map(r => {
+      const renderRecordRow = r => {
         const coords = r.hasGeo ? r.lat.toFixed(6) + ', ' + r.lng.toFixed(6) : '<span class="status">Sin punto</span>';
         const id = asText(r.id_unico);
         const editUrl = id ? 'index.html?id_unico=' + encodeURIComponent(id) : 'index.html';
         const photos = r.hasPhotos ? '<span class="pill ok">Fotos</span>' : '<span class="status">Sin fotos</span>';
         const action = id ? '<div class="row-actions"><button type="button" class="edit-link" data-pdf-id="' + escapeHtml(id) + '">Guardar PDF</button><a class="edit-link" href="' + editUrl + '">Editar</a></div>' : '<span class="muted">Sin ID</span>';
-        return '<tr class="' + (id === selectedRecordId ? 'selected-row' : '') + '"><td data-label="Recurso"><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td data-label="Comuna">' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td data-label="Categoría">' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br>' + photos + '</td><td data-label="ID único"><span class="muted">' + escapeHtml(id || 'Sin ID') + '</span></td><td data-label="Coordenadas">' + coords + '</td><td data-label="Actualización">' + escapeHtml(asText(r.fecha_actualizacion || r.fecha_sincronizacion || '')) + '</td><td data-label="Acción" class="table-action">' + action + '</td></tr>';
-      }).join('');
+        const updated = formatUpdatedTimestamp(getRecordUpdatedTimestamp(r));
+        return '<tr class="' + (id === selectedRecordId ? 'selected-row' : '') + '"><td data-label="Recurso"><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td data-label="Comuna">' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td data-label="Categoría">' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br>' + photos + '</td><td data-label="ID único"><span class="muted">' + escapeHtml(id || 'Sin ID') + '</span></td><td data-label="Coordenadas">' + coords + '</td><td data-label="Actualización">' + escapeHtml(updated) + '</td><td data-label="Acción" class="table-action">' + action + '</td></tr>';
+      };
+      const groupField = els.groupField?.value || '';
+      if (!groupField) {
+        tbody.innerHTML = filtered.map(renderRecordRow).join('');
+      } else {
+        const missingLabels = { region: 'Sin región', provincia: 'Sin provincia', comuna: 'Sin comuna' };
+        const groups = new Map();
+        filtered.forEach(record => {
+          const groupName = asText(record[groupField]) || missingLabels[groupField];
+          if (!groups.has(groupName)) groups.set(groupName, []);
+          groups.get(groupName).push(record);
+        });
+        tbody.innerHTML = Array.from(groups.entries())
+          .sort((a, b) => a[0].localeCompare(b[0], 'es'))
+          .map(([groupName, groupRecords]) => {
+            const countText = groupRecords.length + (groupRecords.length === 1 ? ' registro' : ' registros');
+            const heading = '<tr class="group-row"><td colspan="7"><div class="group-heading"><strong>' + escapeHtml(groupName) + '</strong><span>' + escapeHtml(countText) + '</span></div></td></tr>';
+            return heading + groupRecords.map(renderRecordRow).join('');
+          }).join('');
+      }
       tbody.querySelectorAll('[data-pdf-id]').forEach(button => button.addEventListener('click', () => printRecordById(button.dataset.pdfId)));
     }
 
@@ -595,8 +730,28 @@
     els.commune.addEventListener('change', applyFilters);
     els.category.addEventListener('change', applyFilters);
     els.search.addEventListener('input', applyFilters);
+    els.updatePeriod.addEventListener('change', applyFilters);
+    els.groupField.addEventListener('change', applyFilters);
     els.sortField.addEventListener('change', applyFilters);
     els.sortDirection.addEventListener('change', applyFilters);
+    document.querySelectorAll('[data-sort-column]').forEach(button => {
+      button.addEventListener('click', () => {
+        const field = button.dataset.sortColumn;
+        const isActive = els.sortField.value === field;
+        const defaultDirection = button.dataset.defaultDirection || 'asc';
+        els.sortField.value = field;
+        els.sortDirection.value = isActive
+          ? (els.sortDirection.value === 'asc' ? 'desc' : 'asc')
+          : defaultDirection;
+        applyFilters();
+      });
+    });
+    document.getElementById('latestUpdatedBtn').addEventListener('click', () => {
+      els.updatePeriod.value = '';
+      els.sortField.value = 'fecha_actualizacion';
+      els.sortDirection.value = 'desc';
+      applyFilters();
+    });
     document.getElementById('refreshBtn').addEventListener('click', loadData);
     initMap();
     loadData();
