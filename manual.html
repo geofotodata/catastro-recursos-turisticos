@@ -7,8 +7,9 @@
   <style>
     :root { --bg:#f4f7fb; --panel:#fff; --line:#d8e0ec; --text:#14304a; --muted:#5c728a; --accent:#0f766e; --blue:#2563eb; --shadow:0 10px 28px rgba(15,35,58,.08); --radius:14px; }
     * { box-sizing:border-box; }
-    body { margin:0; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
-    .shell { max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; min-height:100vh; }
+    html, body { margin:0; width:100%; max-width:100%; font-family:Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); line-height:1.42; }
+    .shell { width:100%; max-width:1440px; margin:0 auto; padding:22px; display:grid; gap:16px; min-height:100vh; min-height:100dvh; }
+    .shell > *, .topbar > *, .manual-tools > * { min-width:0; max-width:100%; }
     .topbar { display:flex; justify-content:space-between; gap:14px; align-items:flex-start; padding:18px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(135deg,#0f766e,#2563eb); color:#fff; box-shadow:var(--shadow); }
     .topbar h1 { margin:6px 0 4px; font-size:1.55rem; line-height:1.2; }
     .topbar p { margin:0; color:rgba(255,255,255,.88); max-width:780px; }
@@ -24,10 +25,11 @@
     .manual-tools { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
     .manual-tools h2 { margin:0; font-size:1.05rem; }
     .manual-tools p { margin:4px 0 0; color:var(--muted); }
-    .viewer { height:calc(100vh - 230px); min-height:620px; overflow:hidden; padding:0; }
+    .viewer { height:calc(100vh - 230px); height:calc(100dvh - 230px); min-height:620px; overflow:hidden; padding:0; }
     iframe { width:100%; height:100%; border:0; display:block; border-radius:12px; background:#eef2f7; }
     .notice { padding:12px 14px; border:1px solid #dbeafe; background:#f8fbff; color:var(--muted); border-radius:12px; }
-    @media (max-width:760px) { .shell { padding:12px; } .topbar { flex-direction:column; } .actions { justify-items:stretch; width:100%; } .action-group { display:grid; grid-template-columns:1fr 1fr; width:100%; justify-content:stretch; } .action-label { grid-column:1 / -1; text-align:left; } .action-group .button { width:100%; } .viewer { height:70vh; min-height:480px; } .topbar h1 { font-size:1.28rem; } .manual-tools { align-items:flex-start; } }
+    @media (max-width:760px) { .shell { padding:12px; } .topbar { flex-direction:column; } .actions { justify-items:stretch; width:100%; } .action-group { display:grid; grid-template-columns:1fr 1fr; width:100%; justify-content:stretch; } .action-label { grid-column:1 / -1; text-align:left; } .action-group .button { width:100%; } .viewer { height:70vh; height:70dvh; min-height:480px; } .topbar h1 { font-size:1.28rem; } .manual-tools { align-items:flex-start; } }
+    @media (max-width:440px) { .action-group { grid-template-columns:1fr; } .action-label { grid-column:1; } .manual-tools .button { width:100%; } .viewer { min-height:420px; } }
   </style>
 </head>
 <body>
