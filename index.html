@@ -5807,10 +5807,28 @@
       return state.values.id_unico;
     }
 
+    function getAttractionCodeFromUniqueId(id) {
+      const match = String(id || '').trim().toUpperCase().match(/-A([A-Z0-9]+)$/);
+      return match ? match[1] : '';
+    }
+
     function getPendingTerritoryMigration() {
       const previousId = String(state.originalOnlineId || '').trim().toUpperCase();
       const nextId = String(state.values.id_unico || '').trim().toUpperCase();
       if (!previousId || !nextId || previousId === nextId) return null;
+      const previousCode = getAttractionCodeFromUniqueId(previousId);
+      const nextCode = getAttractionCodeFromUniqueId(nextId);
+      if (!previousCode || !nextCode || previousCode !== nextCode) return null;
+      return { previousId, nextId };
+    }
+
+    function getDistinctImportedRecord() {
+      const previousId = String(state.originalOnlineId || '').trim().toUpperCase();
+      const nextId = String(state.values.id_unico || '').trim().toUpperCase();
+      if (!previousId || !nextId || previousId === nextId) return null;
+      const previousCode = getAttractionCodeFromUniqueId(previousId);
+      const nextCode = getAttractionCodeFromUniqueId(nextId);
+      if (!previousCode || !nextCode || previousCode === nextCode) return null;
       return { previousId, nextId };
     }
 
@@ -6515,8 +6533,12 @@
       const migrationNotice = pendingMigration
         ? '<div class="start-guide-note"><strong>Cambio territorial del mismo atractivo</strong><div class="small">Se reemplazará el ID ' + escapeHtml(pendingMigration.previousId) + ' por ' + escapeHtml(pendingMigration.nextId) + '. Se conservará el código propio del atractivo y Apps Script actualizará la misma fila y trasladará su carpeta de fotografías.</div></div>'
         : '';
+      const distinctImportedRecord = getDistinctImportedRecord();
+      const distinctRecordNotice = distinctImportedRecord
+        ? '<div class="criterion ok"><div><strong>Registro distinto detectado</strong><div class="small">El JSON conserva una referencia al ID ' + escapeHtml(distinctImportedRecord.previousId) + ', pero el código propio del atractivo es diferente. Se guardará ' + escapeHtml(distinctImportedRecord.nextId) + ' como un registro nuevo y no se reemplazará el anterior.</div></div><span class="pill ok">Nuevo</span></div>'
+        : '';
 
-      return '<div class="review-grid">' + cards + '</div>' + migrationNotice + missing + warnings;
+      return '<div class="review-grid">' + cards + '</div>' + migrationNotice + distinctRecordNotice + missing + warnings;
     }
 
     function openSaveReview() {
