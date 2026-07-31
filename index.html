@@ -2902,11 +2902,14 @@
     }
 
     function normalizeState(data) {
+      const values = data && typeof data.values === 'object' && data.values !== null ? data.values : {};
+      const inferredOnlineId = values.fecha_sincronizacion ? String(values.id_unico || '').trim() : '';
       return {
-        values: data && typeof data.values === 'object' && data.values !== null ? data.values : {},
+        values,
         photos: Array.isArray(data?.photos) ? data.photos.filter(photo => photo && photo.dataUrl) : [],
         lastSavedAt: data?.lastSavedAt || null,
-        preserveLegacyId: Boolean(data?.preserveLegacyId)
+        preserveLegacyId: Boolean(data?.preserveLegacyId),
+        originalOnlineId: String(data?.originalOnlineId || inferredOnlineId || '').trim().toUpperCase()
       };
     }
 
@@ -2927,7 +2930,8 @@
         values,
         photos: [],
         lastSavedAt: source.lastSavedAt || null,
-        preserveLegacyId: Boolean(source.preserveLegacyId)
+        preserveLegacyId: Boolean(source.preserveLegacyId),
+        originalOnlineId: String(source.originalOnlineId || '').trim().toUpperCase()
       };
     }
 
@@ -4698,7 +4702,9 @@
       const drafts = loadDrafts();
       const idUnico = String(state.values.id_unico || '').trim();
       const name = state.values.nombreRecurso || 'Borrador sin nombre';
-      const currentDraft = idUnico ? findLocalDraftByUniqueId(idUnico) : null;
+      const originalOnlineId = String(state.originalOnlineId || '').trim();
+      const currentDraft = (idUnico ? findLocalDraftByUniqueId(idUnico) : null)
+        || (originalOnlineId ? findLocalDraftByUniqueId(originalOnlineId) : null);
       const payload = {
         id: currentDraft?.id || idUnico || crypto.randomUUID(),
         name,
@@ -4912,9 +4918,12 @@
       return normalized;
     }
 
-    function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok') {
+    function applyLoadedState(data, statusText = 'Registro cargado', status = 'ok', options = {}) {
       const loadedState = normalizeState(JSON.parse(JSON.stringify(data || {})));
       loadedState.values = normalizeLoadedFormValues(loadedState.values);
+      if (options.online) {
+        loadedState.originalOnlineId = String(loadedState.values.id_unico || '').trim().toUpperCase();
+      }
       Object.assign(state, loadedState);
       updateLegacyIdPreservationFlag();
       if (validateTerritoryForSave({ silent: true })) {
@@ -5728,10 +5737,8 @@
 
       const before = state.values.id_unico;
       ensureUniqueId();
-      if (state.values.id_unico !== before) {
-        updateUniqueIdDisplay();
-        updateUiSummary();
-      }
+      updateUniqueIdDisplay();
+      updateUiSummary();
     }
 
     function ensureUniqueId() {
@@ -5750,24 +5757,33 @@
       const territoryDoesNotMatch = hasCompleteTerritory && existingId
         && !existingId.startsWith(expectedPrefix)
         && !existingId.startsWith(legacyExpectedPrefix);
-      const alreadySyncedOnline = Boolean(state.values.fecha_sincronizacion || state.values.fotos_carpeta_drive || state.values.fotos_links);
-
       state.values.codigo_atractivo = attractionCode;
       state.values.idInterno = 'A' + attractionCode;
 
-      if (state.preserveLegacyId && isLegacyUniqueId(existingId)) {
+      if (state.preserveLegacyId && isLegacyUniqueId(existingId) && !territoryDoesNotMatch) {
         state.values.id_unico_formato = 'legacy-cut-comuna';
         autosave();
         return state.values.id_unico;
       }
 
-      if (!existingId || isPlaceholderId || (territoryDoesNotMatch && !alreadySyncedOnline)) {
+      if (state.preserveLegacyId && isLegacyUniqueId(existingId) && territoryDoesNotMatch) {
+        state.preserveLegacyId = false;
+      }
+
+      if (!existingId || isPlaceholderId || territoryDoesNotMatch) {
         state.values.id_unico = territorialId;
         state.values.id_unico_formato = 'cut-region-provincia-comuna';
       }
 
       autosave();
       return state.values.id_unico;
+    }
+
+    function getPendingTerritoryMigration() {
+      const previousId = String(state.originalOnlineId || '').trim().toUpperCase();
+      const nextId = String(state.values.id_unico || '').trim().toUpperCase();
+      if (!previousId || !nextId || previousId === nextId) return null;
+      return { previousId, nextId };
     }
 
     function setPhotoUploadProgress(percent = 0, label = '', visible = true) {
@@ -5816,6 +5832,11 @@
       if (!validateTerritoryForSave()) return;
       const id = ensureUniqueId();
       updateUniqueIdDisplay();
+      const pendingMigration = getPendingTerritoryMigration();
+      if (pendingMigration) {
+        alert('Primero guarda online el cambio territorial. Se actualizará el ID de ' + pendingMigration.previousId + ' a ' + pendingMigration.nextId + ' y se moverá la carpeta existente. Después podrás subir o reemplazar fotografías.');
+        return;
+      }
       const message = 'Se subirán las fotografías seleccionadas a Google Drive. Si ya existían fotos para este ID, serán reemplazadas dentro de la carpeta ' + id + '. ¿Continuar?';
       if (!confirm(message)) return;
 
@@ -5898,6 +5919,7 @@
 
     function buildOnlinePayload() {
       const id = ensureUniqueId();
+      const pendingMigration = getPendingTerritoryMigration();
       const now = localIsoWithOffset();
       const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago';
       const values = {
@@ -5911,9 +5933,10 @@
       };
 
       return {
-        action: 'saveRecord',
+        action: pendingMigration ? 'migrateRecordTerritory' : 'saveRecord',
         estado: 'borrador',
         id_unico: id,
+        id_unico_anterior: pendingMigration?.previousId || '',
         codigo_atractivo: state.values.codigo_atractivo || '',
         values,
         photos: state.photos.map(photo => ({
@@ -5925,6 +5948,15 @@
       };
     }
 
+    async function assertTerritoryMigrationCapability() {
+      const response = await fetch(googleScriptUrl({ action: 'capabilities', t: Date.now() }), { cache: 'no-store' });
+      if (!response.ok) throw new Error('Apps Script no respondió a la verificación de compatibilidad.');
+      const data = await response.json();
+      if (!data.ok || data.features?.territory_migration !== true || data.features?.drive_folder_migration !== true) {
+        throw new Error('Apps Script todavía no incorpora la migración territorial segura. Actualiza y publica primero apps-script-migracion-segura.gs; no se envió ningún cambio para evitar duplicados.');
+      }
+    }
+
     async function syncDraftOnline() {
       if (!navigator.onLine) {
         return { ok: false, error: 'Sin conexión a internet.' };
@@ -5932,6 +5964,10 @@
 
       try {
         const payload = buildOnlinePayload();
+
+        if (payload.id_unico_anterior) {
+          await assertTerritoryMigrationCapability();
+        }
 
         await submitPayloadToGoogleSheet(payload);
         const verifiedRecord = await verifyOnlineSave(payload);
@@ -6068,7 +6104,7 @@
         }
 
         const loaded = record.values ? record : { values: record, photos: [] };
-        applyLoadedState(loaded, 'Registro online cargado', 'ok');
+        applyLoadedState(loaded, 'Registro online cargado', 'ok', { online: true });
       } catch (error) {
         if (localDraft) {
           applyLoadedState(localDraft.data, 'Borrador local cargado; versión online no disponible', 'warn');
@@ -6435,8 +6471,12 @@
       const warnings = validation.warnings.length
         ? '<div class="conditional-note"><strong>Advertencias:</strong><ul class="review-list">' + validation.warnings.map(item => '<li>' + escapeHtml(item) + '</li>').join('') + '</ul></div>'
         : '';
+      const pendingMigration = getPendingTerritoryMigration();
+      const migrationNotice = pendingMigration
+        ? '<div class="start-guide-note"><strong>Cambio territorial del mismo atractivo</strong><div class="small">Se reemplazará el ID ' + escapeHtml(pendingMigration.previousId) + ' por ' + escapeHtml(pendingMigration.nextId) + '. Se conservará el código propio del atractivo y Apps Script actualizará la misma fila y trasladará su carpeta de fotografías.</div></div>'
+        : '';
 
-      return '<div class="review-grid">' + cards + '</div>' + missing + warnings;
+      return '<div class="review-grid">' + cards + '</div>' + migrationNotice + missing + warnings;
     }
 
     function openSaveReview() {
@@ -6511,6 +6551,7 @@
         state.values.fecha_actualizacion = verified.fecha_actualizacion || state.values.fecha_actualizacion;
         state.values.fecha_sincronizacion = verified.fecha_sincronizacion || state.values.fecha_sincronizacion;
         state.values.zona_horaria_usuario = verified.zona_horaria_usuario || state.values.zona_horaria_usuario;
+        state.originalOnlineId = String(verified.id_unico || state.values.id_unico || '').trim().toUpperCase();
         saveState();
         persistNamedDraft();
         updateUniqueIdDisplay();

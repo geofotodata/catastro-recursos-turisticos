@@ -193,6 +193,18 @@ function doGet(e) {
       });
     }
 
+    if (action === 'capabilities') {
+      return jsonResponse_({
+        ok: true,
+        schema_version: 2,
+        features: {
+          territory_migration: true,
+          drive_folder_migration: true
+        },
+        timestamp: now_()
+      });
+    }
+
     if (action === 'repairHeaders') {
       return jsonResponse_(repararEncabezadosSinBorrarNada());
     }
@@ -200,7 +212,7 @@ function doGet(e) {
     return jsonResponse_({
       ok: true,
       message: 'API del Catastro funcionando',
-      actions: ['list', 'get', 'schema', 'authCheck', 'repairHeaders'],
+      actions: ['list', 'get', 'schema', 'capabilities', 'authCheck', 'repairHeaders'],
       timestamp: now_()
     });
   } catch (error) {
@@ -239,7 +251,7 @@ function doPost(e) {
     var saved = saveRecord_(payload);
     return jsonResponse_({
       ok: true,
-      action: 'saveRecord',
+      action: action,
       saved: saved,
       timestamp: now_()
     });
@@ -266,50 +278,124 @@ function parsePayload_(e) {
 }
 
 function saveRecord_(payload) {
-  var sheet = getSheet_();
-  var headers = ensureHeaders_(sheet);
-  var values = Object.assign({}, payload.values || {});
-  var id = normalizeId_(payload.id_unico || values.id_unico);
-  if (!id) throw new Error('Falta id_unico. No se puede guardar el registro.');
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
 
-  values.id_unico = id;
-  values.codigo_atractivo = payload.codigo_atractivo || values.codigo_atractivo || extractAttractionCode_(id);
-  values.estado = payload.estado || values.estado || 'borrador';
-  values.fecha_actualizacion = values.fecha_actualizacion || now_();
-  values.fecha_sincronizacion = values.fecha_sincronizacion || now_();
-  values.zona_horaria_usuario = values.zona_horaria_usuario || TIMEZONE;
-  enrichIdentifiers_(values, id);
+  try {
+    var sheet = getSheet_();
+    var headers = ensureHeaders_(sheet);
+    var values = Object.assign({}, payload.values || {});
+    var id = normalizeId_(payload.id_unico || values.id_unico);
+    var previousId = normalizeId_(payload.id_unico_anterior || values.id_unico_anterior);
+    if (!id) throw new Error('Falta id_unico. No se puede guardar el registro.');
 
-  var foundRows = findRowsById_(sheet, headers, id);
-  var foundRow = foundRows.length ? foundRows[0] : -1;
+    delete values.id_unico_anterior;
+    values.id_unico = id;
+    values.codigo_atractivo = payload.codigo_atractivo || values.codigo_atractivo || extractAttractionCode_(id);
+    values.estado = payload.estado || values.estado || 'borrador';
+    values.fecha_actualizacion = values.fecha_actualizacion || now_();
+    values.fecha_sincronizacion = values.fecha_sincronizacion || now_();
+    values.zona_horaria_usuario = values.zona_horaria_usuario || TIMEZONE;
+    enrichIdentifiers_(values, id);
 
-  if (foundRow > 0) {
-    var existing = sheet.getRange(foundRow, 1, 1, headers.length).getValues()[0];
-    var createdIndex = headers.indexOf('fecha_creacion');
-    if (createdIndex >= 0 && existing[createdIndex]) {
-      values.fecha_creacion = existing[createdIndex];
-    } else {
-      values.fecha_creacion = values.fecha_creacion || now_();
+    if (previousId && previousId !== id) {
+      return migrateRecordTerritory_(sheet, headers, values, previousId, id);
     }
 
-    var updateRow = mergeRow_(headers, existing, values);
-    applyTextFormatsToRows_(sheet, headers, foundRow, 1);
-    sheet.getRange(foundRow, 1, 1, headers.length).setValues([updateRow]);
-    return {
-      mode: foundRows.length > 1 ? 'updated_with_duplicate_warning' : 'updated',
-      row: foundRow,
-      id_unico: id,
-      duplicates_detected: Math.max(0, foundRows.length - 1),
-      duplicate_rows: foundRows.slice(1)
-    };
+    var foundRows = findRowsById_(sheet, headers, id);
+    var foundRow = foundRows.length ? foundRows[0] : -1;
+
+    if (foundRow > 0) {
+      var existing = sheet.getRange(foundRow, 1, 1, headers.length).getValues()[0];
+      var createdIndex = headers.indexOf('fecha_creacion');
+      if (createdIndex >= 0 && existing[createdIndex]) {
+        values.fecha_creacion = existing[createdIndex];
+      } else {
+        values.fecha_creacion = values.fecha_creacion || now_();
+      }
+
+      var updateRow = mergeRow_(headers, existing, values);
+      applyTextFormatsToRows_(sheet, headers, foundRow, 1);
+      sheet.getRange(foundRow, 1, 1, headers.length).setValues([updateRow]);
+      return {
+        mode: foundRows.length > 1 ? 'updated_with_duplicate_warning' : 'updated',
+        row: foundRow,
+        id_unico: id,
+        duplicates_detected: Math.max(0, foundRows.length - 1),
+        duplicate_rows: foundRows.slice(1)
+      };
+    }
+
+    values.fecha_creacion = values.fecha_creacion || now_();
+    var newRow = buildRow_(headers, values);
+    var targetRow = sheet.getLastRow() + 1;
+    applyTextFormatsToRows_(sheet, headers, targetRow, 1);
+    sheet.getRange(targetRow, 1, 1, headers.length).setValues([newRow]);
+    return { mode: 'created', row: targetRow, id_unico: id };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function migrateRecordTerritory_(sheet, headers, values, previousId, newId) {
+  var previousRows = findRowsById_(sheet, headers, previousId);
+  if (previousRows.length === 0) {
+    throw new Error('No se encontró el ID anterior ' + previousId + '. No se creó un registro nuevo.');
+  }
+  if (previousRows.length > 1) {
+    throw new Error('El ID anterior ' + previousId + ' está duplicado en las filas ' + previousRows.join(', ') + '. Corrige ese conflicto antes de cambiar el territorio.');
   }
 
-  values.fecha_creacion = values.fecha_creacion || now_();
-  var newRow = buildRow_(headers, values);
-  var targetRow = sheet.getLastRow() + 1;
-  applyTextFormatsToRows_(sheet, headers, targetRow, 1);
-  sheet.getRange(targetRow, 1, 1, headers.length).setValues([newRow]);
-  return { mode: 'created', row: targetRow, id_unico: id };
+  var targetRow = previousRows[0];
+  var newRows = findRowsById_(sheet, headers, newId).filter(function(row) {
+    return row !== targetRow;
+  });
+  if (newRows.length) {
+    throw new Error('El nuevo ID ' + newId + ' ya existe en la fila ' + newRows[0] + '. No se modificó el registro original.');
+  }
+
+  var previousAttractionCode = extractAttractionCode_(previousId);
+  var newAttractionCode = extractAttractionCode_(newId);
+  if (!previousAttractionCode || previousAttractionCode !== newAttractionCode) {
+    throw new Error('El cambio territorial debe conservar el código propio del atractivo: A' + previousAttractionCode + '.');
+  }
+
+  values.codigo_atractivo = previousAttractionCode;
+  values.idInterno = 'A' + previousAttractionCode;
+  values.id_unico = newId;
+  values.id_unico_formato = 'cut-region-provincia-comuna';
+
+  var existing = sheet.getRange(targetRow, 1, 1, headers.length).getValues()[0];
+  var existingRecord = {};
+  for (var i = 0; i < headers.length; i++) existingRecord[headers[i]] = existing[i];
+
+  var createdIndex = headers.indexOf('fecha_creacion');
+  if (createdIndex >= 0 && existing[createdIndex]) {
+    values.fecha_creacion = existing[createdIndex];
+  } else {
+    values.fecha_creacion = values.fecha_creacion || now_();
+  }
+
+  var folderMigration = migratePhotoFolderForRecord_(previousId, newId, existingRecord, values);
+  var updateRow = mergeRow_(headers, existing, values);
+
+  try {
+    applyTextFormatsToRows_(sheet, headers, targetRow, 1);
+    sheet.getRange(targetRow, 1, 1, headers.length).setValues([updateRow]);
+  } catch (error) {
+    rollbackPhotoFolderMigration_(folderMigration);
+    throw error;
+  }
+
+  return {
+    mode: 'territory_migrated',
+    row: targetRow,
+    id_unico_anterior: previousId,
+    id_unico: newId,
+    codigo_atractivo: previousAttractionCode,
+    carpeta_drive_movida: Boolean(folderMigration && folderMigration.changed),
+    carpeta_drive_ruta: folderMigration && folderMigration.folderPath ? folderMigration.folderPath : ''
+  };
 }
 
 function getRecordById_(id) {
@@ -488,6 +574,102 @@ function uploadPhotos_(payload) {
     fileUrls: urls,
     count: urls.length
   };
+}
+
+function migratePhotoFolderForRecord_(previousId, newId, existingRecord, values) {
+  var root = DriveApp.getFolderById(DRIVE_ROOT_FOLDER_ID);
+  var folder = findRecordPhotoFolder_(root, previousId, existingRecord);
+  if (!folder) return { changed: false, folderPath: '' };
+
+  var codigoRegion = cleanCode_(values.codigo_region) || extractCodeFromId_(newId, /R(\d+)/);
+  var codigoProvincia = cleanCode_(values.codigo_provincia) || extractCodeFromId_(newId, /-P(\d+)/);
+  var codigoComuna = cleanCode_(values.codigo_comuna) || extractCodeFromId_(newId, /-C(\d+)/);
+  if (!codigoRegion || !codigoProvincia || !codigoComuna) {
+    throw new Error('No fue posible determinar la nueva ruta territorial de la carpeta de fotografías.');
+  }
+
+  var regionFolder = getOrCreateFolderNormalized_(root, 'R' + codigoRegion);
+  var provinceFolder = getOrCreateFolderNormalized_(regionFolder, 'P' + codigoProvincia);
+  var comunaFolder = getOrCreateFolderNormalized_(provinceFolder, 'C' + codigoComuna);
+  var targetFolder = findFolderNormalized_(comunaFolder, newId);
+  if (targetFolder && targetFolder.getId() !== folder.getId()) {
+    throw new Error('Ya existe una carpeta distinta para el nuevo ID ' + newId + '. No se movieron las fotografías.');
+  }
+
+  var parents = folder.getParents();
+  var oldParent = parents.hasNext() ? parents.next() : null;
+  var oldName = folder.getName();
+  var changed = normalizeFolderName_(oldName) !== normalizeFolderName_(newId)
+    || !oldParent
+    || oldParent.getId() !== comunaFolder.getId();
+
+  if (normalizeFolderName_(oldName) !== normalizeFolderName_(newId)) folder.setName(sanitizeFileName_(newId));
+  if (!oldParent || oldParent.getId() !== comunaFolder.getId()) folder.moveTo(comunaFolder);
+
+  var folderPath = [
+    root.getName(),
+    regionFolder.getName(),
+    provinceFolder.getName(),
+    comunaFolder.getName(),
+    folder.getName()
+  ].join(' / ');
+
+  values.fotos_carpeta_drive = folder.getUrl();
+  values.fotos_ruta_drive = folderPath;
+
+  return {
+    changed: changed,
+    folder: folder,
+    oldParent: oldParent,
+    oldName: oldName,
+    folderPath: folderPath
+  };
+}
+
+function rollbackPhotoFolderMigration_(migration) {
+  if (!migration || !migration.changed || !migration.folder) return;
+  try {
+    if (migration.oldParent) migration.folder.moveTo(migration.oldParent);
+    migration.folder.setName(migration.oldName);
+  } catch (rollbackError) {
+    console.error('No fue posible revertir la carpeta después de un error en Google Sheet: ' + rollbackError);
+  }
+}
+
+function findRecordPhotoFolder_(root, previousId, existingRecord) {
+  var folderUrl = existingRecord && existingRecord.fotos_carpeta_drive
+    ? String(existingRecord.fotos_carpeta_drive)
+    : '';
+  var folderFromUrl = getDriveFolderFromUrl_(folderUrl);
+  if (folderFromUrl) return folderFromUrl;
+
+  var codigoRegion = extractCodeFromId_(previousId, /R(\d+)/);
+  var codigoProvincia = extractCodeFromId_(previousId, /-P(\d+)/);
+  var codigoComuna = extractCodeFromId_(previousId, /-C(\d+)/);
+  if (!codigoProvincia && codigoComuna.length > 2) codigoProvincia = codigoComuna.slice(0, -2);
+
+  var regionFolder = codigoRegion ? findFolderNormalized_(root, 'R' + codigoRegion) : null;
+  var provinceFolder = regionFolder && codigoProvincia
+    ? findFolderNormalized_(regionFolder, 'P' + codigoProvincia)
+    : null;
+  var comunaFolder = provinceFolder && codigoComuna
+    ? findFolderNormalized_(provinceFolder, 'C' + codigoComuna)
+    : null;
+  var nestedFolder = comunaFolder ? findFolderNormalized_(comunaFolder, previousId) : null;
+  if (nestedFolder) return nestedFolder;
+
+  return findFolderNormalized_(root, previousId);
+}
+
+function getDriveFolderFromUrl_(url) {
+  var text = String(url || '');
+  var match = text.match(/\/folders\/([A-Za-z0-9_-]+)/) || text.match(/[?&]id=([A-Za-z0-9_-]+)/);
+  if (!match) return null;
+  try {
+    return DriveApp.getFolderById(match[1]);
+  } catch (error) {
+    return null;
+  }
 }
 
 function getSheet_() {
@@ -962,17 +1144,21 @@ function normalizeFolderName_(name) {
     .toLowerCase();
 }
 
-function getOrCreateFolderNormalized_(parent, name) {
-  var cleanName = sanitizeFileName_(String(name || '').trim() || 'Sin nombre');
-  var normalizedTarget = normalizeFolderName_(cleanName);
+function findFolderNormalized_(parent, name) {
+  if (!parent) return null;
+  var normalizedTarget = normalizeFolderName_(sanitizeFileName_(String(name || '').trim() || 'Sin nombre'));
   var folders = parent.getFolders();
-
   while (folders.hasNext()) {
     var folder = folders.next();
-    if (normalizeFolderName_(folder.getName()) === normalizedTarget) {
-      return folder;
-    }
+    if (normalizeFolderName_(folder.getName()) === normalizedTarget) return folder;
   }
+  return null;
+}
+
+function getOrCreateFolderNormalized_(parent, name) {
+  var cleanName = sanitizeFileName_(String(name || '').trim() || 'Sin nombre');
+  var existingFolder = findFolderNormalized_(parent, cleanName);
+  if (existingFolder) return existingFolder;
 
   return parent.createFolder(cleanName);
 }
