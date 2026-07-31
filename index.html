@@ -610,6 +610,13 @@
     .photo-storage-status.warn { border-color: #facc15; background: #fffbeb; }
     .photo-storage-status.empty { border-color: var(--line); background: #f8fbff; }
 
+    .photo-drive-link {
+      color: #1d4ed8;
+      font-weight: 800;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
     .photo-drive-actions {
       margin-top: 14px;
       padding-top: 12px;
@@ -3029,6 +3036,7 @@
       updateTransportOptionsByAccess({ prune: false });
       updateActivitiesByExperience({ prune: false });
       renderSocialAccountRows();
+      renderPhotos();
       renderStatus();
       renderAdmissibility();
       renderDrafts();
@@ -4542,6 +4550,18 @@
       }
     }
 
+    function getSafeDriveFolderUrl(value) {
+      try {
+        const url = new URL(String(value || '').trim());
+        if (url.protocol !== 'https:' || url.hostname !== 'drive.google.com' || !url.pathname.startsWith('/drive/folders/')) {
+          return '';
+        }
+        return url.href;
+      } catch (error) {
+        return '';
+      }
+    }
+
     function updatePhotoStorageStatus() {
       const statusEl = document.getElementById('photoStorageStatus');
       const driveEl = document.getElementById('photoDriveStatus');
@@ -4550,12 +4570,20 @@
       const localCount = state.photos.length;
       const onlineCount = Number(state.values.fotos_cantidad || 0);
       const hasDriveLinks = Boolean(String(state.values.fotos_links || '').trim() || String(state.values.fotos_carpeta_drive || '').trim());
+      const driveFolderUrl = getSafeDriveFolderUrl(state.values.fotos_carpeta_drive);
+      const drivePath = String(state.values.fotos_ruta_drive || '').trim();
 
       statusEl.classList.remove('ok', 'warn', 'empty');
       if (hasDriveLinks || onlineCount > 0) {
         statusEl.classList.add('ok');
         statusEl.innerHTML = '<strong>Fotografías almacenadas en Google Drive</strong><span>' + escapeHtml(String(onlineCount || localCount || '')) + ' foto(s) vinculadas al registro. Puedes volver a subir si necesitas reemplazarlas.</span>';
-        if (driveEl) driveEl.textContent = 'Respaldo online detectado: las fotografías tienen enlace/carpeta asociada en Google Sheet.';
+        if (driveEl) {
+          const pathText = drivePath ? '<span> Ruta: ' + escapeHtml(drivePath) + '.</span>' : '';
+          const folderLink = driveFolderUrl
+            ? ' <a class="photo-drive-link" href="' + escapeHtml(driveFolderUrl) + '" target="_blank" rel="noopener noreferrer">Abrir carpeta en Drive</a>'
+            : '';
+          driveEl.innerHTML = 'Respaldo online confirmado en Google Sheet.' + pathText + folderLink;
+        }
       } else if (localCount > 0) {
         statusEl.classList.add('warn');
         statusEl.innerHTML = '<strong>Fotografías adjuntas, aún sin respaldo online</strong><span>' + localCount + ' foto(s) listas para subir. Usa el botón de abajo para guardarlas en Google Drive.</span>';
@@ -4598,7 +4626,7 @@
         });
       });
 
-      document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
+      document.getElementById('photoCount').textContent = `${getDisplayedPhotoCount()} / 5`;
       updatePhotoStorageStatus();
       updateUiSummary();
     }
@@ -4677,7 +4705,7 @@
       } else {
         stateEl.textContent = 'Guardado ' + new Date(state.lastSavedAt).toLocaleString('es-CL');
       }
-      document.getElementById('photoCount').textContent = `${state.photos.length} / 5`;
+      document.getElementById('photoCount').textContent = `${getDisplayedPhotoCount()} / 5`;
     }
 
     function getDraftKey(draft) {
@@ -5850,48 +5878,30 @@
         if (statusEl) statusEl.textContent = 'Subiendo fotos a Google Drive y actualizando Google Sheet...';
         await submitPayloadToGoogleSheet(payload);
         setPhotoUploadProgress(75, 'Subida enviada. Verificando registro online...');
-        await sleep(2500);
-
-        let verifiedRecord = null;
-        try {
-          const response = await fetch(googleScriptUrl({ action: 'get', id_unico: payload.id_unico, t: Date.now() }));
-          const data = await response.json();
-          if (data.ok && data.record) verifiedRecord = data.record;
-          setPhotoUploadProgress(90, 'Verificación recibida desde Google Sheet...');
-        } catch (verifyError) {
-          verifiedRecord = null;
-        }
+        const verifiedRecord = await verifyPhotoUpload(payload, state.photos.length);
+        setPhotoUploadProgress(90, 'Fotografías confirmadas en Google Sheet y Drive...');
 
         const when = new Date().toLocaleString('es-CL');
-        state.values.fecha_subida_fotos = verifiedRecord?.fecha_subida_fotos || when;
-        state.values.fotos_cantidad = Number(verifiedRecord?.fotos_cantidad || state.photos.length);
-        if (verifiedRecord?.fotos_carpeta_drive) state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive;
-        if (verifiedRecord?.fotos_links) state.values.fotos_links = verifiedRecord.fotos_links;
-        state.values.fecha_sincronizacion = verifiedRecord?.fecha_sincronizacion || when;
+        state.values.fecha_subida_fotos = verifiedRecord.fecha_subida_fotos || when;
+        state.values.fotos_cantidad = Number(verifiedRecord.fotos_cantidad || state.photos.length);
+        state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive || '';
+        state.values.fotos_ruta_drive = verifiedRecord.fotos_ruta_drive || '';
+        state.values.fotos_links = verifiedRecord.fotos_links || '';
+        state.values.fecha_sincronizacion = verifiedRecord.fecha_sincronizacion || when;
+        state.originalOnlineId = verifiedRecord.id_unico || payload.id_unico;
         saveState();
         persistNamedDraft();
         updateLastSyncDisplay(state.values.fecha_sincronizacion);
         updatePhotoStorageStatus();
 
-        if (verifiedRecord?.fotos_links || verifiedRecord?.fotos_carpeta_drive) {
-          const folderLink = verifiedRecord.fotos_carpeta_drive
-            ? ' Carpeta: ' + verifiedRecord.fotos_carpeta_drive
-            : '';
-          if (statusEl) statusEl.textContent = 'Fotos guardadas en Google Drive y enlazadas en Google Sheet.' + folderLink;
-          setPhotoUploadProgress(100, 'Fotos guardadas correctamente en Drive.');
-          setSyncStatus('Fotos respaldadas online', 'ok');
-          alert('Listo: las fotos quedaron guardadas en Drive y los enlaces quedaron en Google Sheet.');
-        } else {
-          if (statusEl) statusEl.textContent = 'Solicitud enviada. Si no aparecen enlaces en Google Sheet, revisa permisos de Drive en Apps Script.';
-          setPhotoUploadProgress(100, 'Solicitud enviada. Verifica enlaces en Google Sheet.');
-          setSyncStatus('Verificar en Google Sheet', 'warn');
-          alert('La solicitud fue enviada. Verifica en Google Sheet si aparecieron las columnas fotos_carpeta_drive y fotos_links. Si no aparecen, falta autorizar Drive en Apps Script.');
-        }
+        setPhotoUploadProgress(100, 'Fotos guardadas y verificadas correctamente en Drive.');
+        setSyncStatus('Fotos respaldadas online', 'ok');
+        alert('Listo: se confirmaron ' + state.values.fotos_cantidad + ' foto(s) en Drive y sus enlaces quedaron registrados en Google Sheet.');
       } catch (error) {
-        if (statusEl) statusEl.textContent = 'No fue posible subir las fotos a Google Drive.';
-        setPhotoUploadProgress(100, 'Error al subir fotos. Revisa conexión o Apps Script.');
-        setSyncStatus('Error al subir fotos', 'fail');
-        alert('No fue posible subir las fotos: ' + String(error.message || error));
+        if (statusEl) statusEl.textContent = 'No fue posible confirmar la subida de las fotos.';
+        setPhotoUploadProgress(100, 'No se pudo confirmar la subida. Revisa conexión o Apps Script.');
+        setSyncStatus('Subida no confirmada', 'fail');
+        alert('No fue posible confirmar las fotos en Google Sheet y Drive: ' + String(error.message || error));
       }
     }
 
@@ -5955,6 +5965,12 @@
       if (!data.ok || data.features?.territory_migration !== true || data.features?.drive_folder_migration !== true) {
         throw new Error('Apps Script todavía no incorpora la migración territorial segura. Actualiza y publica primero apps-script-migracion-segura.gs; no se envió ningún cambio para evitar duplicados.');
       }
+    }
+
+    function getDisplayedPhotoCount() {
+      const localCount = Array.isArray(state.photos) ? state.photos.length : 0;
+      const onlineCount = Number(state.values.fotos_cantidad || 0);
+      return Math.max(localCount, Number.isFinite(onlineCount) ? onlineCount : 0);
     }
 
     async function syncDraftOnline() {
@@ -6079,6 +6095,30 @@
         }
       }
       throw lastError || new Error('No fue posible confirmar el guardado en Google Sheet.');
+    }
+
+    async function verifyPhotoUpload(payload, expectedCount, attempts = 8) {
+      let lastError = null;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        if (attempt > 1) await sleep(1500);
+        try {
+          const record = await fetchOnlineRecord(payload.id_unico);
+          const onlineCount = Number(record.fotos_cantidad || 0);
+          const hasDriveReference = Boolean(
+            String(record.fotos_carpeta_drive || '').trim() &&
+            String(record.fotos_links || '').trim()
+          );
+          if (sameSavedVersion(record, payload) && hasDriveReference && onlineCount >= expectedCount) {
+            return record;
+          }
+          lastError = new Error(
+            'Google Sheet todavía no confirma las ' + expectedCount + ' fotografía(s) enviadas.'
+          );
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error('No fue posible confirmar las fotografías en Google Sheet y Drive.');
     }
 
     async function loadRecordByUniqueId(idOverride = '') {

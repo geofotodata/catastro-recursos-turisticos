@@ -145,6 +145,8 @@ const saveRecordBody = appScript.match(/function saveRecord_\(payload\) \{([\s\S
 const territoryMigrationBody = appScript.match(/function migrateRecordTerritory_\([\s\S]*?(?=\nfunction getRecordById_)/)?.[0] || "";
 const loadRecordBody = indexHtml.match(/async function loadRecordByUniqueId\(idOverride = ''\) \{([\s\S]*?)\n    \}/)?.[1] || "";
 const syncDraftBody = indexHtml.match(/async function syncDraftOnline\(\) \{([\s\S]*?)(?=\n    function sameSavedVersion)/)?.[1] || "";
+const photoUploadBody = indexHtml.match(/async function uploadPhotosToDrive\(\) \{([\s\S]*?)(?=\n    async function submitPayloadToGoogleSheet)/)?.[1] || "";
+const renderFormBody = indexHtml.match(/function renderForm\(\) \{([\s\S]*?)(?=\n    function setSectionCollapsed)/)?.[1] || "";
 const checks = {
   appsScriptSyntax: true,
   indexSyntax: inlineScripts.length === 1,
@@ -247,6 +249,27 @@ const checks = {
     appScript.includes("applyTextFormatsToRows_") &&
     appScript.includes("normalizePhoneForSheet_") &&
     appScript.includes("normalizeTerritoryCode_"),
+  verifiesPhotoUploadWithRetries:
+    indexHtml.includes("async function verifyPhotoUpload(payload, expectedCount, attempts = 8)") &&
+    indexHtml.includes("await sleep(1500)") &&
+    indexHtml.includes("onlineCount >= expectedCount") &&
+    photoUploadBody.includes("await verifyPhotoUpload(payload, state.photos.length)") &&
+    !photoUploadBody.includes("await sleep(2500)"),
+  restoresVerifiedPhotoMetadata:
+    photoUploadBody.includes("state.values.fotos_cantidad = Number(verifiedRecord.fotos_cantidad") &&
+    photoUploadBody.includes("state.values.fotos_carpeta_drive = verifiedRecord.fotos_carpeta_drive") &&
+    photoUploadBody.includes("state.values.fotos_ruta_drive = verifiedRecord.fotos_ruta_drive") &&
+    photoUploadBody.includes("state.values.fotos_links = verifiedRecord.fotos_links"),
+  rendersSafeDriveFolderLink:
+    indexHtml.includes("function getSafeDriveFolderUrl(value)") &&
+    indexHtml.includes("url.hostname !== 'drive.google.com'") &&
+    indexHtml.includes("Abrir carpeta en Drive"),
+  refreshesOnlinePhotoStatusAfterRender:
+    renderFormBody.indexOf("renderPhotos();") > renderFormBody.indexOf("renderSocialAccountRows();") &&
+    renderFormBody.indexOf("renderPhotos();") < renderFormBody.indexOf("renderStatus();") &&
+    indexHtml.includes("function getDisplayedPhotoCount()") &&
+    indexHtml.includes("Math.max(localCount, Number.isFinite(onlineCount) ? onlineCount : 0)") &&
+    indexHtml.includes("`${getDisplayedPhotoCount()} / 5`"),
   loadedValuesAreHtmlCompatible:
     loadedHelpers.normalizeLoadedDateValue("2026-07-28T04:00:00.000Z") === "2026-07-28" &&
     loadedHelpers.normalizeLoadedTimeValue("1899-12-30T13:42:45.000Z") === "09:00" &&
