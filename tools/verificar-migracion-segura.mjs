@@ -56,6 +56,59 @@ const loadedHelpers = Function(`
     normalizeLoadedArrayValue
   };
 `)();
+const uniqueIdHelpersMatch = indexHtml.match(
+  /function ensureUniqueId\(\) \{[\s\S]*?(?=\n    function setPhotoUploadProgress)/
+);
+if (!uniqueIdHelpersMatch) throw new Error("No fue posible leer la lógica de ID territorial.");
+
+function runUniqueIdFixture({ id, attractionCode, codes, preserveLegacyId = false }) {
+  return Function(`
+    const state = {
+      values: {
+        id_unico: ${JSON.stringify(id)},
+        codigo_atractivo: ${JSON.stringify(attractionCode)},
+        fecha_sincronizacion: '2026-07-31T12:00:00-04:00'
+      },
+      preserveLegacyId: ${JSON.stringify(preserveLegacyId)},
+      originalOnlineId: ${JSON.stringify(id)}
+    };
+    function ensureTerritoryCodes() { return ${JSON.stringify(codes)}; }
+    function createAttractionCode() { return 'NUEVO1'; }
+    function isLegacyUniqueId(value) { return /^R\\d{2}-C\\d{5}-A[A-Z0-9]+$/i.test(String(value || '').trim()); }
+    function autosave() {}
+    ${uniqueIdHelpersMatch[0]}
+    ensureUniqueId();
+    return {
+      id: state.values.id_unico,
+      attractionCode: state.values.codigo_atractivo,
+      internalCode: state.values.idInterno,
+      originalOnlineId: state.originalOnlineId,
+      migration: getPendingTerritoryMigration()
+    };
+  `)();
+}
+
+const modernIdMigration = runUniqueIdFixture({
+  id: "R10-P104-C10401-AQS3QCB",
+  attractionCode: "QS3QCB",
+  codes: {
+    codigo_region: "13",
+    codigo_provincia: "131",
+    codigo_comuna: "13101",
+    codigo_unico_territorial: "13-131-13101"
+  }
+});
+const legacyIdMigration = runUniqueIdFixture({
+  id: "R13-C13114-A2YLAM6",
+  attractionCode: "2YLAM6",
+  codes: {
+    codigo_region: "10",
+    codigo_provincia: "101",
+    codigo_comuna: "10101",
+    codigo_unico_territorial: "10-101-10101"
+  },
+  preserveLegacyId: true
+});
 
 const helpers = Function(`
   ${appScript}
@@ -89,7 +142,9 @@ const dateFixture = new Date("2026-07-28T12:00:00.000Z");
 const dateRow = helpers.buildRow_(headers, { fecha_creacion: dateFixture });
 
 const saveRecordBody = appScript.match(/function saveRecord_\(payload\) \{([\s\S]*?)\n\}/)?.[1] || "";
+const territoryMigrationBody = appScript.match(/function migrateRecordTerritory_\([\s\S]*?(?=\nfunction getRecordById_)/)?.[0] || "";
 const loadRecordBody = indexHtml.match(/async function loadRecordByUniqueId\(idOverride = ''\) \{([\s\S]*?)\n    \}/)?.[1] || "";
+const syncDraftBody = indexHtml.match(/async function syncDraftOnline\(\) \{([\s\S]*?)(?=\n    function sameSavedVersion)/)?.[1] || "";
 const checks = {
   appsScriptSyntax: true,
   indexSyntax: inlineScripts.length === 1,
@@ -133,6 +188,53 @@ const checks = {
   rebuildsDependentOptionsAfterRender:
     indexHtml.includes("updateTransportOptionsByAccess({ prune: false })") &&
     indexHtml.includes("updateActivitiesByExperience({ prune: false })"),
+  recalculatesTerritorialIdAfterOnlineLoad:
+    indexHtml.includes("originalOnlineId") &&
+    indexHtml.includes("if (!existingId || isPlaceholderId || territoryDoesNotMatch)") &&
+    !indexHtml.includes("territoryDoesNotMatch && !alreadySyncedOnline"),
+  preservesModernAttractionCodeWhenTerritoryChanges:
+    modernIdMigration.id === "R13-P131-C13101-AQS3QCB" &&
+    modernIdMigration.attractionCode === "QS3QCB" &&
+    modernIdMigration.internalCode === "AQS3QCB" &&
+    modernIdMigration.originalOnlineId === "R10-P104-C10401-AQS3QCB" &&
+    modernIdMigration.migration?.previousId === "R10-P104-C10401-AQS3QCB" &&
+    modernIdMigration.migration?.nextId === "R13-P131-C13101-AQS3QCB",
+  upgradesLegacyIdOnlyWhenTerritoryChanges:
+    legacyIdMigration.id === "R10-P101-C10101-A2YLAM6" &&
+    legacyIdMigration.internalCode === "A2YLAM6" &&
+    legacyIdMigration.originalOnlineId === "R13-C13114-A2YLAM6",
+  sendsPreviousAndNewId:
+    indexHtml.includes("action: pendingMigration ? 'migrateRecordTerritory' : 'saveRecord'") &&
+    indexHtml.includes("id_unico_anterior: pendingMigration?.previousId || ''") &&
+    appScript.includes("payload.id_unico_anterior"),
+  blocksMigrationAgainstOldAppsScript:
+    appScript.includes("action === 'capabilities'") &&
+    appScript.includes("territory_migration: true") &&
+    appScript.includes("drive_folder_migration: true") &&
+    indexHtml.includes("assertTerritoryMigrationCapability") &&
+    syncDraftBody.includes("if (payload.id_unico_anterior)") &&
+    syncDraftBody.indexOf("await assertTerritoryMigrationCapability()") < syncDraftBody.indexOf("await submitPayloadToGoogleSheet(payload)"),
+  migratesOnlyExistingRecord:
+    territoryMigrationBody.includes("findRowsById_(sheet, headers, previousId)") &&
+    territoryMigrationBody.includes("No se creó un registro nuevo") &&
+    territoryMigrationBody.includes("sheet.getRange(targetRow, 1, 1, headers.length).setValues([updateRow])") &&
+    !territoryMigrationBody.includes("sheet.getLastRow() + 1"),
+  preservesAttractionCodeDuringMigration:
+    territoryMigrationBody.includes("previousAttractionCode !== newAttractionCode") &&
+    territoryMigrationBody.includes("values.codigo_atractivo = previousAttractionCode") &&
+    territoryMigrationBody.includes("values.idInterno = 'A' + previousAttractionCode"),
+  movesExistingDriveFolder:
+    appScript.includes("migratePhotoFolderForRecord_") &&
+    appScript.includes("folder.moveTo(comunaFolder)") &&
+    appScript.includes("folder.setName(sanitizeFileName_(newId))") &&
+    appScript.includes("rollbackPhotoFolderMigration_"),
+  rejectsMigrationCollisions:
+    territoryMigrationBody.includes("El nuevo ID ") &&
+    territoryMigrationBody.includes("ya existe en la fila") &&
+    appScript.includes("LockService.getScriptLock()"),
+  blocksPhotosUntilMigrationCompletes:
+    indexHtml.includes("Primero guarda online el cambio territorial") &&
+    indexHtml.includes("const pendingMigration = getPendingTerritoryMigration()"),
   normalizesLoadedDateAndTime:
     indexHtml.includes("normalizeLoadedFormValues") &&
     indexHtml.includes("normalizeLoadedDateValue") &&
