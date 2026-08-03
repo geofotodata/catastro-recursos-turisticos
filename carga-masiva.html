@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carga masiva de borradores - Catastro Nacional de Recursos Turísticos</title>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f6fa;
+      --panel: #ffffff;
+      --line: #d5deea;
+      --text: #122b42;
+      --muted: #60758a;
+      --teal: #0f766e;
+      --blue: #1d4ed8;
+      --blue-soft: #eaf1ff;
+      --green: #166534;
+      --green-soft: #dcfce7;
+      --amber: #92400e;
+      --amber-soft: #fef3c7;
+      --red: #b91c1c;
+      --red-soft: #fee2e2;
+      --shadow: 0 8px 24px rgba(15, 35, 58, 0.07);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    .button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 13px;
+      background: #e8eef7;
+      color: var(--text);
+      font-weight: 800;
+      text-decoration: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+
+    button:hover,
+    .button:hover { filter: brightness(0.97); }
+    button:disabled { opacity: 0.48; cursor: not-allowed; }
+    .button.primary, button.primary { background: var(--blue); color: #fff; }
+    .button.teal, button.teal { background: var(--teal); color: #fff; }
+    .button.light, button.light { background: #fff; color: #17405a; }
+    .button.current {
+      background: #a7f3d0;
+      color: #123b52;
+      cursor: default;
+    }
+    .button.danger, button.danger { background: var(--red-soft); color: var(--red); }
+
+    .shell {
+      max-width: 1500px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 17px 18px;
+      background: #123b52;
+      color: #fff;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .topbar h1 {
+      margin: 3px 0 4px;
+      font-size: 1.45rem;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .topbar p {
+      margin: 0;
+      max-width: 760px;
+      color: rgba(255, 255, 255, 0.84);
+    }
+
+    .kicker {
+      color: #a7f3d0;
+      font-size: 0.76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .nav-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 13px 15px;
+      border-right: 1px solid var(--line);
+    }
+
+    .stat:last-child { border-right: 0; }
+    .stat span { display: block; color: var(--muted); font-size: 0.76rem; font-weight: 800; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 3px; font-size: 1.35rem; }
+
+    .tabs {
+      width: fit-content;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .tab {
+      min-height: 36px;
+      background: transparent;
+      color: var(--muted);
+      padding: 7px 12px;
+    }
+
+    .tab.active {
+      background: var(--blue-soft);
+      color: var(--blue);
+    }
+
+    .panel {
+      width: 100%;
+      min-width: 0;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+
+    .panel[hidden] { display: none; }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 13px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.18rem;
+    }
+
+    .section-head p {
+      margin: 4px 0 0;
+      color: var(--muted);
+    }
+
+    .common-values {
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+
+    .mapping-panel {
+      margin-bottom: 14px;
+      padding: 14px;
+      border: 1px solid #93c5fd;
+      border-radius: 8px;
+      background: #eff6ff;
+    }
+
+    .mapping-panel[hidden] { display: none; }
+    .mapping-panel h3 { margin: 0; font-size: 1rem; }
+    .mapping-summary { margin: 4px 0 12px; color: var(--muted); font-size: 0.86rem; }
+
+    .mapping-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .mapping-field label { display: block; margin-bottom: 5px; font-size: 0.78rem; font-weight: 800; }
+    .mapping-field select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid #9eb8db;
+      border-radius: 7px;
+      padding: 8px 9px;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .optional-mapping {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #bfd2ec;
+    }
+
+    .optional-mapping[hidden] { display: none; }
+    .optional-mapping h4 { margin: 0; font-size: 0.92rem; }
+    .optional-mapping p { margin: 4px 0 10px; color: var(--muted); font-size: 0.82rem; }
+
+    .coordinate-detection {
+      margin-top: 10px;
+      padding: 9px 10px;
+      border-left: 3px solid #2563eb;
+      background: #fff;
+      color: #1e3a5f;
+      font-size: 0.82rem;
+    }
+
+    .extra-data {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      min-width: 180px;
+    }
+
+    .extra-data span {
+      display: inline-flex;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #e8f2ff;
+      color: #174b85;
+      font-size: 0.7rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .mapping-preview {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid #bfd2ec;
+      border-radius: 7px;
+      background: #fff;
+      overflow-x: auto;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .mapping-actions { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+    .common-values-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 11px;
+    }
+
+    .common-values h3 { margin: 0; font-size: 1rem; }
+    .common-values p { margin: 3px 0 0; color: var(--muted); font-size: 0.84rem; }
+
+    .common-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(190px, 1fr));
+      gap: 10px;
+    }
+
+    .common-field { min-width: 0; }
+    .common-field label { display: block; margin-bottom: 5px; font-size: 0.78rem; font-weight: 800; }
+    .common-field select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 9px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    .import-grid {
+      display: grid;
+      grid-template-columns: minmax(300px, 1.2fr) minmax(280px, 0.8fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .import-grid > *,
+    .source-tools {
+      min-width: 0;
+    }
+
+    .drop-zone {
+      min-height: 150px;
+      border: 2px dashed #9fb0c5;
+      border-radius: 8px;
+      background: #f8fbff;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .drop-zone.dragover {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .drop-zone strong { display: block; margin-bottom: 5px; }
+    .drop-zone span { color: var(--muted); font-size: 0.9rem; }
+
+    .source-tools {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .source-tools textarea {
+      width: 100%;
+      min-height: 94px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--text);
+    }
+
+    .source-actions,
+    .table-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .notice {
+      min-height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8fbff;
+      color: var(--muted);
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .notice.ok { border-color: #86efac; background: #f0fdf4; color: var(--green); }
+    .notice.warn { border-color: #fcd34d; background: #fffbeb; color: var(--amber); }
+    .notice.fail { border-color: #fca5a5; background: #fff7f7; color: var(--red); }
+
+    .table-wrap {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: auto;
+      max-height: 560px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 2180px;
+      font-size: 0.88rem;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      background: #f1f5f9;
+      color: #29465e;
+      font-size: 0.73rem;
+      text-transform: uppercase;
+    }
+
+    td:first-child,
+    th:first-child { width: 48px; text-align: center; }
+
+    td:last-child,
+    th:last-child { width: 52px; text-align: center; }
+
+    td input,
+    td select {
+      width: 100%;
+      min-width: 180px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 9px;
+      color: var(--text);
+      background: #fff;
+    }
+
+    td input[aria-invalid="true"],
+    td select[aria-invalid="true"] {
+      border-color: #ef4444;
+      background: #fff7f7;
+    }
+
+    .row-status {
+      display: inline-flex;
+      border-radius: 999px;
+      padding: 5px 8px;
+      font-size: 0.76rem;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .row-status.ok { background: var(--green-soft); color: var(--green); }
+    .row-status.warn { background: var(--amber-soft); color: var(--amber); }
+    .row-status.fail { background: var(--red-soft); color: var(--red); }
+
+    .row-errors {
+      margin-top: 5px;
+      color: var(--red);
+      font-size: 0.74rem;
+      line-height: 1.3;
+    }
+
+    .generated-id {
+      display: inline-block;
+      max-width: 230px;
+      padding: 6px 8px;
+      border-radius: 7px;
+      background: var(--blue-soft);
+      color: #17449b;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 0.78rem;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    .remove-row {
+      width: 34px;
+      min-height: 34px;
+      padding: 0;
+      background: var(--red-soft);
+      color: var(--red);
+      font-size: 1.2rem;
+    }
+
+    .footer-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 13px;
+    }
+
+    .footer-actions .muted {
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .draft-list {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      max-height: 620px;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .draft-list table { min-width: 900px; }
+    .draft-list td:first-child,
+    .draft-list th:first-child { width: auto; text-align: left; }
+    .draft-list td:last-child,
+    .draft-list th:last-child { width: 210px; text-align: left; }
+
+    .draft-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .empty {
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    @media (max-width: 920px) {
+      .topbar { flex-direction: column; }
+      .nav-actions { justify-content: flex-start; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat:nth-child(2) { border-right: 0; }
+      .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+      .import-grid { grid-template-columns: 1fr; }
+      .common-values-head { align-items: stretch; flex-direction: column; }
+      .common-grid { grid-template-columns: 1fr 1fr; }
+      .mapping-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 560px) {
+      .shell { padding: 10px; }
+      .panel { padding: 12px; }
+      .topbar { padding: 14px; }
+      .topbar h1 { font-size: 1.25rem; }
+      .stats { grid-template-columns: 1fr; }
+      .stat { border-right: 0; border-bottom: 1px solid var(--line); }
+      .stat:last-child { border-bottom: 0; }
+      .tabs { width: 100%; }
+      .tab { flex: 1; }
+      .source-actions,
+      .table-actions,
+      .footer-actions { align-items: stretch; }
+      .source-actions > *,
+      .table-actions > *,
+      .footer-actions button { width: 100%; }
+      .common-grid { grid-template-columns: 1fr; }
+      .mapping-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <span class="kicker">Borradores locales</span>
+        <h1>Carga masiva de atractivos</h1>
+      <p>Importa una planilla completa, relaciona sus columnas y crea fichas para continuar su levantamiento en el formulario.</p>
+      </div>
+      <nav class="nav-actions" aria-label="Navegación">
+        <a class="button light" href="index.html">Formulario</a>
+        <a class="button light" href="dashboard.html">Dashboard</a>
+        <span class="button current" aria-current="page">Carga masiva</span>
+        <a class="button light" href="manual.html">Manual</a>
+      </nav>
+    </header>
+
+    <section class="stats" aria-label="Resumen de carga">
+      <div class="stat"><span>Filas preparadas</span><strong id="batchCount">0</strong></div>
+      <div class="stat"><span>Listas para enviar</span><strong id="validCount">0</strong></div>
+      <div class="stat"><span>Con observaciones</span><strong id="invalidCount">0</strong></div>
+      <div class="stat"><span>Enviadas al Sheet</span><strong id="draftCount">0</strong></div>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Vistas de carga masiva">
+      <button class="tab active" id="prepareTab" type="button" role="tab" aria-selected="true" aria-controls="preparePanel">Preparar lote</button>
+      <button class="tab" id="draftsTab" type="button" role="tab" aria-selected="false" aria-controls="draftsPanel">Borradores guardados</button>
+    </div>
+
+    <section class="panel" id="preparePanel" role="tabpanel" aria-labelledby="prepareTab">
+      <div class="section-head">
+        <div>
+          <h2>Importar atractivos</h2>
+          <p>Campos del lote: nombre, territorio y clasificación oficial.</p>
+        </div>
+        <button type="button" id="downloadTemplateBtn">Descargar plantilla</button>
+      </div>
+
+      <div class="common-values">
+        <div class="common-values-head">
+          <div>
+            <h3>Valores comunes del lote</h3>
+            <p>Selecciona los datos compartidos y aplícalos a todas las filas. Cada fila podrá modificarse después.</p>
+          </div>
+          <button type="button" id="applyCommonBtn">Aplicar a todas las filas</button>
+        </div>
+        <div class="common-grid">
+          <div class="common-field"><label for="commonRegion">Región</label><select id="commonRegion"></select></div>
+          <div class="common-field"><label for="commonProvincia">Provincia</label><select id="commonProvincia"></select></div>
+          <div class="common-field"><label for="commonComuna">Comuna</label><select id="commonComuna"></select></div>
+          <div class="common-field"><label for="commonCategoria">Categoría</label><select id="commonCategoria"></select></div>
+          <div class="common-field"><label for="commonTipo">Tipo</label><select id="commonTipo"></select></div>
+          <div class="common-field"><label for="commonSubtipo">Subtipo</label><select id="commonSubtipo"></select></div>
+        </div>
+      </div>
+
+      <div class="import-grid">
+        <label class="drop-zone" id="dropZone" for="batchFile" tabindex="0">
+          <span>
+            <strong>Seleccionar o arrastrar una planilla</strong>
+            <span>Excel, CSV o TSV. Después podrás relacionar las columnas del archivo.</span>
+          </span>
+          <input id="batchFile" type="file" accept=".xlsx,.xls,.csv,.tsv,text/csv,text/tab-separated-values" hidden>
+        </label>
+
+        <div class="source-tools">
+          <label for="pasteInput"><strong>Pegar desde Excel o Google Sheets</strong></label>
+          <textarea id="pasteInput" placeholder="nombreRecurso&#9;region&#9;provincia&#9;comuna&#9;categoria&#9;tipoRecurso&#9;subtipoRecurso"></textarea>
+          <div class="source-actions">
+            <button type="button" id="pasteBtn">Incorporar filas</button>
+            <button type="button" id="addRowBtn">Agregar fila</button>
+          </div>
+        </div>
+      </div>
+
+      <section class="mapping-panel" id="mappingPanel" aria-labelledby="mappingTitle" hidden>
+        <h3 id="mappingTitle">Relacionar columnas del archivo</h3>
+        <p class="mapping-summary" id="mappingSummary"></p>
+        <div class="mapping-grid" id="mappingGrid"></div>
+        <div class="optional-mapping" id="optionalMapping" hidden>
+          <h4>Datos adicionales encontrados</h4>
+          <p>Son sugerencias opcionales. Puedes cambiar la columna o seleccionar “No importar”.</p>
+          <div class="mapping-grid" id="optionalMappingGrid"></div>
+          <div class="coordinate-detection" id="coordinateDetection" hidden></div>
+        </div>
+        <div class="mapping-preview" id="mappingPreview"></div>
+        <div class="mapping-actions"><button type="button" class="primary" id="applyMappingBtn">Preparar todas las filas</button></div>
+      </section>
+
+      <div class="notice" id="noticeBox" role="status" aria-live="polite">
+        Carga una planilla o agrega filas manualmente.
+      </div>
+
+      <div class="table-actions">
+        <button type="button" id="validateBtn">Validar lote</button>
+        <button type="button" class="danger" id="clearBtn">Limpiar lote</button>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-label="Atractivos preparados para carga masiva">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre del recurso</th>
+              <th>Región</th>
+              <th>Provincia</th>
+              <th>Comuna</th>
+              <th>Categoría</th>
+              <th>Tipo</th>
+              <th>Subtipo</th>
+              <th>Datos adicionales</th>
+              <th>ID único propuesto</th>
+              <th>Estado</th>
+              <th>Quitar</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="footer-actions">
+        <span class="muted">Las filas se enviarán en lotes de 20 y quedarán registradas como borradores para continuar su edición.</span>
+        <div class="source-actions">
+          <button type="button" id="saveDraftsBtn">Guardar borradores locales</button>
+          <button type="button" class="primary" id="uploadSheetBtn">Cargar lote completo al Sheet</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="draftsPanel" role="tabpanel" aria-labelledby="draftsTab" hidden>
+      <div class="section-head">
+        <div>
+          <h2>Borradores guardados</h2>
+          <p>Fichas disponibles en este equipo y navegador.</p>
+        </div>
+        <button type="button" id="refreshDraftsBtn">Actualizar lista</button>
+      </div>
+      <div class="draft-list" id="draftList"></div>
+    </section>
+  </main>
+
+  <script>
+    const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
+    const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxD5_L3iuS_pxfIwqzIJ6aM6hlPKisCffju2itBZO80CpIa6z3WD2SS2yNFG7xWUnjlPg/exec';
+    const MAX_IMPORT_ROWS = 1000;
+    const UPLOAD_BATCH_SIZE = 20;
+    const MAX_STORED_DRAFTS = 100;
+
+    const REGION_CODES = {
+      'Región de Arica y Parinacota': '15',
+      'Región de Tarapacá': '01',
+      'Región de Antofagasta': '02',
+      'Región de Atacama': '03',
+      'Región de Coquimbo': '04',
+      'Región de Valparaíso': '05',
+      'Región Metropolitana de Santiago': '13',
+      "Región del Libertador General Bernardo O'Higgins": '06',
+      'Región del Maule': '07',
+      'Región de Ñuble': '16',
+      'Región del Biobío': '08',
+      'Región de La Araucanía': '09',
+      'Región de Los Ríos': '14',
+      'Región de Los Lagos': '10',
+      'Región de Aysén del General Carlos Ibáñez del Campo': '11',
+      'Región de Magallanes y de la Antártica Chilena': '12'
+    };
+
+    const REGION_ALIASES = {
+      'rm': 'Región Metropolitana de Santiago',
+      'metropolitana': 'Región Metropolitana de Santiago',
+      'metropolitanadesantiago': 'Región Metropolitana de Santiago',
+      'ohiggins': "Región del Libertador General Bernardo O'Higgins",
+      'libertadorbernardoohiggins': "Región del Libertador General Bernardo O'Higgins",
+      'aisen': 'Región de Aysén del General Carlos Ibáñez del Campo',
+      'aysen': 'Región de Aysén del General Carlos Ibáñez del Campo',
+      'magallanes': 'Región de Magallanes y de la Antártica Chilena'
+    };
+
+    const REGION_ROMAN_CODES = {
+      'xv': '15', 'i': '01', 'ii': '02', 'iii': '03', 'iv': '04', 'v': '05',
+      'xiii': '13', 'vi': '06', 'vii': '07', 'xvi': '16', 'viii': '08',
+      'ix': '09', 'xiv': '14', 'x': '10', 'xi': '11', 'xii': '12'
+    };
+
+    const RESOURCE_NAME_CONNECTORS = new Set([
+      'a', 'al', 'de', 'del', 'e', 'en', 'la', 'las', 'lo', 'los', 'o', 'u', 'y'
+    ]);
+
+    const RESOURCE_NAME_ACRONYMS = new Set([
+      'CONAF', 'MICE', 'MOP', 'MINVU', 'SERNATUR', 'SNASPE', 'UNESCO', 'ZOIT'
+    ]);
+
+    const CUT_CODE_OVERRIDES = {
+      'region de tarapaca|iquique|alto hospicio': { codigo_region: '01', codigo_provincia: '011', codigo_comuna: '01107' },
+      'region de tarapaca|del tamarugal|pozo almonte': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01401' },
+      'region de tarapaca|del tamarugal|camina': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01402' },
+      'region de tarapaca|del tamarugal|colchane': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01403' },
+      'region de tarapaca|del tamarugal|huara': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01404' },
+      'region de tarapaca|del tamarugal|pica': { codigo_region: '01', codigo_provincia: '014', codigo_comuna: '01405' },
+      'region de valparaiso|valparaiso|quintero': { codigo_region: '05', codigo_provincia: '051', codigo_comuna: '05107' },
+      'region de valparaiso|valparaiso|vina del mar': { codigo_region: '05', codigo_provincia: '051', codigo_comuna: '05109' },
+      'region de valparaiso|quillota|nogales': { codigo_region: '05', codigo_provincia: '055', codigo_comuna: '05506' },
+      'region de nuble|diguillin|bulnes': { codigo_region: '16', codigo_provincia: '161', codigo_comuna: '16102' },
+      'region de nuble|diguillin|chillan': { codigo_region: '16', codigo_provincia: '161', codigo_comuna: '16101' },
+      'region de nuble|itata|cobquecura': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16202' },
+      'region de nuble|itata|coelemu': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16203' },
+      'region de nuble|itata|ninhue': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16204' },
+      'region de nuble|itata|portezuelo': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16205' },
+      'region de nuble|itata|quirihue': { codigo_region: '16', codigo_provincia: '162', codigo_comuna: '16201' },
+      'region de nuble|punilla|coihueco': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16302' },
+      'region de nuble|punilla|niquen': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16303' },
+      'region de nuble|punilla|san carlos': { codigo_region: '16', codigo_provincia: '163', codigo_comuna: '16301' }
+    };
+
+    const CHILE_TERRITORY = [
+      { nombre: 'Región de Arica y Parinacota', provincias: [{ nombre: 'Arica', comunas: ['Arica', 'Camarones'] }, { nombre: 'Parinacota', comunas: ['Putre', 'General Lagos'] }] },
+      { nombre: 'Región de Tarapacá', provincias: [{ nombre: 'Iquique', comunas: ['Iquique', 'Alto Hospicio'] }, { nombre: 'Del Tamarugal', comunas: ['Pozo Almonte', 'Camiña', 'Colchane', 'Huara', 'Pica'] }] },
+      { nombre: 'Región de Antofagasta', provincias: [{ nombre: 'Antofagasta', comunas: ['Antofagasta', 'Mejillones', 'Sierra Gorda', 'Taltal'] }, { nombre: 'El Loa', comunas: ['Calama', 'Ollagüe', 'San Pedro de Atacama'] }, { nombre: 'Tocopilla', comunas: ['Tocopilla', 'María Elena'] }] },
+      { nombre: 'Región de Atacama', provincias: [{ nombre: 'Copiapó', comunas: ['Copiapó', 'Caldera', 'Tierra Amarilla'] }, { nombre: 'Chañaral', comunas: ['Chañaral', 'Diego de Almagro'] }, { nombre: 'Huasco', comunas: ['Vallenar', 'Alto del Carmen', 'Freirina', 'Huasco'] }] },
+      { nombre: 'Región de Coquimbo', provincias: [{ nombre: 'Elqui', comunas: ['La Serena', 'Coquimbo', 'Andacollo', 'La Higuera', 'Paihuano', 'Vicuña'] }, { nombre: 'Choapa', comunas: ['Illapel', 'Canela', 'Los Vilos', 'Salamanca'] }, { nombre: 'Limarí', comunas: ['Ovalle', 'Combarbalá', 'Monte Patria', 'Punitaqui', 'Río Hurtado'] }] },
+      { nombre: 'Región de Valparaíso', provincias: [{ nombre: 'Valparaíso', comunas: ['Valparaíso', 'Casablanca', 'Concón', 'Juan Fernández', 'Puchuncaví', 'Quintero', 'Viña del Mar'] }, { nombre: 'Isla de Pascua', comunas: ['Isla de Pascua'] }, { nombre: 'Los Andes', comunas: ['Los Andes', 'Calle Larga', 'Rinconada', 'San Esteban'] }, { nombre: 'Petorca', comunas: ['La Ligua', 'Cabildo', 'Papudo', 'Petorca', 'Zapallar'] }, { nombre: 'Quillota', comunas: ['Quillota', 'La Calera', 'Hijuelas', 'La Cruz', 'Nogales'] }, { nombre: 'San Antonio', comunas: ['San Antonio', 'Algarrobo', 'Cartagena', 'El Quisco', 'El Tabo', 'Santo Domingo'] }, { nombre: 'San Felipe de Aconcagua', comunas: ['San Felipe', 'Catemu', 'Llaillay', 'Panquehue', 'Putaendo', 'Santa María'] }, { nombre: 'Marga Marga', comunas: ['Quilpué', 'Limache', 'Olmué', 'Villa Alemana'] }] },
+      { nombre: 'Región Metropolitana de Santiago', provincias: [{ nombre: 'Santiago', comunas: ['Santiago', 'Cerrillos', 'Cerro Navia', 'Conchalí', 'El Bosque', 'Estación Central', 'Huechuraba', 'Independencia', 'La Cisterna', 'La Florida', 'La Granja', 'La Pintana', 'La Reina', 'Las Condes', 'Lo Barnechea', 'Lo Espejo', 'Lo Prado', 'Macul', 'Maipú', 'Ñuñoa', 'Pedro Aguirre Cerda', 'Peñalolén', 'Providencia', 'Pudahuel', 'Quilicura', 'Quinta Normal', 'Recoleta', 'Renca', 'San Joaquín', 'San Miguel', 'San Ramón', 'Vitacura'] }, { nombre: 'Cordillera', comunas: ['Puente Alto', 'Pirque', 'San José de Maipo'] }, { nombre: 'Chacabuco', comunas: ['Colina', 'Lampa', 'Tiltil'] }, { nombre: 'Maipo', comunas: ['San Bernardo', 'Buin', 'Calera de Tango', 'Paine'] }, { nombre: 'Melipilla', comunas: ['Melipilla', 'Alhué', 'Curacaví', 'María Pinto', 'San Pedro'] }, { nombre: 'Talagante', comunas: ['Talagante', 'El Monte', 'Isla de Maipo', 'Padre Hurtado', 'Peñaflor'] }] },
+      { nombre: "Región del Libertador General Bernardo O'Higgins", provincias: [{ nombre: 'Cachapoal', comunas: ['Rancagua', 'Codegua', 'Coinco', 'Coltauco', 'Doñihue', 'Graneros', 'Las Cabras', 'Machalí', 'Malloa', 'Mostazal', 'Olivar', 'Peumo', 'Pichidegua', 'Quinta de Tilcoco', 'Rengo', 'Requínoa', 'San Vicente'] }, { nombre: 'Cardenal Caro', comunas: ['Pichilemu', 'La Estrella', 'Litueche', 'Marchihue', 'Navidad', 'Paredones'] }, { nombre: 'Colchagua', comunas: ['San Fernando', 'Chépica', 'Chimbarongo', 'Lolol', 'Nancagua', 'Palmilla', 'Peralillo', 'Placilla', 'Pumanque', 'Santa Cruz'] }] },
+      { nombre: 'Región del Maule', provincias: [{ nombre: 'Talca', comunas: ['Talca', 'Constitución', 'Curepto', 'Empedrado', 'Maule', 'Pelarco', 'Pencahue', 'Río Claro', 'San Clemente', 'San Rafael'] }, { nombre: 'Cauquenes', comunas: ['Cauquenes', 'Chanco', 'Pelluhue'] }, { nombre: 'Curicó', comunas: ['Curicó', 'Hualañé', 'Licantén', 'Molina', 'Rauco', 'Romeral', 'Sagrada Familia', 'Teno', 'Vichuquén'] }, { nombre: 'Linares', comunas: ['Linares', 'Colbún', 'Longaví', 'Parral', 'Retiro', 'San Javier', 'Villa Alegre', 'Yerbas Buenas'] }] },
+      { nombre: 'Región de Ñuble', provincias: [{ nombre: 'Diguillín', comunas: ['Bulnes', 'Chillán', 'Chillán Viejo', 'El Carmen', 'Pemuco', 'Pinto', 'Quillón', 'San Ignacio', 'Yungay'] }, { nombre: 'Itata', comunas: ['Cobquecura', 'Coelemu', 'Ninhue', 'Portezuelo', 'Quirihue', 'Ránquil', 'Treguaco'] }, { nombre: 'Punilla', comunas: ['Coihueco', 'Ñiquén', 'San Carlos', 'San Fabián', 'San Nicolás'] }] },
+      { nombre: 'Región del Biobío', provincias: [{ nombre: 'Concepción', comunas: ['Concepción', 'Coronel', 'Chiguayante', 'Florida', 'Hualqui', 'Lota', 'Penco', 'San Pedro de la Paz', 'Santa Juana', 'Talcahuano', 'Tomé', 'Hualpén'] }, { nombre: 'Arauco', comunas: ['Lebu', 'Arauco', 'Cañete', 'Contulmo', 'Curanilahue', 'Los Álamos', 'Tirúa'] }, { nombre: 'Biobío', comunas: ['Los Ángeles', 'Antuco', 'Cabrero', 'Laja', 'Mulchén', 'Nacimiento', 'Negrete', 'Quilaco', 'Quilleco', 'San Rosendo', 'Santa Bárbara', 'Tucapel', 'Yumbel', 'Alto Biobío'] }] },
+      { nombre: 'Región de La Araucanía', provincias: [{ nombre: 'Cautín', comunas: ['Temuco', 'Carahue', 'Cunco', 'Curarrehue', 'Freire', 'Galvarino', 'Gorbea', 'Lautaro', 'Loncoche', 'Melipeuco', 'Nueva Imperial', 'Padre Las Casas', 'Perquenco', 'Pitrufquén', 'Pucón', 'Saavedra', 'Teodoro Schmidt', 'Toltén', 'Vilcún', 'Villarrica', 'Cholchol'] }, { nombre: 'Malleco', comunas: ['Angol', 'Collipulli', 'Curacautín', 'Ercilla', 'Lonquimay', 'Los Sauces', 'Lumaco', 'Purén', 'Renaico', 'Traiguén', 'Victoria'] }] },
+      { nombre: 'Región de Los Ríos', provincias: [{ nombre: 'Valdivia', comunas: ['Valdivia', 'Corral', 'Lanco', 'Los Lagos', 'Máfil', 'Mariquina', 'Paillaco', 'Panguipulli'] }, { nombre: 'Ranco', comunas: ['La Unión', 'Futrono', 'Lago Ranco', 'Río Bueno'] }] },
+      { nombre: 'Región de Los Lagos', provincias: [{ nombre: 'Llanquihue', comunas: ['Puerto Montt', 'Calbuco', 'Cochamó', 'Fresia', 'Frutillar', 'Los Muermos', 'Llanquihue', 'Maullín', 'Puerto Varas'] }, { nombre: 'Chiloé', comunas: ['Castro', 'Ancud', 'Chonchi', 'Curaco de Vélez', 'Dalcahue', 'Puqueldón', 'Queilén', 'Quellón', 'Quemchi', 'Quinchao'] }, { nombre: 'Osorno', comunas: ['Osorno', 'Puerto Octay', 'Purranque', 'Puyehue', 'Río Negro', 'San Juan de la Costa', 'San Pablo'] }, { nombre: 'Palena', comunas: ['Chaitén', 'Futaleufú', 'Hualaihué', 'Palena'] }] },
+      { nombre: 'Región de Aysén del General Carlos Ibáñez del Campo', provincias: [{ nombre: 'Coyhaique', comunas: ['Coyhaique', 'Lago Verde'] }, { nombre: 'Aysén', comunas: ['Aysén', 'Cisnes', 'Guaitecas'] }, { nombre: 'Capitán Pratt', comunas: ['Cochrane', 'O’Higgins', 'Tortel'] }, { nombre: 'General Carrera', comunas: ['Chile Chico', 'Río Ibáñez'] }] },
+      { nombre: 'Región de Magallanes y de la Antártica Chilena', provincias: [{ nombre: 'Magallanes', comunas: ['Punta Arenas', 'Laguna Blanca', 'Río Verde', 'San Gregorio'] }, { nombre: 'Antártica Chilena', comunas: ['Cabo de Hornos', 'Antártica'] }, { nombre: 'Tierra del Fuego', comunas: ['Porvenir', 'Primavera', 'Timaukel'] }, { nombre: 'Última Esperanza', comunas: ['Natales', 'Torres del Paine'] }] }
+    ];
+
+    const CLASSIFICATION_HIERARCHY = {
+      'Recurso Natural': {
+        'Área protegida': [
+          'Áreas de conservación de múltiples usos',
+          'Áreas de conservación de pueblos indígenas',
+          'Área protegida privada',
+          'Monumento Natural',
+          'Parque Nacional',
+          'Reserva Nacional'
+        ],
+        'Costa': [
+          'Acantilado o farellón',
+          'Arrecife',
+          'Bahía',
+          'Desembocadura',
+          'Duna o campo dunario',
+          'Estrecho',
+          'Fiordo o canal',
+          'Isla o archipiélago',
+          'Península, cabo o punta',
+          'Playa o balneario',
+          'Salina',
+          'Seno o ensenada'
+        ],
+        'Condición natural especial': ['Cielos oscuros', 'Olas'],
+        'Cuerpo y curso de agua': [
+          'Cascada o salto',
+          'Humedal o bofedal',
+          'Lago o laguna',
+          'Río o estero'
+        ],
+        'Fuente termal o géiser': ['Fuente o centro termal', 'Géiser'],
+        'Glaciar o campo de hielo': ['Campo de hielo', 'Glaciar'],
+        'Lugar de interés geológico o paleontológico': [
+          'Lugar de interés geológico',
+          'Lugar de interés paleontológico'
+        ],
+        'Montaña': [
+          'Altiplano',
+          'Área nevada',
+          'Cerro',
+          'Cordillera',
+          'Montaña',
+          'Quebrada',
+          'Salar',
+          'Volcán'
+        ],
+        'Planicie': ['Desierto', 'Duna o campo dunario', 'Oasis', 'Pampa o Llanura', 'Valle']
+      },
+      'Recurso Cultural': {
+        'Acontecimientos programados': [
+          'Carnaval o fiesta costumbrista',
+          'Conmemoraciones o representaciones históricas',
+          'Convenciones, ferias, exposiciones o congresos',
+          'Evento de música, canto o danza',
+          'Evento deportivo',
+          'Evento enológico y/o gastronómico',
+          'Feria temática',
+          'Festival de cine',
+          'Fiesta religiosa'
+        ],
+        'Arquitectura': [
+          'Barrios',
+          'Espacios públicos',
+          'Infraestructura recreativa',
+          'Monumento histórico',
+          'Obra de ingeniería',
+          'Otras infraestructuras de arquitectura'
+        ],
+        'Folklore': [
+          'Artesanía',
+          'Feria artesanal y/o tradicional',
+          'Mercado tradicional',
+          'Representaciones y/o manifestaciones religiosas o creencias populares'
+        ],
+        'Manifestación Cultural': [
+          'Caleta artesanal',
+          'Escultura o instalaciones',
+          'Lugar o sitio histórico o de memoria',
+          'Mural o arte urbano',
+          'Museo',
+          'Pueblo o Zona Típica o Pintoresca',
+          'Sala de exposición museográfica',
+          'Sitio gastronómico',
+          'Ruina o lugar de interés arqueológico'
+        ],
+        'Realizaciones técnicas y científicas contemporáneas': [
+          'Acuario, aviario, mariposario y/o zoológico',
+          'Granja educativa',
+          'Hacienda o estancia',
+          'Jardín botánico',
+          'Observatorio astronómico',
+          'Planetario',
+          'Viñas, bodegas, cervecerías o destilerías'
+        ]
+      }
+    };
+
+    const HEADER_ALIASES = {
+      nombre: 'nombreRecurso',
+      nombrerecurso: 'nombreRecurso',
+      nombredelrecurso: 'nombreRecurso',
+      nombredelrecursoturistico: 'nombreRecurso',
+      region: 'region',
+      provincia: 'provincia',
+      comuna: 'comuna',
+      categoria: 'categoria',
+      tiporecurso: 'tipoRecurso',
+      tipoderecurso: 'tipoRecurso',
+      tipoderecursoturistico: 'tipoRecurso',
+      tipo: 'tipoRecurso',
+      subtiporecurso: 'subtipoRecurso',
+      subtipoderecurso: 'subtipoRecurso',
+      subtipoderecursoturistico: 'subtipoRecurso',
+      subtipo: 'subtipoRecurso',
+      descripcion: 'descripcion',
+      descripcionrecurso: 'descripcion',
+      descripciondelrecurso: 'descripcion',
+      descripciondelrecursoturistico: 'descripcion',
+      resena: 'descripcion',
+      nombreresponsable: 'responsable',
+      nombredelresponsable: 'responsable',
+      nombreresponsabledelregistro: 'responsable',
+      responsable: 'responsable',
+      responsabledelregistro: 'responsable',
+      encuestador: 'responsable',
+      coordenadas: 'coordenadas',
+      latitud: 'latitud',
+      latitude: 'latitud',
+      longitud: 'longitud',
+      longitude: 'longitud',
+      coordx: 'coordX',
+      coordenadax: 'coordX',
+      utmx: 'coordX',
+      coordy: 'coordY',
+      coordenaday: 'coordY',
+      utmy: 'coordY',
+      utmzona: 'utmZona',
+      zonautm: 'utmZona'
+    };
+
+    let batchRows = [];
+    let importedTable = null;
+    let uploading = false;
+    let optionalMappingMetadata = { coordinateSystem: '', coordinateMessage: '' };
+    const MAPPING_FIELDS = [
+      ['nombreRecurso', 'Nombre del recurso'],
+      ['region', 'Región'],
+      ['provincia', 'Provincia'],
+      ['comuna', 'Comuna'],
+      ['categoria', 'Categoría'],
+      ['tipoRecurso', 'Tipo'],
+      ['subtipoRecurso', 'Subtipo']
+    ];
+    const OPTIONAL_MAPPING_FIELDS = [
+      ['descripcion', 'Descripción'],
+      ['responsable', 'Nombre del responsable'],
+      ['coordinateCombined', 'Coordenadas en una columna'],
+      ['coordinateX', 'Coordenada X / Longitud'],
+      ['coordinateY', 'Coordenada Y / Latitud'],
+      ['utmZona', 'Zona UTM']
+    ];
+    const OPTIONAL_HEADER_ALIASES = {
+      descripcion: ['descripcion', 'descripcionrecurso', 'descripciondelrecurso', 'descripciondelrecursoturistico', 'detalle', 'resena'],
+      responsable: ['responsable', 'nombreresponsable', 'nombredelresponsable', 'responsabledelregistro', 'nombreresponsabledelregistro', 'encuestador', 'levantadopor'],
+      coordinateCombined: ['coordenadas', 'coordenada', 'puntogeografico', 'coordenadasgeograficas', 'latlon', 'longlat', 'ubicacion'],
+      coordinateX: ['x', 'coordx', 'coordenadax', 'pointx', 'longitud', 'longitude', 'lon', 'utmx', 'este', 'easting'],
+      coordinateY: ['y', 'coordy', 'coordenaday', 'pointy', 'latitud', 'latitude', 'lat', 'utmy', 'norte', 'northing'],
+      utmZona: ['utmzona', 'zonautm', 'zona', 'huso', 'husoutm']
+    };
+    const commonValues = {
+      region: '',
+      provincia: '',
+      comuna: '',
+      categoria: '',
+      tipoRecurso: '',
+      subtipoRecurso: ''
+    };
+
+    function createLocalId() {
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+        return globalThis.crypto.randomUUID();
+      }
+      return 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10);
+    }
+
+    function normalizeText(value) {
+      return String(value ?? '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '');
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      })[char]);
+    }
+
+    function canonicalValue(options, value) {
+      const normalized = normalizeText(value);
+      if (!normalized) return '';
+      return options.find(option => normalizeText(option) === normalized) || String(value ?? '').trim();
+    }
+
+    function capitalizeResourceWord(value) {
+      const upper = String(value ?? '').toLocaleUpperCase('es-CL');
+      if (RESOURCE_NAME_ACRONYMS.has(upper)) return upper;
+      const lower = String(value ?? '').toLocaleLowerCase('es-CL');
+      return lower.replace(/(^|[-\/'’])([a-záéíóúüñ])/gi, (match, separator, letter) =>
+        separator + letter.toLocaleUpperCase('es-CL')
+      );
+    }
+
+    function normalizeResourceName(value) {
+      const words = String(value ?? '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+      const normalizedName = words.map((word, index) => {
+        const normalizedWord = word.toLocaleLowerCase('es-CL');
+        if (index > 0 && RESOURCE_NAME_CONNECTORS.has(normalizedWord)) return normalizedWord;
+        return capitalizeResourceWord(word);
+      }).join(' ');
+      return normalizedName.replace(/\(([^()]*)\)/g, (match, content) =>
+        '(' + content.toLocaleUpperCase('es-CL') + ')'
+      );
+    }
+
+    function normalizedTerritoryName(value, level) {
+      const normalized = normalizeText(value);
+      if (level === 'region') return normalized.replace(/^region(?:dela|del|de)?/, '');
+      if (level === 'provincia') return normalized.replace(/^provincia(?:dela|del|de)?/, '');
+      if (level === 'comuna') return normalized.replace(/^comuna(?:dela|del|de)?/, '');
+      return normalized;
+    }
+
+    function findTerritoryOption(options, value, level) {
+      const normalized = normalizedTerritoryName(value, level);
+      if (!normalized) return '';
+      const exact = options.find(option => normalizedTerritoryName(option, level) === normalized);
+      if (exact) return exact;
+      const partialMatches = options.filter(option => {
+        const candidate = normalizedTerritoryName(option, level);
+        return candidate.startsWith(normalized) || normalized.startsWith(candidate);
+      });
+      return partialMatches.length === 1 ? partialMatches[0] : '';
+    }
+
+    function canonicalRegion(value) {
+      const raw = String(value ?? '').trim();
+      const normalized = normalizedTerritoryName(raw, 'region');
+      if (!normalized) return '';
+      const alias = REGION_ALIASES[normalized];
+      if (alias) return alias;
+      const compactCode = normalized.replace(/^r/, '');
+      const numericCode = /^\d{1,2}$/.test(compactCode) ? compactCode.padStart(2, '0') : REGION_ROMAN_CODES[compactCode];
+      if (numericCode) {
+        return Object.keys(REGION_CODES).find(name => REGION_CODES[name] === numericCode) || '';
+      }
+      return findTerritoryOption(CHILE_TERRITORY.map(item => item.nombre), raw, 'region');
+    }
+
+    function territoryMatchesByCommune(value, regionName = '', provinceName = '') {
+      const normalized = normalizedTerritoryName(value, 'comuna');
+      const cutDigits = String(value ?? '').replace(/\D/g, '');
+      const cutCode = cutDigits.length >= 4 && cutDigits.length <= 5 ? cutDigits.padStart(5, '0') : '';
+      const matches = [];
+      CHILE_TERRITORY.forEach(region => {
+        if (regionName && region.nombre !== regionName) return;
+        region.provincias.forEach(province => {
+          if (provinceName && province.nombre !== provinceName) return;
+          province.comunas.forEach(comuna => {
+            const sameName = normalized && normalizedTerritoryName(comuna, 'comuna') === normalized;
+            const sameCode = cutCode && getTerritoryCodes({
+              region: region.nombre,
+              provincia: province.nombre,
+              comuna
+            }).codigo_comuna === cutCode;
+            if (sameName || sameCode) matches.push({ region: region.nombre, provincia: province.nombre, comuna });
+          });
+        });
+      });
+      return matches;
+    }
+
+    function resolveTerritory(regionValue, provinceValue, communeValue) {
+      let region = canonicalRegion(regionValue);
+      let regionData = CHILE_TERRITORY.find(item => item.nombre === region);
+      let provincia = findTerritoryOption((regionData?.provincias || []).map(item => item.nombre), provinceValue, 'provincia');
+
+      if (!regionData) {
+        const provinceNormalized = normalizedTerritoryName(provinceValue, 'provincia');
+        const provinceMatches = [];
+        CHILE_TERRITORY.forEach(item => item.provincias.forEach(province => {
+          if (normalizedTerritoryName(province.nombre, 'provincia') === provinceNormalized) {
+            provinceMatches.push({ region: item.nombre, provincia: province.nombre });
+          }
+        }));
+        if (provinceMatches.length === 1) {
+          region = provinceMatches[0].region;
+          provincia = provinceMatches[0].provincia;
+          regionData = CHILE_TERRITORY.find(item => item.nombre === region);
+        }
+      }
+
+      let provinceData = regionData?.provincias.find(item => item.nombre === provincia);
+      let comuna = findTerritoryOption(provinceData?.comunas || [], communeValue, 'comuna');
+      if (!comuna) {
+        let matches = territoryMatchesByCommune(communeValue, region, provincia);
+        if (!matches.length && region) matches = territoryMatchesByCommune(communeValue, region);
+        if (!matches.length) matches = territoryMatchesByCommune(communeValue);
+        if (matches.length === 1) {
+          region = matches[0].region;
+          provincia = matches[0].provincia;
+          comuna = matches[0].comuna;
+        }
+      }
+
+      return {
+        region: region || String(regionValue ?? '').trim(),
+        provincia: provincia || String(provinceValue ?? '').trim(),
+        comuna: comuna || String(communeValue ?? '').trim()
+      };
+    }
+
+    function normalizeCutKey(value) {
+      return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[’´`]/g, "'")
+        .toLowerCase()
+        .trim();
+    }
+
+    function getTerritoryData(regionName, provinceName) {
+      const region = CHILE_TERRITORY.find(item => item.nombre === regionName);
+      const province = region?.provincias.find(item => item.nombre === provinceName);
+      return { region, province };
+    }
+
+    function getTerritoryCodes(values = {}) {
+      const regionName = values.region || '';
+      const provinceName = values.provincia || '';
+      const comunaName = values.comuna || '';
+      const overrideKey = [regionName, provinceName, comunaName].map(normalizeCutKey).join('|');
+      const override = CUT_CODE_OVERRIDES[overrideKey];
+      if (override) {
+        return {
+          ...override,
+          codigo_unico_territorial: override.codigo_region + '-' + override.codigo_provincia + '-' + override.codigo_comuna
+        };
+      }
+
+      const { region, province } = getTerritoryData(regionName, provinceName);
+      const codigoRegion = REGION_CODES[regionName] || '00';
+      const provinceIndex = region ? region.provincias.findIndex(item => item.nombre === provinceName) : -1;
+      const codigoProvincia = provinceIndex >= 0 ? codigoRegion + String(provinceIndex + 1) : codigoRegion + '0';
+      const comunaIndex = province ? province.comunas.findIndex(item => item === comunaName) : -1;
+      const codigoComuna = comunaIndex >= 0
+        ? codigoProvincia + String(comunaIndex + 1).padStart(2, '0')
+        : codigoProvincia + '00';
+      return {
+        codigo_region: codigoRegion,
+        codigo_provincia: codigoProvincia,
+        codigo_comuna: codigoComuna,
+        codigo_unico_territorial: codigoRegion + '-' + codigoProvincia + '-' + codigoComuna
+      };
+    }
+
+    function createAttractionCode() {
+      const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      const bytes = new Uint8Array(6);
+      if (globalThis.crypto?.getRandomValues) globalThis.crypto.getRandomValues(bytes);
+      else for (let index = 0; index < bytes.length; index++) bytes[index] = Math.floor(Math.random() * 256);
+      return Array.from(bytes, value => alphabet[value % alphabet.length]).join('');
+    }
+
+    function refreshRowIdentity(row) {
+      row.codigo_atractivo = String(row.codigo_atractivo || createAttractionCode()).toUpperCase();
+      const codes = getTerritoryCodes(row);
+      Object.assign(row, codes, {
+        idInterno: 'A' + row.codigo_atractivo,
+        id_unico_formato: 'cut-region-provincia-comuna'
+      });
+      const { region, province } = getTerritoryData(row.region, row.provincia);
+      const complete = Boolean(region && province && province.comunas.includes(row.comuna));
+      row.id_unico = complete
+        ? 'R' + codes.codigo_region + '-P' + codes.codigo_provincia + '-C' + codes.codigo_comuna + '-A' + row.codigo_atractivo
+        : '';
+      return row;
+    }
+
+    function canonicalizeRow(input = {}) {
+      const territory = resolveTerritory(input.region, input.provincia, input.comuna);
+      const region = territory.region;
+      const regionData = CHILE_TERRITORY.find(item => item.nombre === region);
+      const provincia = territory.provincia;
+      const provinceData = regionData?.provincias.find(item => item.nombre === provincia);
+      const comuna = territory.comuna;
+      const categories = Object.keys(CLASSIFICATION_HIERARCHY);
+      const categoria = canonicalValue(categories, input.categoria);
+      const types = Object.keys(CLASSIFICATION_HIERARCHY[categoria] || {});
+      const tipoRecurso = canonicalValue(types, input.tipoRecurso);
+      const subtypes = CLASSIFICATION_HIERARCHY[categoria]?.[tipoRecurso] || [];
+      const subtipoRecurso = canonicalValue(subtypes, input.subtipoRecurso);
+      return refreshRowIdentity({
+        id: input.id || createLocalId(),
+        nombreRecurso: normalizeResourceName(input.nombreRecurso),
+        region,
+        provincia,
+        comuna,
+        categoria,
+        tipoRecurso,
+        subtipoRecurso,
+        descripcion: String(input.descripcion ?? '').trim(),
+        responsable: normalizeResourceName(input.responsable),
+        coordenadas: String(input.coordenadas ?? '').trim(),
+        latitud: coordinateNumberOrBlank(input.latitud),
+        longitud: coordinateNumberOrBlank(input.longitud),
+        coordX: coordinateNumberOrBlank(input.coordX),
+        coordY: coordinateNumberOrBlank(input.coordY),
+        utmZona: String(input.utmZona ?? '').trim(),
+        codigo_atractivo: input.codigo_atractivo || ''
+      });
+    }
+
+    function attractionKey(values = {}) {
+      return [
+        values.nombreRecurso,
+        values.region,
+        values.provincia,
+        values.comuna
+      ].map(normalizeText).join('|');
+    }
+
+    function extractAttractionCode(id) {
+      const match = String(id || '').trim().toUpperCase().match(/-A([A-Z0-9]+)$/);
+      return match ? match[1] : '';
+    }
+
+    function linkStoredDraft(row, storedDrafts) {
+      const key = attractionKey(row);
+      const draft = storedDrafts.find(item => attractionKey(item?.data?.values || {}) === key);
+      const values = draft?.data?.values || {};
+      const storedId = String(values.id_unico || '').trim().toUpperCase();
+      if (!draft || !storedId) return row;
+      const codigo = String(values.codigo_atractivo || extractAttractionCode(storedId)).trim().toUpperCase();
+      const linked = canonicalizeRow({ ...row, codigo_atractivo: codigo });
+      linked.linkedDraftId = String(draft.id || '');
+      linked.fecha_creacion = values.fecha_creacion || draft.savedAt || '';
+      return linked;
+    }
+
+    function getStoredDrafts() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(DRAFTS_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function normalizeDrafts(drafts) {
+      const seen = new Set();
+      return drafts
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0))
+        .filter(draft => {
+          const uniqueId = String(draft?.data?.values?.id_unico || '').trim();
+          const key = uniqueId ? 'id:' + uniqueId : 'draft:' + String(draft.id || '').trim();
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+    }
+
+    function validateBatch(rows = batchRows, storedDrafts = getStoredDrafts()) {
+      const keys = rows.map(attractionKey);
+      const ids = rows.map(row => String(row.id_unico || '').trim());
+      const storedKeys = new Set(storedDrafts.map(draft => attractionKey(draft?.data?.values || {})));
+      const storedIds = new Set(storedDrafts.map(draft => String(draft?.data?.values?.id_unico || '').trim()).filter(Boolean));
+      return rows.map((row, index) => {
+        const errors = [];
+        const { region, province } = getTerritoryData(row.region, row.provincia);
+        if (!row.nombreRecurso) errors.push('Falta nombre');
+        if (!region) errors.push('Región no reconocida');
+        if (!province) errors.push('Provincia no corresponde a la región');
+        if (!province?.comunas.includes(row.comuna)) errors.push('Comuna no corresponde a la provincia');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]) errors.push('Categoría no reconocida');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso]) errors.push('Tipo no corresponde a la categoría');
+        if (!CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso]?.includes(row.subtipoRecurso)) {
+          errors.push('Subtipo no corresponde al tipo');
+        }
+        const key = keys[index];
+        if (key && keys.indexOf(key) !== index) errors.push('Duplicado dentro del lote');
+        if (key && storedKeys.has(key) && !row.linkedDraftId) errors.push('Ya existe como borrador local');
+        const uniqueId = ids[index];
+        if (!uniqueId) errors.push('No se pudo generar el ID territorial');
+        if (uniqueId && ids.indexOf(uniqueId) !== index) errors.push('ID repetido dentro del lote');
+        if (uniqueId && storedIds.has(uniqueId) && !row.linkedDraftId) errors.push('ID ya utilizado en un borrador local');
+        return { valid: errors.length === 0, errors };
+      });
+    }
+
+    function detectDelimiter(text) {
+      const firstLine = String(text || '').split(/\r?\n/, 1)[0] || '';
+      const candidates = ['\t', ';', ','];
+      return candidates
+        .map(delimiter => ({ delimiter, count: firstLine.split(delimiter).length }))
+        .sort((a, b) => b.count - a.count)[0].delimiter;
+    }
+
+    function parseDelimited(text, delimiter = detectDelimiter(text)) {
+      const rows = [];
+      let row = [];
+      let value = '';
+      let quoted = false;
+      const source = String(text || '').replace(/^\uFEFF/, '');
+
+      for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+        const next = source[i + 1];
+        if (char === '"') {
+          if (quoted && next === '"') {
+            value += '"';
+            i++;
+          } else {
+            quoted = !quoted;
+          }
+        } else if (char === delimiter && !quoted) {
+          row.push(value);
+          value = '';
+        } else if ((char === '\n' || char === '\r') && !quoted) {
+          if (char === '\r' && next === '\n') i++;
+          row.push(value);
+          if (row.some(cell => String(cell).trim())) rows.push(row);
+          row = [];
+          value = '';
+        } else {
+          value += char;
+        }
+      }
+
+      row.push(value);
+      if (row.some(cell => String(cell).trim())) rows.push(row);
+      return rows;
+    }
+
+    function matrixToObjects(matrix) {
+      const cleanMatrix = (Array.isArray(matrix) ? matrix : [])
+        .map(row => Array.isArray(row) ? row : [])
+        .filter(row => row.some(cell => String(cell ?? '').trim()));
+      if (!cleanMatrix.length) return [];
+
+      const first = cleanMatrix[0].map(cell => HEADER_ALIASES[normalizeText(cell)] || '');
+      const recognizedHeaders = first.filter(Boolean).length;
+      const hasHeader = recognizedHeaders >= 2;
+      const headers = hasHeader
+        ? first
+        : ['nombreRecurso', 'region', 'provincia', 'comuna', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      const dataRows = hasHeader ? cleanMatrix.slice(1) : cleanMatrix;
+
+      return dataRows.map(row => {
+        const values = {};
+        headers.forEach((header, index) => {
+          if (header) values[header] = row[index] ?? '';
+        });
+        return values;
+      }).filter(values => [
+        values.nombreRecurso,
+        values.region,
+        values.provincia,
+        values.comuna,
+        values.categoria,
+        values.tipoRecurso,
+        values.subtipoRecurso
+      ].some(value => String(value ?? '').trim())).map(canonicalizeRow);
+    }
+
+    function appendRows(rows, sourceLabel = 'lote') {
+      const available = MAX_IMPORT_ROWS - batchRows.length;
+      if (available <= 0) {
+        showNotice('El prototipo ya alcanzó el máximo de ' + MAX_IMPORT_ROWS + ' filas.', 'warn');
+        return 0;
+      }
+      const storedDrafts = getStoredDrafts();
+      const accepted = rows.slice(0, available).map(input => {
+        const merged = { ...input };
+        Object.entries(commonValues).forEach(([field, value]) => {
+          if (!String(merged[field] ?? '').trim() && value) merged[field] = value;
+        });
+        return linkStoredDraft(canonicalizeRow(merged), storedDrafts);
+      });
+      batchRows = [...batchRows, ...accepted];
+      renderBatch();
+      const omitted = rows.length - accepted.length;
+      showNotice(
+        accepted.length + ' fila(s) incorporada(s) desde ' + sourceLabel
+          + (omitted > 0 ? '. Se omitieron ' + omitted + ' por el límite de ' + MAX_IMPORT_ROWS + '.' : '.'),
+        omitted > 0 ? 'warn' : 'ok'
+      );
+      return accepted.length;
+    }
+
+    async function readBatchFile(file) {
+      if (!file) return null;
+      if (file.size > 5 * 1024 * 1024) throw new Error('El archivo supera 5 MB.');
+      const extension = String(file.name || '').split('.').pop().toLowerCase();
+      let matrix;
+      if (extension === 'xlsx' || extension === 'xls') {
+        if (!globalThis.XLSX) throw new Error('No fue posible cargar el lector de Excel. Usa CSV o vuelve a intentar con conexión.');
+        const workbook = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: false });
+        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+        matrix = XLSX.utils.sheet_to_json(firstSheet, {
+          header: 1,
+          defval: '',
+          raw: false
+        });
+      } else {
+        matrix = parseDelimited(await file.text());
+      }
+      return prepareImportedTable(matrix, file.name);
+    }
+
+    function prepareImportedTable(matrix, sourceName) {
+      const clean = (Array.isArray(matrix) ? matrix : [])
+        .map(row => Array.isArray(row) ? row : [])
+        .filter(row => row.some(cell => String(cell ?? '').trim()));
+      if (clean.length < 2) throw new Error('El archivo debe tener una fila de encabezados y al menos una fila de datos.');
+      const maxColumns = Math.max(...clean.map(row => row.length));
+      const sourceHeaders = Array.from({ length: maxColumns }, (_, index) => {
+        const value = String(clean[0][index] ?? '').trim();
+        return value || 'Columna ' + (index + 1);
+      });
+      const sourceRows = clean.slice(1)
+        .filter(row => row.some(cell => String(cell ?? '').trim()))
+        .slice(0, MAX_IMPORT_ROWS);
+      return { sourceName, headers: sourceHeaders, rows: sourceRows, originalRowCount: clean.length - 1 };
+    }
+
+    function parseNumericCell(value) {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+      const match = String(value ?? '').trim().match(/[-+]?\d[\d\s.,]*/);
+      if (!match) return null;
+      let numberText = match[0].replace(/\s+/g, '');
+      const comma = numberText.lastIndexOf(',');
+      const dot = numberText.lastIndexOf('.');
+      if (comma >= 0 && dot >= 0) {
+        const decimalSeparator = comma > dot ? ',' : '.';
+        const thousandsSeparator = decimalSeparator === ',' ? /\./g : /,/g;
+        numberText = numberText.replace(thousandsSeparator, '');
+        if (decimalSeparator === ',') numberText = numberText.replace(',', '.');
+      } else if (comma >= 0) {
+        numberText = numberText.replace(',', '.');
+      } else if ((numberText.match(/\./g) || []).length > 1) {
+        numberText = numberText.replace(/\./g, '');
+      }
+      const parsed = Number(numberText);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function coordinateNumberOrBlank(value) {
+      if (String(value ?? '').trim() === '') return '';
+      const parsed = parseNumericCell(value);
+      return Number.isFinite(parsed) ? parsed : '';
+    }
+
+    function parseCoordinatePair(value) {
+      const matches = String(value ?? '').match(/[-+]?\d+(?:[.,]\d+)?/g) || [];
+      if (matches.length < 2) return null;
+      const first = parseNumericCell(matches[0]);
+      const second = parseNumericCell(matches[1]);
+      if (!Number.isFinite(first) || !Number.isFinite(second)) return null;
+      const firstIsLat = first >= -60 && first <= -10;
+      const secondIsLat = second >= -60 && second <= -10;
+      const firstIsLon = first >= -90 && first <= -50;
+      const secondIsLon = second >= -90 && second <= -50;
+      if (firstIsLat && secondIsLon) return { system: 'geographic', latitud: first, longitud: second };
+      if (firstIsLon && secondIsLat) return { system: 'geographic', latitud: second, longitud: first };
+      if (first >= 100000 && first <= 900000 && second >= 3000000 && second <= 10000000) {
+        return { system: 'utm', coordX: first, coordY: second };
+      }
+      return null;
+    }
+
+    function numericColumnValues(table, columnIndex) {
+      if (columnIndex === '' || columnIndex === undefined) return [];
+      return table.rows.slice(0, 80)
+        .map(row => parseNumericCell(row[Number(columnIndex)]))
+        .filter(Number.isFinite);
+    }
+
+    function median(values) {
+      if (!values.length) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    }
+
+    function inferCoordinateSystem(table, mapping) {
+      const xHeader = mapping.coordinateX !== '' ? normalizeText(table.headers[Number(mapping.coordinateX)]) : '';
+      const yHeader = mapping.coordinateY !== '' ? normalizeText(table.headers[Number(mapping.coordinateY)]) : '';
+      const combinedHeader = mapping.coordinateCombined !== '' ? normalizeText(table.headers[Number(mapping.coordinateCombined)]) : '';
+      const headerText = [xHeader, yHeader, combinedHeader].join('|');
+      if (/latitud|latitude|longitud|longitude|latlon|longlat|geografic/.test(headerText)) return 'geographic';
+      if (/utm|easting|northing|este|norte/.test(headerText)) return 'utm';
+
+      if (mapping.coordinateCombined !== '') {
+        const systems = table.rows.slice(0, 40)
+          .map(row => parseCoordinatePair(row[Number(mapping.coordinateCombined)])?.system)
+          .filter(Boolean);
+        const geographicCount = systems.filter(system => system === 'geographic').length;
+        const utmCount = systems.filter(system => system === 'utm').length;
+        if (geographicCount || utmCount) return geographicCount >= utmCount ? 'geographic' : 'utm';
+      }
+
+      const xMedian = median(numericColumnValues(table, mapping.coordinateX));
+      const yMedian = median(numericColumnValues(table, mapping.coordinateY));
+      if (Number.isFinite(xMedian) && Number.isFinite(yMedian)) {
+        if (xMedian >= -90 && xMedian <= -50 && yMedian >= -60 && yMedian <= -10) return 'geographic';
+        if (xMedian >= 100000 && xMedian <= 900000 && yMedian >= 3000000 && yMedian <= 10000000) return 'utm';
+      }
+      return '';
+    }
+
+    function findColumnByAliases(headers, aliases, used = new Set()) {
+      return headers.findIndex((header, index) => {
+        if (used.has(index)) return false;
+        const normalizedHeader = normalizeText(header);
+        return aliases.some(alias => normalizedHeader === alias
+          || (alias.length >= 5 && (normalizedHeader.startsWith(alias) || normalizedHeader.endsWith(alias))));
+      });
+    }
+
+    function detectOptionalMappings(table, requiredMapping) {
+      const used = new Set(Object.values(requiredMapping).filter(value => value !== '').map(Number));
+      const mapping = {};
+      ['descripcion', 'responsable'].forEach(field => {
+        const index = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES[field], used);
+        mapping[field] = index >= 0 ? String(index) : '';
+        if (index >= 0) used.add(index);
+      });
+
+      const xIndex = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES.coordinateX, used);
+      const yIndex = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES.coordinateY, used);
+      const combinedIndex = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES.coordinateCombined, used);
+      mapping.coordinateX = xIndex >= 0 ? String(xIndex) : '';
+      mapping.coordinateY = yIndex >= 0 ? String(yIndex) : '';
+      mapping.coordinateCombined = xIndex < 0 && yIndex < 0 && combinedIndex >= 0 ? String(combinedIndex) : '';
+      [xIndex, yIndex, combinedIndex].filter(index => index >= 0).forEach(index => used.add(index));
+
+      const zoneIndex = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES.utmZona, used);
+      mapping.utmZona = zoneIndex >= 0 ? String(zoneIndex) : '';
+      const coordinateSystem = inferCoordinateSystem(table, mapping);
+      let coordinateMessage = '';
+      if (coordinateSystem === 'geographic') {
+        coordinateMessage = 'Coordenadas geográficas detectadas: X corresponde a longitud y Y a latitud.';
+      } else if (coordinateSystem === 'utm') {
+        coordinateMessage = 'Coordenadas UTM detectadas: se conservarán X, Y y la zona UTM cuando esté disponible.';
+      } else if (mapping.coordinateX !== '' || mapping.coordinateY !== '' || mapping.coordinateCombined !== '') {
+        coordinateMessage = 'Se encontraron posibles coordenadas, pero el sistema no pudo confirmar si son geográficas o UTM. Revisa las columnas sugeridas.';
+      }
+      return { mapping, coordinateSystem, coordinateMessage };
+    }
+
+    function guessColumnMapping(headers) {
+      const used = new Set();
+      const result = {};
+      MAPPING_FIELDS.forEach(([field]) => {
+        const index = headers.findIndex((header, candidateIndex) => {
+          if (used.has(candidateIndex)) return false;
+          return HEADER_ALIASES[normalizeText(header)] === field;
+        });
+        result[field] = index >= 0 ? String(index) : '';
+        if (index >= 0) used.add(index);
+      });
+      return result;
+    }
+
+    function mappingOptions(headers, selected, placeholder = 'Selecciona una columna') {
+      return '<option value="">' + escapeHtml(placeholder) + '</option>' + headers.map((header, index) => {
+        const suffix = ' · columna ' + (index + 1);
+        return '<option value="' + index + '"' + (String(index) === String(selected) ? ' selected' : '') + '>'
+          + escapeHtml(header + suffix) + '</option>';
+      }).join('');
+    }
+
+    function optionalFieldLabel(field, coordinateSystem) {
+      if (field === 'coordinateX' && coordinateSystem === 'geographic') return 'Longitud (coordenada X)';
+      if (field === 'coordinateY' && coordinateSystem === 'geographic') return 'Latitud (coordenada Y)';
+      if (field === 'coordinateX' && coordinateSystem === 'utm') return 'Coordenada UTM X';
+      if (field === 'coordinateY' && coordinateSystem === 'utm') return 'Coordenada UTM Y';
+      return OPTIONAL_MAPPING_FIELDS.find(item => item[0] === field)?.[1] || field;
+    }
+
+    function renderOptionalMappings(table, requiredMapping) {
+      const detected = detectOptionalMappings(table, requiredMapping);
+      optionalMappingMetadata = {
+        coordinateSystem: detected.coordinateSystem,
+        coordinateMessage: detected.coordinateMessage
+      };
+      const visibleFields = OPTIONAL_MAPPING_FIELDS.filter(([field]) => detected.mapping[field] !== '');
+      const container = document.getElementById('optionalMapping');
+      const grid = document.getElementById('optionalMappingGrid');
+      const coordinateDetection = document.getElementById('coordinateDetection');
+      if (!visibleFields.length) {
+        container.hidden = true;
+        grid.innerHTML = '';
+        coordinateDetection.hidden = true;
+        return;
+      }
+      grid.innerHTML = visibleFields.map(([field]) => '<div class="mapping-field">'
+        + '<label for="map-optional-' + field + '">' + escapeHtml(optionalFieldLabel(field, detected.coordinateSystem)) + '</label>'
+        + '<select id="map-optional-' + field + '" data-optional-map-field="' + field + '">'
+        + mappingOptions(table.headers, detected.mapping[field], 'No importar') + '</select></div>').join('');
+      coordinateDetection.textContent = detected.coordinateMessage;
+      coordinateDetection.hidden = !detected.coordinateMessage;
+      container.hidden = false;
+    }
+
+    function mapOptionalValues(sourceRow, mapping) {
+      const values = {};
+      if (mapping.descripcion !== '') values.descripcion = String(sourceRow[Number(mapping.descripcion)] ?? '').trim();
+      if (mapping.responsable !== '') values.responsable = normalizeResourceName(sourceRow[Number(mapping.responsable)]);
+      const zone = mapping.utmZona !== '' ? String(sourceRow[Number(mapping.utmZona)] ?? '').trim() : '';
+
+      if (mapping.coordinateCombined !== '') {
+        const parsed = parseCoordinatePair(sourceRow[Number(mapping.coordinateCombined)]);
+        if (parsed?.system === 'geographic') {
+          values.latitud = parsed.latitud;
+          values.longitud = parsed.longitud;
+          values.coordenadas = parsed.latitud + ', ' + parsed.longitud;
+        } else if (parsed?.system === 'utm') {
+          values.coordX = parsed.coordX;
+          values.coordY = parsed.coordY;
+          if (zone) values.utmZona = zone;
+        }
+        return values;
+      }
+
+      const x = mapping.coordinateX !== '' ? parseNumericCell(sourceRow[Number(mapping.coordinateX)]) : null;
+      const y = mapping.coordinateY !== '' ? parseNumericCell(sourceRow[Number(mapping.coordinateY)]) : null;
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        if (optionalMappingMetadata.coordinateSystem === 'geographic') {
+          values.longitud = x;
+          values.latitud = y;
+          values.coordenadas = y + ', ' + x;
+        } else {
+          values.coordX = x;
+          values.coordY = y;
+          if (zone) values.utmZona = zone;
+        }
+      }
+      return values;
+    }
+
+    function showColumnMapping(table) {
+      importedTable = table;
+      const mapping = guessColumnMapping(table.headers);
+      const grid = document.getElementById('mappingGrid');
+      grid.innerHTML = MAPPING_FIELDS.map(([field, label]) => '<div class="mapping-field">'
+        + '<label for="map-' + field + '">' + escapeHtml(label) + ' *</label>'
+        + '<select id="map-' + field + '" data-map-field="' + field + '">'
+        + mappingOptions(table.headers, mapping[field]) + '</select></div>').join('');
+      renderOptionalMappings(table, mapping);
+      const omitted = table.originalRowCount - table.rows.length;
+      document.getElementById('mappingSummary').textContent = table.sourceName + ': ' + table.originalRowCount
+        + ' fila(s) detectada(s).' + (omitted > 0 ? ' Se prepararán las primeras ' + table.rows.length + '.' : '');
+      const previewRows = table.rows.slice(0, 3);
+      document.getElementById('mappingPreview').innerHTML = '<strong>Vista previa de las primeras filas</strong><br>'
+        + previewRows.map((row, index) => (index + 1) + '. ' + row.slice(0, 8).map(value => String(value ?? '').trim()).join(' | ')).join('<br>');
+      document.getElementById('mappingPanel').hidden = false;
+      showNotice('Relaciona las siete columnas y luego presiona “Preparar todas las filas”.', 'warn');
+    }
+
+    function applyColumnMapping() {
+      if (!importedTable) return;
+      const mapping = {};
+      MAPPING_FIELDS.forEach(([field]) => {
+        mapping[field] = document.getElementById('map-' + field).value;
+      });
+      const optionalMapping = {
+        descripcion: '', responsable: '', coordinateCombined: '', coordinateX: '', coordinateY: '', utmZona: ''
+      };
+      document.querySelectorAll('[data-optional-map-field]').forEach(select => {
+        optionalMapping[select.dataset.optionalMapField] = select.value;
+      });
+      const missing = MAPPING_FIELDS.filter(([field]) => mapping[field] === '').map(([, label]) => label);
+      if (missing.length) {
+        showNotice('Falta relacionar: ' + missing.join(', ') + '.', 'fail');
+        return;
+      }
+      const selectedColumns = [...Object.values(mapping), ...Object.values(optionalMapping).filter(value => value !== '')];
+      if (new Set(selectedColumns).size !== selectedColumns.length) {
+        showNotice('Cada campo debe utilizar una columna diferente del archivo.', 'fail');
+        return;
+      }
+      const objects = importedTable.rows.map(row => {
+        const values = {};
+        MAPPING_FIELDS.forEach(([field]) => { values[field] = row[Number(mapping[field])] ?? ''; });
+        return { ...values, ...mapOptionalValues(row, optionalMapping) };
+      });
+      batchRows = [];
+      appendRows(objects, importedTable.sourceName);
+      document.getElementById('mappingPanel').hidden = true;
+    }
+
+    function optionMarkup(options, selected, placeholder) {
+      const unknown = selected && !options.includes(selected)
+        ? '<option value="' + escapeHtml(selected) + '" selected>No reconocido: ' + escapeHtml(selected) + '</option>'
+        : '';
+      return '<option value="">' + escapeHtml(placeholder) + '</option>' + unknown
+        + options.map(option => '<option value="' + escapeHtml(option) + '"'
+          + (option === selected ? ' selected' : '') + '>' + escapeHtml(option) + '</option>').join('');
+    }
+
+    function renderCommonControls() {
+      const regionData = CHILE_TERRITORY.find(item => item.nombre === commonValues.region);
+      const provinces = (regionData?.provincias || []).map(item => item.nombre);
+      if (!provinces.includes(commonValues.provincia)) commonValues.provincia = '';
+      const provinceData = regionData?.provincias.find(item => item.nombre === commonValues.provincia);
+      const communes = provinceData?.comunas || [];
+      if (!communes.includes(commonValues.comuna)) commonValues.comuna = '';
+
+      const types = Object.keys(CLASSIFICATION_HIERARCHY[commonValues.categoria] || {});
+      if (!types.includes(commonValues.tipoRecurso)) commonValues.tipoRecurso = '';
+      const subtypes = CLASSIFICATION_HIERARCHY[commonValues.categoria]?.[commonValues.tipoRecurso] || [];
+      if (!subtypes.includes(commonValues.subtipoRecurso)) commonValues.subtipoRecurso = '';
+
+      document.getElementById('commonRegion').innerHTML = optionMarkup(CHILE_TERRITORY.map(item => item.nombre), commonValues.region, 'Seleccione');
+      document.getElementById('commonProvincia').innerHTML = optionMarkup(provinces, commonValues.provincia, 'Seleccione');
+      document.getElementById('commonComuna').innerHTML = optionMarkup(communes, commonValues.comuna, 'Seleccione');
+      document.getElementById('commonCategoria').innerHTML = optionMarkup(Object.keys(CLASSIFICATION_HIERARCHY), commonValues.categoria, 'Seleccione');
+      document.getElementById('commonTipo').innerHTML = optionMarkup(types, commonValues.tipoRecurso, 'Seleccione');
+      document.getElementById('commonSubtipo').innerHTML = optionMarkup(subtypes, commonValues.subtipoRecurso, 'Seleccione');
+    }
+
+    function updateCommonValue(field, value) {
+      commonValues[field] = value;
+      if (field === 'region') {
+        commonValues.provincia = '';
+        commonValues.comuna = '';
+      } else if (field === 'provincia') {
+        commonValues.comuna = '';
+      } else if (field === 'categoria') {
+        commonValues.tipoRecurso = '';
+        commonValues.subtipoRecurso = '';
+      } else if (field === 'tipoRecurso') {
+        commonValues.subtipoRecurso = '';
+      }
+      renderCommonControls();
+    }
+
+    function applyCommonValues() {
+      if (!batchRows.length) {
+        showNotice('Agrega al menos una fila antes de aplicar valores comunes.', 'warn');
+        return;
+      }
+      const selected = Object.entries(commonValues).filter(([, value]) => Boolean(value));
+      if (!selected.length) {
+        showNotice('Selecciona al menos un valor común.', 'warn');
+        return;
+      }
+      batchRows = batchRows.map(row => {
+        const next = { ...row };
+        selected.forEach(([field, value]) => { next[field] = value; });
+        if (commonValues.region && !commonValues.provincia) {
+          next.provincia = '';
+          next.comuna = '';
+        } else if (commonValues.provincia && !commonValues.comuna) {
+          next.comuna = '';
+        }
+        if (commonValues.categoria && !commonValues.tipoRecurso) {
+          next.tipoRecurso = '';
+          next.subtipoRecurso = '';
+        } else if (commonValues.tipoRecurso && !commonValues.subtipoRecurso) {
+          next.subtipoRecurso = '';
+        }
+        const updated = canonicalizeRow(next);
+        updated.uploadStatus = '';
+        updated.uploadError = '';
+        return updated;
+      });
+      renderBatch();
+      showNotice('Valores comunes aplicados a ' + batchRows.length + ' fila(s).', 'ok');
+    }
+
+    function extraDataMarkup(row) {
+      const labels = [];
+      if (row.descripcion) labels.push('Descripción');
+      if (row.responsable) labels.push('Responsable');
+      if (row.latitud !== '' && row.longitud !== '') labels.push('Lat/Lon');
+      if (row.coordX !== '' && row.coordY !== '') labels.push(row.utmZona ? 'UTM ' + row.utmZona : 'UTM X/Y');
+      if (!labels.length) return '<span class="muted">Sin datos adicionales</span>';
+      return '<div class="extra-data">' + labels.map(label => '<span>' + escapeHtml(label) + '</span>').join('') + '</div>';
+    }
+
+    function renderBatch() {
+      const tbody = document.getElementById('batchTableBody');
+      const validations = validateBatch();
+      if (!batchRows.length) {
+        tbody.innerHTML = '<tr><td colspan="12" class="empty">El lote está vacío.</td></tr>';
+        updateStats(validations);
+        return;
+      }
+
+      tbody.innerHTML = batchRows.map((row, index) => {
+        const validation = validations[index];
+        const regionData = CHILE_TERRITORY.find(item => item.nombre === row.region);
+        const provinces = (regionData?.provincias || []).map(item => item.nombre);
+        const provinceData = regionData?.provincias.find(item => item.nombre === row.provincia);
+        const communes = provinceData?.comunas || [];
+        const types = Object.keys(CLASSIFICATION_HIERARCHY[row.categoria] || {});
+        const subtypes = CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso] || [];
+        const invalid = validation.valid ? 'false' : 'true';
+        const statusClass = row.uploadStatus === 'sent' ? 'ok' : row.uploadStatus === 'sending' ? 'warn' : validation.valid ? 'ok' : 'fail';
+        const statusLabel = row.uploadStatus === 'sent' ? 'Enviada' : row.uploadStatus === 'sending' ? 'Enviando' : row.uploadStatus === 'error' ? 'Error de envío' : validation.valid && row.linkedDraftId ? 'Lista · ID local' : validation.valid ? 'Lista' : 'Revisar';
+        const rowMessages = [...validation.errors, ...(row.uploadError ? [row.uploadError] : [])];
+        return '<tr data-row-id="' + escapeHtml(row.id) + '">'
+          + '<td>' + (index + 1) + '</td>'
+          + '<td><input data-field="nombreRecurso" value="' + escapeHtml(row.nombreRecurso) + '" aria-label="Nombre del recurso fila ' + (index + 1) + '" aria-invalid="' + invalid + '"></td>'
+          + '<td><select data-field="region" aria-label="Región fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(CHILE_TERRITORY.map(item => item.nombre), row.region, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="provincia" aria-label="Provincia fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(provinces, row.provincia, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="comuna" aria-label="Comuna fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(communes, row.comuna, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="categoria" aria-label="Categoría fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(Object.keys(CLASSIFICATION_HIERARCHY), row.categoria, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="tipoRecurso" aria-label="Tipo fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(types, row.tipoRecurso, 'Seleccione') + '</select></td>'
+          + '<td><select data-field="subtipoRecurso" aria-label="Subtipo fila ' + (index + 1) + '" aria-invalid="' + invalid + '">'
+          + optionMarkup(subtypes, row.subtipoRecurso, 'Seleccione') + '</select></td>'
+          + '<td>' + extraDataMarkup(row) + '</td>'
+          + '<td><span class="generated-id">' + escapeHtml(row.id_unico || 'Pendiente de territorio') + '</span></td>'
+          + '<td><span class="row-status ' + statusClass + '">' + statusLabel + '</span>'
+          + (rowMessages.length ? '<div class="row-errors">' + escapeHtml(rowMessages.join(' · ')) + '</div>' : '')
+          + '</td>'
+          + '<td><button type="button" class="remove-row" data-remove-row="' + escapeHtml(row.id) + '" title="Quitar fila" aria-label="Quitar fila ' + (index + 1) + '">×</button></td>'
+          + '</tr>';
+      }).join('');
+
+      updateStats(validations);
+    }
+
+    function updateStats(validations = validateBatch()) {
+      const valid = validations.filter(item => item.valid).length;
+      const uploaded = batchRows.filter(row => row.uploadStatus === 'sent').length;
+      document.getElementById('batchCount').textContent = String(batchRows.length);
+      document.getElementById('validCount').textContent = String(valid);
+      document.getElementById('invalidCount').textContent = String(batchRows.length - valid);
+      document.getElementById('draftCount').textContent = String(uploaded);
+      document.getElementById('addRowBtn').disabled = batchRows.length >= MAX_IMPORT_ROWS;
+      document.getElementById('saveDraftsBtn').disabled = valid === 0;
+      document.getElementById('uploadSheetBtn').disabled = uploading || !batchRows.some((row, index) => validations[index].valid && row.uploadStatus !== 'sent');
+    }
+
+    function showNotice(message, type = '') {
+      const notice = document.getElementById('noticeBox');
+      notice.className = 'notice' + (type ? ' ' + type : '');
+      notice.textContent = message;
+    }
+
+    function createDraft(row, savedAt, batchId) {
+      return {
+        id: createLocalId(),
+        name: row.nombreRecurso,
+        savedAt,
+        source: 'bulk-import',
+        batchId,
+        data: {
+          values: {
+            id_unico: row.id_unico,
+            id_unico_formato: row.id_unico_formato,
+            codigo_unico_territorial: row.codigo_unico_territorial,
+            codigo_region: row.codigo_region,
+            codigo_provincia: row.codigo_provincia,
+            codigo_comuna: row.codigo_comuna,
+            codigo_atractivo: row.codigo_atractivo,
+            idInterno: row.idInterno,
+            estado: 'borrador',
+            estado_registro: 'borrador',
+            nombreRecurso: row.nombreRecurso,
+            region: row.region,
+            provincia: row.provincia,
+            comuna: row.comuna,
+            categoria: row.categoria,
+            tipoRecurso: row.tipoRecurso,
+            subtipoRecurso: row.subtipoRecurso,
+            descripcion: row.descripcion,
+            responsable: row.responsable,
+            coordenadas: row.coordenadas,
+            latitud: row.latitud,
+            longitud: row.longitud,
+            coordX: row.coordX,
+            coordY: row.coordY,
+            utmZona: row.utmZona,
+            fecha_creacion: savedAt,
+            fecha_actualizacion: savedAt,
+            zona_horaria_usuario: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago'
+          },
+          photos: [],
+          lastSavedAt: savedAt,
+          preserveLegacyId: false
+        }
+      };
+    }
+
+    function saveValidDrafts() {
+      const existing = getStoredDrafts();
+      const validations = validateBatch(batchRows, existing);
+      const validRows = batchRows.filter((row, index) => validations[index].valid);
+      if (!validRows.length) {
+        showNotice('No hay filas válidas para guardar.', 'fail');
+        return;
+      }
+
+      const savedAt = new Date().toISOString();
+      const batchId = 'bulk-' + savedAt.replace(/\D/g, '').slice(0, 14);
+      const newDrafts = validRows.map(row => createDraft(row, savedAt, batchId));
+      const nextDrafts = normalizeDrafts([...newDrafts, ...existing]).slice(0, MAX_STORED_DRAFTS);
+
+      try {
+        localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts));
+      } catch {
+        showNotice('El navegador no pudo almacenar el lote. Elimina borradores antiguos o revisa el espacio disponible.', 'fail');
+        return;
+      }
+
+      const validIds = new Set(validRows.map(row => row.id));
+      batchRows = batchRows.filter(row => !validIds.has(row.id));
+      renderBatch();
+      renderDrafts();
+      showNotice(newDrafts.length + ' borrador(es) guardado(s). Ya pueden abrirse en el formulario.', 'ok');
+      activateTab('drafts');
+    }
+
+    function localIsoWithOffset(date = new Date()) {
+      const pad = value => String(value).padStart(2, '0');
+      const offsetMinutes = -date.getTimezoneOffset();
+      const sign = offsetMinutes >= 0 ? '+' : '-';
+      const absoluteOffset = Math.abs(offsetMinutes);
+      return [
+        date.getFullYear(), '-', pad(date.getMonth() + 1), '-', pad(date.getDate()),
+        'T', pad(date.getHours()), ':', pad(date.getMinutes()), ':', pad(date.getSeconds()),
+        '.', String(date.getMilliseconds()).padStart(3, '0'),
+        sign, pad(Math.floor(absoluteOffset / 60)), ':', pad(absoluteOffset % 60)
+      ].join('');
+    }
+
+    function buildOnlinePayload(row) {
+      const now = localIsoWithOffset();
+      const values = {
+        id_unico: row.id_unico,
+        id_unico_formato: row.id_unico_formato,
+        codigo_unico_territorial: row.codigo_unico_territorial,
+        codigo_region: row.codigo_region,
+        codigo_provincia: row.codigo_provincia,
+        codigo_comuna: row.codigo_comuna,
+        codigo_atractivo: row.codigo_atractivo,
+        idInterno: row.idInterno,
+        nombreRecurso: row.nombreRecurso,
+        region: row.region,
+        provincia: row.provincia,
+        comuna: row.comuna,
+        categoria: row.categoria,
+        tipoRecurso: row.tipoRecurso,
+        subtipoRecurso: row.subtipoRecurso,
+        estado: 'borrador',
+        fecha_creacion: row.fecha_creacion || now,
+        fecha_actualizacion: now,
+        fecha_sincronizacion: now,
+        zona_horaria_usuario: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Santiago'
+      };
+      if (row.descripcion) values.descripcion = row.descripcion;
+      if (row.responsable) values.responsable = row.responsable;
+      if (row.coordenadas) values.coordenadas = row.coordenadas;
+      if (row.latitud !== '' && row.longitud !== '') {
+        values.latitud = row.latitud;
+        values.longitud = row.longitud;
+      }
+      if (row.coordX !== '' && row.coordY !== '') {
+        values.coordX = row.coordX;
+        values.coordY = row.coordY;
+        if (row.utmZona) values.utmZona = row.utmZona;
+      }
+      return {
+        action: 'saveRecord',
+        estado: 'borrador',
+        id_unico: row.id_unico,
+        codigo_atractivo: row.codigo_atractivo,
+        values,
+        photos: [],
+        syncedAt: new Date().toISOString()
+      };
+    }
+
+    async function submitRowOnline(row) {
+      const payload = buildOnlinePayload(row);
+      const body = new URLSearchParams();
+      body.set('action', 'saveRecord');
+      body.set('id_unico', payload.id_unico);
+      body.set('payload', JSON.stringify(payload));
+      await fetch(ONLINE_SYNC_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+        body: body.toString()
+      });
+      await verifyOnlineSave(payload);
+      return payload;
+    }
+
+    function markLinkedDraftSynced(row, payload) {
+      if (!row.linkedDraftId) return;
+      const syncedAt = payload.values?.fecha_sincronizacion || localIsoWithOffset();
+      const drafts = getStoredDrafts().map(draft => {
+        if (String(draft.id || '') !== String(row.linkedDraftId)) return draft;
+        return {
+          ...draft,
+          lastOnlineSync: syncedAt,
+          data: {
+            ...(draft.data || {}),
+            values: { ...(draft.data?.values || {}), ...(payload.values || {}) },
+            lastOnlineSync: syncedAt,
+            preserveLegacyId: true
+          }
+        };
+      });
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts));
+    }
+
+    function googleScriptUrl(params = {}) {
+      const url = new URL(ONLINE_SYNC_URL);
+      Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+      return url.toString();
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function fetchOnlineRecord(id) {
+      const response = await fetch(googleScriptUrl({
+        action: 'get',
+        id_unico: id,
+        t: Date.now()
+      }), { cache: 'no-store' });
+      if (!response.ok) throw new Error('Google Sheet respondió con estado ' + response.status + '.');
+      const data = await response.json();
+      if (!data.ok || !data.record) throw new Error(data.message || 'El registro todavía no aparece en Google Sheet.');
+      return data.record;
+    }
+
+    function sameSavedVersion(record, payload) {
+      const expected = payload.values || {};
+      if (String(record.id_unico || '').trim().toUpperCase() !== String(payload.id_unico || '').trim().toUpperCase()) return false;
+      const expectedSync = String(expected.fecha_sincronizacion || '');
+      const actualSync = String(record.fecha_sincronizacion || '');
+      if (expectedSync && actualSync) {
+        const expectedTime = Date.parse(expectedSync);
+        const actualTime = Date.parse(actualSync);
+        if (Number.isFinite(expectedTime) && Number.isFinite(actualTime)) return Math.abs(expectedTime - actualTime) < 2000;
+        return expectedSync === actualSync;
+      }
+      return ['nombreRecurso', 'region', 'provincia', 'comuna'].every(key =>
+        String(record[key] ?? '') === String(expected[key] ?? '')
+      );
+    }
+
+    async function verifyOnlineSave(payload, attempts = 4) {
+      let lastError = null;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        if (attempt > 1) await sleep(900);
+        try {
+          const record = await fetchOnlineRecord(payload.id_unico);
+          if (sameSavedVersion(record, payload)) return record;
+          lastError = new Error('Google Sheet aún muestra una versión anterior del registro.');
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      throw lastError || new Error('No fue posible confirmar el guardado en Google Sheet.');
+    }
+
+    async function uploadCompleteBatch() {
+      if (uploading) return;
+      const validations = validateBatch();
+      const candidates = batchRows.filter((row, index) => validations[index].valid && row.uploadStatus !== 'sent');
+      if (!candidates.length) {
+        showNotice('No hay filas válidas pendientes de envío.', 'warn');
+        return;
+      }
+      if (!navigator.onLine) {
+        showNotice('No hay conexión a internet. El lote no fue enviado.', 'fail');
+        return;
+      }
+      const totalBlocks = Math.ceil(candidates.length / UPLOAD_BATCH_SIZE);
+      if (!confirm('Se enviarán ' + candidates.length + ' registro(s) nuevos a Google Sheet como borradores, organizados en '
+        + totalBlocks + ' bloque(s) de hasta ' + UPLOAD_BATCH_SIZE + '. ¿Continuar?')) return;
+
+      uploading = true;
+      let sent = 0;
+      let failed = 0;
+      const button = document.getElementById('uploadSheetBtn');
+      updateStats(validations);
+      for (let blockStart = 0; blockStart < candidates.length; blockStart += UPLOAD_BATCH_SIZE) {
+        const block = candidates.slice(blockStart, blockStart + UPLOAD_BATCH_SIZE);
+        for (let index = 0; index < block.length; index++) {
+          const row = block[index];
+          const completed = blockStart + index + 1;
+          row.uploadStatus = 'sending';
+          row.uploadError = '';
+          button.textContent = 'Enviando ' + completed + ' de ' + candidates.length;
+          renderBatch();
+          try {
+            const savedPayload = await submitRowOnline(row);
+            markLinkedDraftSynced(row, savedPayload);
+            row.uploadStatus = 'sent';
+            row.uploadedAt = localIsoWithOffset();
+            sent++;
+          } catch (error) {
+            row.uploadStatus = 'error';
+            row.uploadError = String(error?.message || error || 'No fue posible enviar la fila.');
+            failed++;
+          }
+        }
+      }
+      uploading = false;
+      button.textContent = 'Cargar lote completo al Sheet';
+      renderBatch();
+      showNotice(
+        sent + ' solicitud(es) enviada(s) a Google Sheet.'
+          + (failed ? ' ' + failed + ' fila(s) tuvieron errores.' : '')
+          + ' Los registros enviados fueron confirmados en Google Sheet.',
+        failed ? 'warn' : 'ok'
+      );
+    }
+
+    function formatDate(value) {
+      const date = new Date(value);
+      return Number.isFinite(date.getTime()) ? date.toLocaleString('es-CL') : 'Sin fecha';
+    }
+
+    function renderDrafts() {
+      const container = document.getElementById('draftList');
+      const drafts = normalizeDrafts(getStoredDrafts());
+      if (!drafts.length) {
+        container.innerHTML = '<div class="empty">No hay borradores locales.</div>';
+        return;
+      }
+
+      container.innerHTML = '<table aria-label="Borradores locales"><thead><tr>'
+        + '<th>Recurso</th><th>Territorio</th><th>Clasificación</th><th>ID único</th><th>Guardado</th><th>Acción</th>'
+        + '</tr></thead><tbody>'
+        + drafts.map(draft => {
+          const values = draft?.data?.values || {};
+          const territory = [values.region, values.provincia, values.comuna].filter(Boolean).join(' / ');
+          const classification = [values.categoria, values.tipoRecurso, values.subtipoRecurso].filter(Boolean).join(' / ');
+          const draftId = String(draft.id || '');
+          return '<tr>'
+             + '<td><strong>' + escapeHtml(draft.name || values.nombreRecurso || 'Sin nombre') + '</strong></td>'
+             + '<td>' + escapeHtml(territory || 'Pendiente') + '</td>'
+             + '<td>' + escapeHtml(classification || 'Pendiente') + '</td>'
+            + '<td>' + escapeHtml(values.id_unico || 'Pendiente de territorio') + '</td>'
+            + '<td>' + escapeHtml(formatDate(draft.savedAt)) + '</td>'
+            + '<td><div class="draft-actions">'
+            + '<a class="button teal" href="index.html?draft=' + encodeURIComponent(draftId) + '">Abrir formulario</a>'
+            + '<button type="button" class="danger" data-delete-draft="' + escapeHtml(draftId) + '">Eliminar</button>'
+            + '</div></td>'
+            + '</tr>';
+        }).join('')
+        + '</tbody></table>';
+    }
+
+    function deleteDraft(id) {
+      const drafts = getStoredDrafts();
+      const target = drafts.find(draft => String(draft.id) === String(id));
+      if (!target) return;
+      if (!confirm('Eliminar el borrador local "' + (target.name || 'Sin nombre') + '" de este navegador?')) return;
+      localStorage.setItem(DRAFTS_KEY, JSON.stringify(drafts.filter(draft => String(draft.id) !== String(id))));
+      renderDrafts();
+      updateStats();
+    }
+
+    function activateTab(tabName) {
+      const prepare = tabName === 'prepare';
+      document.getElementById('prepareTab').classList.toggle('active', prepare);
+      document.getElementById('draftsTab').classList.toggle('active', !prepare);
+      document.getElementById('prepareTab').setAttribute('aria-selected', String(prepare));
+      document.getElementById('draftsTab').setAttribute('aria-selected', String(!prepare));
+      document.getElementById('preparePanel').hidden = !prepare;
+      document.getElementById('draftsPanel').hidden = prepare;
+      if (!prepare) renderDrafts();
+    }
+
+    function downloadTemplate() {
+      const headers = ['nombreRecurso', 'region', 'provincia', 'comuna', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      if (globalThis.XLSX) {
+        const blankRows = Array.from({ length: UPLOAD_BATCH_SIZE }, () => ['', '', '', '', '', '', '']);
+        const workbook = XLSX.utils.book_new();
+        const loadSheet = XLSX.utils.aoa_to_sheet([headers, ...blankRows]);
+        loadSheet['!cols'] = [{ wch: 42 }, { wch: 45 }, { wch: 24 }, { wch: 24 }, { wch: 22 }, { wch: 46 }, { wch: 60 }];
+        const territoryRows = [['region', 'provincia', 'comuna']];
+        CHILE_TERRITORY.forEach(region => region.provincias.forEach(province => {
+          province.comunas.forEach(comuna => territoryRows.push([region.nombre, province.nombre, comuna]));
+        }));
+        const territorySheet = XLSX.utils.aoa_to_sheet(territoryRows);
+        territorySheet['!cols'] = [{ wch: 48 }, { wch: 26 }, { wch: 26 }];
+        const catalogRows = [['categoria', 'tipoRecurso', 'subtipoRecurso']];
+        Object.entries(CLASSIFICATION_HIERARCHY).forEach(([category, types]) => {
+          Object.entries(types).forEach(([type, subtypes]) => {
+            subtypes.forEach(subtype => catalogRows.push([category, type, subtype]));
+          });
+        });
+        const catalogSheet = XLSX.utils.aoa_to_sheet(catalogRows);
+        catalogSheet['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 65 }];
+        XLSX.utils.book_append_sheet(workbook, loadSheet, 'Carga');
+        XLSX.utils.book_append_sheet(workbook, territorySheet, 'Territorios');
+        XLSX.utils.book_append_sheet(workbook, catalogSheet, 'Clasificacion');
+        XLSX.writeFile(workbook, 'plantilla-carga-masiva-catastro.xlsx');
+        return;
+      }
+
+      const content = '\uFEFF' + headers.join(';') + '\n';
+      const url = URL.createObjectURL(new Blob([content], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'plantilla-carga-masiva-catastro.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function init() {
+      const fileInput = document.getElementById('batchFile');
+      const dropZone = document.getElementById('dropZone');
+      const tbody = document.getElementById('batchTableBody');
+
+      document.getElementById('prepareTab').addEventListener('click', () => activateTab('prepare'));
+      document.getElementById('draftsTab').addEventListener('click', () => activateTab('drafts'));
+      document.getElementById('refreshDraftsBtn').addEventListener('click', renderDrafts);
+      document.getElementById('downloadTemplateBtn').addEventListener('click', downloadTemplate);
+      document.getElementById('applyCommonBtn').addEventListener('click', applyCommonValues);
+      document.getElementById('applyMappingBtn').addEventListener('click', applyColumnMapping);
+      document.getElementById('uploadSheetBtn').addEventListener('click', uploadCompleteBatch);
+      [
+        ['commonRegion', 'region'],
+        ['commonProvincia', 'provincia'],
+        ['commonComuna', 'comuna'],
+        ['commonCategoria', 'categoria'],
+        ['commonTipo', 'tipoRecurso'],
+        ['commonSubtipo', 'subtipoRecurso']
+      ].forEach(([id, field]) => {
+        document.getElementById(id).addEventListener('change', event => updateCommonValue(field, event.target.value));
+      });
+      document.getElementById('validateBtn').addEventListener('click', () => {
+        renderBatch();
+        const validations = validateBatch();
+        const valid = validations.filter(item => item.valid).length;
+        showNotice(valid + ' de ' + batchRows.length + ' fila(s) listas para guardar.', valid === batchRows.length ? 'ok' : 'warn');
+      });
+      document.getElementById('addRowBtn').addEventListener('click', () => appendRows([{}], 'edición manual'));
+      document.getElementById('clearBtn').addEventListener('click', () => {
+        if (batchRows.length && !confirm('Limpiar todas las filas preparadas del lote?')) return;
+        batchRows = [];
+        importedTable = null;
+        document.getElementById('mappingPanel').hidden = true;
+        renderBatch();
+        showNotice('Lote limpio.');
+      });
+      document.getElementById('saveDraftsBtn').addEventListener('click', saveValidDrafts);
+      document.getElementById('pasteBtn').addEventListener('click', () => {
+        const textarea = document.getElementById('pasteInput');
+        const rows = matrixToObjects(parseDelimited(textarea.value));
+        if (!rows.length) {
+          showNotice('No se reconocieron filas en el texto pegado.', 'fail');
+          return;
+        }
+        appendRows(rows, 'datos pegados');
+        textarea.value = '';
+      });
+
+      const handleFile = async file => {
+        try {
+          const table = await readBatchFile(file);
+          if (!table || !table.rows.length) throw new Error('La primera hoja no contiene filas con datos.');
+          showColumnMapping(table);
+        } catch (error) {
+          showNotice(String(error.message || error), 'fail');
+        } finally {
+          fileInput.value = '';
+        }
+      };
+
+      fileInput.addEventListener('change', event => handleFile(event.target.files[0]));
+      dropZone.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          fileInput.click();
+        }
+      });
+      ['dragenter', 'dragover'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.add('dragover');
+      }));
+      ['dragleave', 'drop'].forEach(type => dropZone.addEventListener(type, event => {
+        event.preventDefault();
+        dropZone.classList.remove('dragover');
+      }));
+      dropZone.addEventListener('drop', event => handleFile(event.dataTransfer.files[0]));
+
+      tbody.addEventListener('change', event => {
+        const field = event.target.dataset.field;
+        const tr = event.target.closest('tr[data-row-id]');
+        if (!field || !tr) return;
+        const row = batchRows.find(item => item.id === tr.dataset.rowId);
+        if (!row) return;
+        row[field] = event.target.value;
+        row.uploadStatus = '';
+        row.uploadError = '';
+        if (field === 'region') {
+          row.provincia = '';
+          row.comuna = '';
+        } else if (field === 'provincia') {
+          row.comuna = '';
+        } else if (field === 'categoria') {
+          row.tipoRecurso = '';
+          row.subtipoRecurso = '';
+        } else if (field === 'tipoRecurso') {
+          row.subtipoRecurso = '';
+        }
+        Object.assign(row, canonicalizeRow(row), { id: row.id });
+        renderBatch();
+      });
+
+      tbody.addEventListener('click', event => {
+        const button = event.target.closest('[data-remove-row]');
+        if (!button) return;
+        batchRows = batchRows.filter(row => row.id !== button.dataset.removeRow);
+        renderBatch();
+      });
+
+      document.getElementById('draftList').addEventListener('click', event => {
+        const button = event.target.closest('[data-delete-draft]');
+        if (button) deleteDraft(button.dataset.deleteDraft);
+      });
+
+      renderCommonControls();
+      renderBatch();
+      renderDrafts();
+    }
+
+    const BULK_TEST_API = {
+      normalizeText,
+      canonicalizeRow,
+      attractionKey,
+      getTerritoryCodes,
+      validateBatch,
+      detectDelimiter,
+      parseDelimited,
+      matrixToObjects,
+      createDraft
+    };
+
+    if (typeof document !== 'undefined') init();
+  </script>
+</body>
+</html>
