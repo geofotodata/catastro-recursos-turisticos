@@ -218,6 +218,8 @@
     }
 
     .mapping-field label { display: block; margin-bottom: 5px; font-size: 0.78rem; font-weight: 800; }
+    .mapping-field .mapping-hint { display: block; margin-top: 4px; color: var(--muted); font-size: 0.72rem; }
+    .mapping-field .mapping-hint.detected { color: #166534; font-weight: 800; }
     .mapping-field select {
       width: 100%;
       min-height: 42px;
@@ -264,6 +266,17 @@
       font-weight: 800;
       white-space: nowrap;
     }
+
+    .coordinate-values {
+      display: grid;
+      gap: 3px;
+      margin-top: 7px;
+      color: var(--text);
+      font-size: 0.75rem;
+      line-height: 1.35;
+    }
+
+    .coordinate-values strong { color: var(--muted); }
 
     .mapping-preview {
       margin-top: 12px;
@@ -583,7 +596,7 @@
       <div class="section-head">
         <div>
           <h2>Importar atractivos</h2>
-          <p>Campos del lote: nombre, territorio y clasificación oficial.</p>
+          <p>Campos mínimos: nombre, territorio y clasificación. Si la planilla los contiene, también se incorporan descripción, responsable y coordenadas geográficas o UTM.</p>
         </div>
         <button type="button" id="downloadTemplateBtn">Descargar plantilla</button>
       </div>
@@ -630,8 +643,8 @@
         <p class="mapping-summary" id="mappingSummary"></p>
         <div class="mapping-grid" id="mappingGrid"></div>
         <div class="optional-mapping" id="optionalMapping" hidden>
-          <h4>Datos adicionales encontrados</h4>
-          <p>Son sugerencias opcionales. Puedes cambiar la columna o seleccionar “No importar”.</p>
+          <h4>Datos adicionales (si existen en el archivo)</h4>
+          <p>Estos campos son opcionales. Si fueron detectados se seleccionan automáticamente; también puedes relacionarlos manualmente o elegir “No importar”.</p>
           <div class="mapping-grid" id="optionalMappingGrid"></div>
           <div class="coordinate-detection" id="coordinateDetection" hidden></div>
         </div>
@@ -671,7 +684,7 @@
       </div>
 
       <div class="footer-actions">
-        <span class="muted">Las filas se enviarán en lotes de 20 y quedarán registradas como borradores para continuar su edición.</span>
+        <span class="muted">Se enviarán todas las filas válidas del archivo. El procesamiento interno por bloques no limita la cantidad total.</span>
         <div class="source-actions">
           <button type="button" id="saveDraftsBtn">Guardar borradores locales</button>
           <button type="button" class="primary" id="uploadSheetBtn">Cargar lote completo al Sheet</button>
@@ -694,9 +707,8 @@
   <script>
     const DRAFTS_KEY = 'catastro_prototipo_drafts_v3';
     const ONLINE_SYNC_URL = 'https://script.google.com/macros/s/AKfycbxD5_L3iuS_pxfIwqzIJ6aM6hlPKisCffju2itBZO80CpIa6z3WD2SS2yNFG7xWUnjlPg/exec';
-    const MAX_IMPORT_ROWS = 1000;
-    const UPLOAD_BATCH_SIZE = 20;
-    const MAX_STORED_DRAFTS = 100;
+    const SYNC_CHUNK_SIZE = 20;
+    const TEMPLATE_ROWS = 100;
 
     const REGION_CODES = {
       'Región de Arica y Parinacota': '15',
@@ -946,12 +958,12 @@
       ['utmZona', 'Zona UTM']
     ];
     const OPTIONAL_HEADER_ALIASES = {
-      descripcion: ['descripcion', 'descripcionrecurso', 'descripciondelrecurso', 'descripciondelrecursoturistico', 'detalle', 'resena'],
-      responsable: ['responsable', 'nombreresponsable', 'nombredelresponsable', 'responsabledelregistro', 'nombreresponsabledelregistro', 'encuestador', 'levantadopor'],
+      descripcion: ['descripcion', 'descripcionrecurso', 'descripciondelrecurso', 'descripciondelrecursoturistico', 'descripcionatractivo', 'descripciondelatractivo', 'descripciondelatractivoturistico', 'descripciongeneral', 'detalle', 'resena'],
+      responsable: ['responsable', 'nombreresponsable', 'nombredelresponsable', 'responsableregistro', 'responsabledelregistro', 'nombreresponsableregistro', 'nombreresponsabledelregistro', 'encuestador', 'nombreencuestador', 'levantadopor', 'registradopor'],
       coordinateCombined: ['coordenadas', 'coordenada', 'puntogeografico', 'coordenadasgeograficas', 'latlon', 'longlat', 'ubicacion'],
-      coordinateX: ['x', 'coordx', 'coordenadax', 'pointx', 'longitud', 'longitude', 'lon', 'utmx', 'este', 'easting'],
-      coordinateY: ['y', 'coordy', 'coordenaday', 'pointy', 'latitud', 'latitude', 'lat', 'utmy', 'norte', 'northing'],
-      utmZona: ['utmzona', 'zonautm', 'zona', 'huso', 'husoutm']
+      coordinateX: ['x', 'ejex', 'coordx', 'coordenadax', 'coordenadasx', 'pointx', 'puntox', 'longitud', 'longitude', 'lon', 'utmx', 'xutm', 'xutmwgs84', 'utmwgs84x', 'este', 'utmeste', 'esteutm', 'easting', 'coordenadaeste', 'coordenadaestex'],
+      coordinateY: ['y', 'ejey', 'coordy', 'coordenaday', 'coordenadasy', 'pointy', 'puntoy', 'latitud', 'latitude', 'lat', 'utmy', 'yutm', 'yutmwgs84', 'utmwgs84y', 'norte', 'utmnorte', 'norteutm', 'northing', 'coordenadanorte', 'coordenadanortey'],
+      utmZona: ['utmzona', 'zonautm', 'zona', 'huso', 'husoutm', 'husoutmwgs84']
     };
     const commonValues = {
       region: '',
@@ -1192,6 +1204,21 @@
       const tipoRecurso = canonicalValue(types, input.tipoRecurso);
       const subtypes = CLASSIFICATION_HIERARCHY[categoria]?.[tipoRecurso] || [];
       const subtipoRecurso = canonicalValue(subtypes, input.subtipoRecurso);
+      const rawLatitude = String(input.latitud ?? '').trim();
+      const rawLongitude = String(input.longitud ?? '').trim();
+      const rawUtmX = String(input.coordX ?? '').trim();
+      const rawUtmY = String(input.coordY ?? '').trim();
+      const latitud = coordinateNumberOrBlank(input.latitud);
+      const longitud = coordinateNumberOrBlank(input.longitud);
+      const coordX = coordinateNumberOrBlank(input.coordX);
+      const coordY = coordinateNumberOrBlank(input.coordY);
+      let coordinateValidationError = String(input.coordinateValidationError ?? '').trim();
+      if (!coordinateValidationError && (rawLatitude || rawLongitude) && (latitud === '' || longitud === '')) {
+        coordinateValidationError = 'Coordenadas geográficas incompletas o no numéricas';
+      }
+      if (!coordinateValidationError && (rawUtmX || rawUtmY) && (coordX === '' || coordY === '')) {
+        coordinateValidationError = 'Coordenadas UTM incompletas o no numéricas';
+      }
       return refreshRowIdentity({
         id: input.id || createLocalId(),
         nombreRecurso: normalizeResourceName(input.nombreRecurso),
@@ -1204,11 +1231,12 @@
         descripcion: String(input.descripcion ?? '').trim(),
         responsable: normalizeResourceName(input.responsable),
         coordenadas: String(input.coordenadas ?? '').trim(),
-        latitud: coordinateNumberOrBlank(input.latitud),
-        longitud: coordinateNumberOrBlank(input.longitud),
-        coordX: coordinateNumberOrBlank(input.coordX),
-        coordY: coordinateNumberOrBlank(input.coordY),
+        latitud,
+        longitud,
+        coordX,
+        coordY,
         utmZona: String(input.utmZona ?? '').trim(),
+        coordinateValidationError,
         codigo_atractivo: input.codigo_atractivo || ''
       });
     }
@@ -1280,6 +1308,7 @@
         if (!CLASSIFICATION_HIERARCHY[row.categoria]?.[row.tipoRecurso]?.includes(row.subtipoRecurso)) {
           errors.push('Subtipo no corresponde al tipo');
         }
+        errors.push(...validateRowCoordinates(row));
         const key = keys[index];
         if (key && keys.indexOf(key) !== index) errors.push('Duplicado dentro del lote');
         if (key && storedKeys.has(key) && !row.linkedDraftId) errors.push('Ya existe como borrador local');
@@ -1367,13 +1396,8 @@
     }
 
     function appendRows(rows, sourceLabel = 'lote') {
-      const available = MAX_IMPORT_ROWS - batchRows.length;
-      if (available <= 0) {
-        showNotice('El prototipo ya alcanzó el máximo de ' + MAX_IMPORT_ROWS + ' filas.', 'warn');
-        return 0;
-      }
       const storedDrafts = getStoredDrafts();
-      const accepted = rows.slice(0, available).map(input => {
+      const accepted = rows.map(input => {
         const merged = { ...input };
         Object.entries(commonValues).forEach(([field, value]) => {
           if (!String(merged[field] ?? '').trim() && value) merged[field] = value;
@@ -1382,12 +1406,7 @@
       });
       batchRows = [...batchRows, ...accepted];
       renderBatch();
-      const omitted = rows.length - accepted.length;
-      showNotice(
-        accepted.length + ' fila(s) incorporada(s) desde ' + sourceLabel
-          + (omitted > 0 ? '. Se omitieron ' + omitted + ' por el límite de ' + MAX_IMPORT_ROWS + '.' : '.'),
-        omitted > 0 ? 'warn' : 'ok'
-      );
+      showNotice(accepted.length + ' fila(s) incorporada(s) desde ' + sourceLabel + '. No se omitieron filas por cantidad.', 'ok');
       return accepted.length;
     }
 
@@ -1422,8 +1441,7 @@
         return value || 'Columna ' + (index + 1);
       });
       const sourceRows = clean.slice(1)
-        .filter(row => row.some(cell => String(cell ?? '').trim()))
-        .slice(0, MAX_IMPORT_ROWS);
+        .filter(row => row.some(cell => String(cell ?? '').trim()));
       return { sourceName, headers: sourceHeaders, rows: sourceRows, originalRowCount: clean.length - 1 };
     }
 
@@ -1521,6 +1539,53 @@
       });
     }
 
+    function validateRowCoordinates(row) {
+      const errors = [];
+      if (row.coordinateValidationError) errors.push(row.coordinateValidationError);
+
+      const hasLatitude = row.latitud !== '' && row.latitud !== null && row.latitud !== undefined;
+      const hasLongitude = row.longitud !== '' && row.longitud !== null && row.longitud !== undefined;
+      if (hasLatitude || hasLongitude) {
+        if (!hasLatitude || !hasLongitude) {
+          errors.push('Coordenadas geográficas incompletas: falta latitud o longitud');
+        } else {
+          const latitude = Number(row.latitud);
+          const longitude = Number(row.longitud);
+          if (!Number.isFinite(latitude) || latitude < -60 || latitude > -10) {
+            errors.push('Latitud fuera del rango esperado para Chile');
+          }
+          if (!Number.isFinite(longitude) || longitude < -90 || longitude > -50) {
+            errors.push('Longitud fuera del rango esperado para Chile');
+          }
+        }
+      }
+
+      const hasUtmX = row.coordX !== '' && row.coordX !== null && row.coordX !== undefined;
+      const hasUtmY = row.coordY !== '' && row.coordY !== null && row.coordY !== undefined;
+      if (hasUtmX || hasUtmY) {
+        if (!hasUtmX || !hasUtmY) {
+          errors.push('Coordenadas UTM incompletas: falta X o Y');
+        } else {
+          const x = Number(row.coordX);
+          const y = Number(row.coordY);
+          if (!Number.isFinite(x) || x < 100000 || x > 900000) errors.push('Coordenada UTM X fuera de rango');
+          if (!Number.isFinite(y) || y < 3000000 || y > 10000000) errors.push('Coordenada UTM Y fuera de rango');
+          if (!hasLatitude && !hasLongitude && !isValidUtmZone(row.utmZona)) {
+            errors.push('Falta una zona o huso UTM válido');
+          }
+        }
+      }
+
+      return [...new Set(errors)];
+    }
+
+    function isValidUtmZone(value) {
+      const match = String(value ?? '').trim().toUpperCase().replace(/\s+/g, '').match(/^(\d{1,2})([NS])?$/);
+      if (!match) return false;
+      const zone = Number(match[1]);
+      return zone >= 1 && zone <= 60;
+    }
+
     function detectOptionalMappings(table, requiredMapping) {
       const used = new Set(Object.values(requiredMapping).filter(value => value !== '').map(Number));
       const mapping = {};
@@ -1541,15 +1606,27 @@
       const zoneIndex = findColumnByAliases(table.headers, OPTIONAL_HEADER_ALIASES.utmZona, used);
       mapping.utmZona = zoneIndex >= 0 ? String(zoneIndex) : '';
       const coordinateSystem = inferCoordinateSystem(table, mapping);
-      let coordinateMessage = '';
-      if (coordinateSystem === 'geographic') {
-        coordinateMessage = 'Coordenadas geográficas detectadas: X corresponde a longitud y Y a latitud.';
-      } else if (coordinateSystem === 'utm') {
-        coordinateMessage = 'Coordenadas UTM detectadas: se conservarán X, Y y la zona UTM cuando esté disponible.';
-      } else if (mapping.coordinateX !== '' || mapping.coordinateY !== '' || mapping.coordinateCombined !== '') {
-        coordinateMessage = 'Se encontraron posibles coordenadas, pero el sistema no pudo confirmar si son geográficas o UTM. Revisa las columnas sugeridas.';
-      }
+      const coordinateMessage = coordinateDetectionMessage(coordinateSystem, mapping);
       return { mapping, coordinateSystem, coordinateMessage };
+    }
+
+    function coordinateDetectionMessage(coordinateSystem, mapping) {
+      const hasX = mapping.coordinateX !== '';
+      const hasY = mapping.coordinateY !== '';
+      const hasCombined = mapping.coordinateCombined !== '';
+      if (!hasCombined && hasX !== hasY) {
+        return 'Para incorporar coordenadas separadas debes seleccionar tanto X como Y.';
+      }
+      if (coordinateSystem === 'geographic') {
+        return 'Coordenadas geográficas detectadas: X se guardará como longitud y Y como latitud.';
+      }
+      if (coordinateSystem === 'utm') {
+        return 'Coordenadas UTM detectadas: se conservarán X, Y y la zona UTM cuando esté disponible.';
+      }
+      if (hasX || hasY || hasCombined) {
+        return 'Se seleccionaron posibles coordenadas, pero no se pudo confirmar si son geográficas o UTM. Revisa las columnas y sus valores.';
+      }
+      return '';
     }
 
     function guessColumnMapping(headers) {
@@ -1588,23 +1665,44 @@
         coordinateSystem: detected.coordinateSystem,
         coordinateMessage: detected.coordinateMessage
       };
-      const visibleFields = OPTIONAL_MAPPING_FIELDS.filter(([field]) => detected.mapping[field] !== '');
+      const visibleFields = OPTIONAL_MAPPING_FIELDS;
       const container = document.getElementById('optionalMapping');
       const grid = document.getElementById('optionalMappingGrid');
       const coordinateDetection = document.getElementById('coordinateDetection');
-      if (!visibleFields.length) {
-        container.hidden = true;
-        grid.innerHTML = '';
-        coordinateDetection.hidden = true;
-        return;
-      }
       grid.innerHTML = visibleFields.map(([field]) => '<div class="mapping-field">'
         + '<label for="map-optional-' + field + '">' + escapeHtml(optionalFieldLabel(field, detected.coordinateSystem)) + '</label>'
         + '<select id="map-optional-' + field + '" data-optional-map-field="' + field + '">'
-        + mappingOptions(table.headers, detected.mapping[field], 'No importar') + '</select></div>').join('');
+        + mappingOptions(table.headers, detected.mapping[field], 'No importar') + '</select>'
+        + '<span class="mapping-hint' + (detected.mapping[field] !== '' ? ' detected' : '') + '">'
+        + (detected.mapping[field] !== '' ? 'Detectado automáticamente' : 'Opcional · selecciona una columna si existe')
+        + '</span></div>').join('');
       coordinateDetection.textContent = detected.coordinateMessage;
       coordinateDetection.hidden = !detected.coordinateMessage;
       container.hidden = false;
+      grid.querySelectorAll('[data-optional-map-field]').forEach(select => {
+        select.addEventListener('change', updateOptionalCoordinateDetection);
+      });
+    }
+
+    function readOptionalMapping() {
+      const mapping = {
+        descripcion: '', responsable: '', coordinateCombined: '', coordinateX: '', coordinateY: '', utmZona: ''
+      };
+      document.querySelectorAll('[data-optional-map-field]').forEach(select => {
+        mapping[select.dataset.optionalMapField] = select.value;
+      });
+      return mapping;
+    }
+
+    function updateOptionalCoordinateDetection() {
+      if (!importedTable) return;
+      const mapping = readOptionalMapping();
+      const coordinateSystem = inferCoordinateSystem(importedTable, mapping);
+      const coordinateMessage = coordinateDetectionMessage(coordinateSystem, mapping);
+      optionalMappingMetadata = { coordinateSystem, coordinateMessage };
+      const coordinateDetection = document.getElementById('coordinateDetection');
+      coordinateDetection.textContent = coordinateMessage;
+      coordinateDetection.hidden = !coordinateMessage;
     }
 
     function mapOptionalValues(sourceRow, mapping) {
@@ -1614,7 +1712,8 @@
       const zone = mapping.utmZona !== '' ? String(sourceRow[Number(mapping.utmZona)] ?? '').trim() : '';
 
       if (mapping.coordinateCombined !== '') {
-        const parsed = parseCoordinatePair(sourceRow[Number(mapping.coordinateCombined)]);
+        const rawCoordinate = String(sourceRow[Number(mapping.coordinateCombined)] ?? '').trim();
+        const parsed = parseCoordinatePair(rawCoordinate);
         if (parsed?.system === 'geographic') {
           values.latitud = parsed.latitud;
           values.longitud = parsed.longitud;
@@ -1623,21 +1722,37 @@
           values.coordX = parsed.coordX;
           values.coordY = parsed.coordY;
           if (zone) values.utmZona = zone;
+        } else if (rawCoordinate) {
+          values.coordinateValidationError = 'No se pudo interpretar la columna de coordenadas';
         }
         return values;
       }
 
-      const x = mapping.coordinateX !== '' ? parseNumericCell(sourceRow[Number(mapping.coordinateX)]) : null;
-      const y = mapping.coordinateY !== '' ? parseNumericCell(sourceRow[Number(mapping.coordinateY)]) : null;
+      const hasXMapping = mapping.coordinateX !== '';
+      const hasYMapping = mapping.coordinateY !== '';
+      const rawX = hasXMapping ? String(sourceRow[Number(mapping.coordinateX)] ?? '').trim() : '';
+      const rawY = hasYMapping ? String(sourceRow[Number(mapping.coordinateY)] ?? '').trim() : '';
+      const x = rawX ? parseNumericCell(rawX) : null;
+      const y = rawY ? parseNumericCell(rawY) : null;
+      if (hasXMapping !== hasYMapping) {
+        values.coordinateValidationError = 'Debes relacionar ambas columnas de coordenadas: X e Y';
+        return values;
+      }
+      if (hasXMapping && hasYMapping && (rawX || rawY) && (!Number.isFinite(x) || !Number.isFinite(y))) {
+        values.coordinateValidationError = 'Coordenadas X/Y incompletas o no numéricas';
+        return values;
+      }
       if (Number.isFinite(x) && Number.isFinite(y)) {
         if (optionalMappingMetadata.coordinateSystem === 'geographic') {
           values.longitud = x;
           values.latitud = y;
           values.coordenadas = y + ', ' + x;
-        } else {
+        } else if (optionalMappingMetadata.coordinateSystem === 'utm') {
           values.coordX = x;
           values.coordY = y;
           if (zone) values.utmZona = zone;
+        } else {
+          values.coordinateValidationError = 'No se pudo determinar si las coordenadas X/Y son geográficas o UTM';
         }
       }
       return values;
@@ -1652,9 +1767,8 @@
         + '<select id="map-' + field + '" data-map-field="' + field + '">'
         + mappingOptions(table.headers, mapping[field]) + '</select></div>').join('');
       renderOptionalMappings(table, mapping);
-      const omitted = table.originalRowCount - table.rows.length;
       document.getElementById('mappingSummary').textContent = table.sourceName + ': ' + table.originalRowCount
-        + ' fila(s) detectada(s).' + (omitted > 0 ? ' Se prepararán las primeras ' + table.rows.length + '.' : '');
+        + ' fila(s) detectada(s). Se preparará la totalidad del archivo.';
       const previewRows = table.rows.slice(0, 3);
       document.getElementById('mappingPreview').innerHTML = '<strong>Vista previa de las primeras filas</strong><br>'
         + previewRows.map((row, index) => (index + 1) + '. ' + row.slice(0, 8).map(value => String(value ?? '').trim()).join(' | ')).join('<br>');
@@ -1668,12 +1782,8 @@
       MAPPING_FIELDS.forEach(([field]) => {
         mapping[field] = document.getElementById('map-' + field).value;
       });
-      const optionalMapping = {
-        descripcion: '', responsable: '', coordinateCombined: '', coordinateX: '', coordinateY: '', utmZona: ''
-      };
-      document.querySelectorAll('[data-optional-map-field]').forEach(select => {
-        optionalMapping[select.dataset.optionalMapField] = select.value;
-      });
+      const optionalMapping = readOptionalMapping();
+      updateOptionalCoordinateDetection();
       const missing = MAPPING_FIELDS.filter(([field]) => mapping[field] === '').map(([, label]) => label);
       if (missing.length) {
         showNotice('Falta relacionar: ' + missing.join(', ') + '.', 'fail');
@@ -1690,8 +1800,14 @@
         return { ...values, ...mapOptionalValues(row, optionalMapping) };
       });
       batchRows = [];
-      appendRows(objects, importedTable.sourceName);
+      const acceptedCount = appendRows(objects, importedTable.sourceName);
       document.getElementById('mappingPanel').hidden = true;
+      const selectedExtras = OPTIONAL_MAPPING_FIELDS
+        .filter(([field]) => optionalMapping[field] !== '')
+        .map(([field, label]) => optionalFieldLabel(field, optionalMappingMetadata.coordinateSystem));
+      if (selectedExtras.length) {
+        showNotice(acceptedCount + ' fila(s) preparadas. Datos adicionales incorporados: ' + selectedExtras.join(', ') + '.', 'ok');
+      }
     }
 
     function optionMarkup(options, selected, placeholder) {
@@ -1776,12 +1892,22 @@
 
     function extraDataMarkup(row) {
       const labels = [];
+      const coordinates = [];
       if (row.descripcion) labels.push('Descripción');
       if (row.responsable) labels.push('Responsable');
-      if (row.latitud !== '' && row.longitud !== '') labels.push('Lat/Lon');
-      if (row.coordX !== '' && row.coordY !== '') labels.push(row.utmZona ? 'UTM ' + row.utmZona : 'UTM X/Y');
-      if (!labels.length) return '<span class="muted">Sin datos adicionales</span>';
-      return '<div class="extra-data">' + labels.map(label => '<span>' + escapeHtml(label) + '</span>').join('') + '</div>';
+      if (row.latitud !== '' || row.longitud !== '') {
+        labels.push('Lat/Lon');
+        coordinates.push('<strong>Geográficas:</strong> Lat ' + escapeHtml(row.latitud || '—') + ' · Lon ' + escapeHtml(row.longitud || '—'));
+      }
+      if (row.coordX !== '' || row.coordY !== '') {
+        labels.push(row.utmZona ? 'UTM ' + row.utmZona : 'UTM X/Y');
+        coordinates.push('<strong>UTM:</strong> X ' + escapeHtml(row.coordX || '—') + ' · Y ' + escapeHtml(row.coordY || '—')
+          + (row.utmZona ? ' · Zona ' + escapeHtml(row.utmZona) : ''));
+      }
+      if (!labels.length && !row.coordinateValidationError) return '<span class="muted">Sin datos adicionales</span>';
+      return (labels.length ? '<div class="extra-data">' + labels.map(label => '<span>' + escapeHtml(label) + '</span>').join('') + '</div>' : '')
+        + (coordinates.length ? '<div class="coordinate-values">' + coordinates.join('') + '</div>' : '')
+        + (row.coordinateValidationError ? '<div class="row-errors">' + escapeHtml(row.coordinateValidationError) + '</div>' : '');
     }
 
     function renderBatch() {
@@ -1839,7 +1965,7 @@
       document.getElementById('validCount').textContent = String(valid);
       document.getElementById('invalidCount').textContent = String(batchRows.length - valid);
       document.getElementById('draftCount').textContent = String(uploaded);
-      document.getElementById('addRowBtn').disabled = batchRows.length >= MAX_IMPORT_ROWS;
+      document.getElementById('addRowBtn').disabled = false;
       document.getElementById('saveDraftsBtn').disabled = valid === 0;
       document.getElementById('uploadSheetBtn').disabled = uploading || !batchRows.some((row, index) => validations[index].valid && row.uploadStatus !== 'sent');
     }
@@ -1907,7 +2033,7 @@
       const savedAt = new Date().toISOString();
       const batchId = 'bulk-' + savedAt.replace(/\D/g, '').slice(0, 14);
       const newDrafts = validRows.map(row => createDraft(row, savedAt, batchId));
-      const nextDrafts = normalizeDrafts([...newDrafts, ...existing]).slice(0, MAX_STORED_DRAFTS);
+      const nextDrafts = normalizeDrafts([...newDrafts, ...existing]);
 
       try {
         localStorage.setItem(DRAFTS_KEY, JSON.stringify(nextDrafts));
@@ -2084,17 +2210,16 @@
         showNotice('No hay conexión a internet. El lote no fue enviado.', 'fail');
         return;
       }
-      const totalBlocks = Math.ceil(candidates.length / UPLOAD_BATCH_SIZE);
-      if (!confirm('Se enviarán ' + candidates.length + ' registro(s) nuevos a Google Sheet como borradores, organizados en '
-        + totalBlocks + ' bloque(s) de hasta ' + UPLOAD_BATCH_SIZE + '. ¿Continuar?')) return;
+      if (!confirm('Se enviarán todos los ' + candidates.length
+        + ' registro(s) válidos a Google Sheet como borradores. La operación puede tardar según la cantidad. ¿Continuar?')) return;
 
       uploading = true;
       let sent = 0;
       let failed = 0;
       const button = document.getElementById('uploadSheetBtn');
       updateStats(validations);
-      for (let blockStart = 0; blockStart < candidates.length; blockStart += UPLOAD_BATCH_SIZE) {
-        const block = candidates.slice(blockStart, blockStart + UPLOAD_BATCH_SIZE);
+      for (let blockStart = 0; blockStart < candidates.length; blockStart += SYNC_CHUNK_SIZE) {
+        const block = candidates.slice(blockStart, blockStart + SYNC_CHUNK_SIZE);
         for (let index = 0; index < block.length; index++) {
           const row = block[index];
           const completed = blockStart + index + 1;
@@ -2184,12 +2309,31 @@
     }
 
     function downloadTemplate() {
-      const headers = ['nombreRecurso', 'region', 'provincia', 'comuna', 'categoria', 'tipoRecurso', 'subtipoRecurso'];
+      const headers = [
+        'nombreRecurso', 'region', 'provincia', 'comuna', 'categoria', 'tipoRecurso', 'subtipoRecurso',
+        'descripcion', 'responsable', 'longitud', 'latitud', 'coordX', 'coordY', 'utmZona'
+      ];
       if (globalThis.XLSX) {
-        const blankRows = Array.from({ length: UPLOAD_BATCH_SIZE }, () => ['', '', '', '', '', '', '']);
+        const blankRows = Array.from({ length: TEMPLATE_ROWS }, () => headers.map(() => ''));
         const workbook = XLSX.utils.book_new();
         const loadSheet = XLSX.utils.aoa_to_sheet([headers, ...blankRows]);
-        loadSheet['!cols'] = [{ wch: 42 }, { wch: 45 }, { wch: 24 }, { wch: 24 }, { wch: 22 }, { wch: 46 }, { wch: 60 }];
+        loadSheet['!cols'] = [
+          { wch: 42 }, { wch: 45 }, { wch: 24 }, { wch: 24 }, { wch: 22 }, { wch: 46 }, { wch: 60 },
+          { wch: 70 }, { wch: 34 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 14 }
+        ];
+        const instructionRows = [
+          ['campo', 'condición', 'indicación'],
+          ['nombreRecurso', 'Obligatorio', 'Nombre del atractivo o recurso turístico.'],
+          ['region / provincia / comuna', 'Obligatorio', 'Usar los nombres oficiales disponibles en la hoja Territorios.'],
+          ['categoria / tipoRecurso / subtipoRecurso', 'Obligatorio', 'Usar la jerarquía disponible en la hoja Clasificacion.'],
+          ['cantidad de filas', 'Sin límite fijo', 'Puede agregar todas las filas necesarias. Las filas vacías incluidas en esta plantilla no representan un límite.'],
+          ['descripcion', 'Opcional', 'Se incorpora cuando existe una columna de descripción.'],
+          ['responsable', 'Opcional', 'Nombre de la persona responsable del registro.'],
+          ['longitud / latitud', 'Opcional', 'Coordenadas geográficas en grados decimales. Completar ambas columnas.'],
+          ['coordX / coordY / utmZona', 'Opcional', 'Coordenadas UTM WGS84. Completar X e Y e indicar el huso, por ejemplo 19S.']
+        ];
+        const instructionSheet = XLSX.utils.aoa_to_sheet(instructionRows);
+        instructionSheet['!cols'] = [{ wch: 34 }, { wch: 16 }, { wch: 84 }];
         const territoryRows = [['region', 'provincia', 'comuna']];
         CHILE_TERRITORY.forEach(region => region.provincias.forEach(province => {
           province.comunas.forEach(comuna => territoryRows.push([region.nombre, province.nombre, comuna]));
@@ -2205,6 +2349,7 @@
         const catalogSheet = XLSX.utils.aoa_to_sheet(catalogRows);
         catalogSheet['!cols'] = [{ wch: 22 }, { wch: 48 }, { wch: 65 }];
         XLSX.utils.book_append_sheet(workbook, loadSheet, 'Carga');
+        XLSX.utils.book_append_sheet(workbook, instructionSheet, 'Instrucciones');
         XLSX.utils.book_append_sheet(workbook, territorySheet, 'Territorios');
         XLSX.utils.book_append_sheet(workbook, catalogSheet, 'Clasificacion');
         XLSX.writeFile(workbook, 'plantilla-carga-masiva-catastro.xlsx');
