@@ -494,7 +494,7 @@
       const bounds = [];
       filtered.filter(r => r.hasGeo).forEach(r => {
         const marker = L.circleMarker([r.lat, r.lng], { radius: 7, color: '#0f766e', weight: 2, fillColor: '#14b8a6', fillOpacity: .82 });
-        marker.bindPopup('<strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br>' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '<br>' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br><span style="font-size:12px">' + escapeHtml(asText(r.id_unico)) + '</span><br><button type="button" onclick="printRecordById(\'' + escapeHtml(asText(r.id_unico)) + '\')" style="margin-top:8px;padding:7px 10px;border-radius:9px;border:0;font-weight:800;cursor:pointer">Guardar PDF</button>');
+        marker.bindPopup('<strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br>' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '<br>' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br><span style="font-size:12px">' + escapeHtml(asText(r.id_unico)) + '</span><br><button type="button" onclick="printRecordById(\'' + escapeHtml(asText(r.id_unico)) + '\')" style="margin-top:8px;padding:7px 10px;border-radius:9px;border:0;font-weight:800;cursor:pointer">Ver ficha</button>');
         marker.addTo(markersLayer);
         bounds.push([r.lat, r.lng]);
       });
@@ -529,7 +529,7 @@
         const id = asText(r.id_unico);
         const editUrl = id ? 'index.html?id_unico=' + encodeURIComponent(id) : 'index.html';
         const photos = r.hasPhotos ? '<span class="pill ok">Fotos</span>' : '<span class="status">Sin fotos</span>';
-        const action = id ? '<div class="row-actions"><button type="button" class="edit-link" data-pdf-id="' + escapeHtml(id) + '">Guardar PDF</button><a class="edit-link" href="' + editUrl + '">Editar</a></div>' : '<span class="muted">Sin ID</span>';
+        const action = id ? '<div class="row-actions"><button type="button" class="edit-link" data-pdf-id="' + escapeHtml(id) + '">Ver ficha</button><a class="edit-link" href="' + editUrl + '">Editar</a></div>' : '<span class="muted">Sin ID</span>';
         const updated = formatUpdatedTimestamp(getRecordUpdatedTimestamp(r));
         return '<tr class="' + (id === selectedRecordId ? 'selected-row' : '') + '"><td data-label="Recurso"><strong>' + escapeHtml(asText(r.nombreRecurso) || 'Sin nombre') + '</strong><br><span class="muted">' + escapeHtml(asText(r.tipoRecurso) || '') + '</span></td><td data-label="Comuna">' + escapeHtml(asText(r.comuna) || 'Sin comuna') + '</td><td data-label="Categoría">' + escapeHtml(asText(r.categoria) || 'Sin categoría') + '<br>' + photos + '</td><td data-label="ID único"><span class="muted">' + escapeHtml(id || 'Sin ID') + '</span></td><td data-label="Coordenadas">' + coords + '</td><td data-label="Actualización">' + escapeHtml(updated) + '</td><td data-label="Acción" class="table-action">' + action + '</td></tr>';
       };
