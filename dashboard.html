@@ -283,6 +283,99 @@
     function asNumber(value) { const n = Number(String(value || '').replace(',', '.')); return Number.isFinite(n) ? n : null; }
     function escapeHtml(str) { return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s])); }
 
+    function safeExternalUrl(value) {
+      const text = asText(value);
+      if (!text) return '';
+      const candidate = /^https?:\/\//i.test(text) ? text : (/^(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(text) ? 'https://' + text.replace(/^www\./i, 'www.') : '');
+      if (!candidate) return '';
+      try {
+        const url = new URL(candidate);
+        return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+      } catch (error) {
+        return '';
+      }
+    }
+
+    function externalLink(value, label = '') {
+      const url = safeExternalUrl(value);
+      if (!url) return escapeHtml(asText(value) || 'Sin informar');
+      return '<a class="value-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(label || asText(value)) + '</a>';
+    }
+
+    function emailLinks(value) {
+      const raw = asText(value);
+      if (!raw) return 'Sin informar';
+      const emails = raw.split(/[\s,;|]+/).map(item => item.trim()).filter(item => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
+      if (!emails.length) return escapeHtml(raw);
+      return emails.map(email => '<a class="value-link" href="mailto:' + escapeHtml(email) + '">' + escapeHtml(email) + '</a>').join('<br>');
+    }
+
+    function urlLinks(value) {
+      const raw = asText(value);
+      if (!raw) return 'Sin informar';
+      const parts = raw.split(/\n|\s*\|\s*|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
+      const linked = parts.map(part => externalLink(part));
+      return linked.length ? linked.join('<br>') : escapeHtml(raw);
+    }
+
+    function parseSocialDetails(value) {
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === 'object') return Object.values(value);
+      const raw = asText(value);
+      if (!raw) return [];
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') return Object.values(parsed);
+      } catch (error) {}
+      return [];
+    }
+
+    function socialProfileUrl(network, account) {
+      const accountText = asText(account);
+      const directUrl = safeExternalUrl(accountText);
+      if (directUrl) return directUrl;
+      const handle = accountText.replace(/^@/, '').trim();
+      if (!handle || /\s/.test(handle)) return '';
+      const key = normalizeSearch(network).replace(/[^a-z0-9]+/g, '');
+      const builders = {
+        instagram: value => 'https://www.instagram.com/' + encodeURIComponent(value),
+        facebook: value => 'https://www.facebook.com/' + encodeURIComponent(value),
+        snapchat: value => 'https://www.snapchat.com/add/' + encodeURIComponent(value),
+        telegram: value => 'https://t.me/' + encodeURIComponent(value),
+        tiktok: value => 'https://www.tiktok.com/@' + encodeURIComponent(value),
+        x: value => 'https://x.com/' + encodeURIComponent(value),
+        xantestwitter: value => 'https://x.com/' + encodeURIComponent(value),
+        twitter: value => 'https://x.com/' + encodeURIComponent(value),
+        youtube: value => 'https://www.youtube.com/@' + encodeURIComponent(value.replace(/^@/, ''))
+      };
+      return builders[key] ? builders[key](handle) : '';
+    }
+
+    function socialDetailsFromRecord(record) {
+      const details = parseSocialDetails(record.redesSocialesDetalle);
+      if (details.length) return details;
+      return asText(record.nombreCuenta).split(/\s*\|\s*/).map(item => {
+        const separator = item.indexOf(':');
+        return separator >= 0
+          ? { red: item.slice(0, separator).trim(), cuenta: item.slice(separator + 1).trim(), url: '' }
+          : { red: '', cuenta: item.trim(), url: '' };
+      }).filter(item => item.red || item.cuenta);
+    }
+
+    function socialAccountsTable(record) {
+      const details = socialDetailsFromRecord(record);
+      if (!details.length) return 'Sin informar';
+      return '<div class="social-links">' + details.map(item => {
+        const network = asText(item.red) || 'Red social';
+        const account = asText(item.cuenta) || asText(item.url) || 'Abrir cuenta';
+        const url = safeExternalUrl(item.url) || socialProfileUrl(network, account);
+        const accountValue = url
+          ? '<a class="value-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(account) + '</a>'
+          : escapeHtml(account);
+        return '<div class="social-link-row"><span>' + escapeHtml(network) + '</span><strong>' + accountValue + '</strong></div>';
+      }).join('') + '</div>';
+    }
     function getRecordUpdatedTimestamp(record) {
       const raw = asText(record.fecha_actualizacion || record.fecha_sincronizacion || record.fechaRegistro || '').replace(/^"+|"+$/g, '');
       const timestamp = Date.parse(raw);
@@ -638,16 +731,23 @@
 
     window.printRecordById = printRecordById;
 
-    function pdfValue(value) {
+    function pdfValue(value, label = '') {
+      const normalizedLabel = normalizeSearch(label);
+      if (normalizedLabel.includes('correo')) return emailLinks(value);
+      if (normalizedLabel.includes('cuentas por red social')) return socialAccountsTable(value);
+      if (normalizedLabel.includes('url') || normalizedLabel.includes('sitio web') || normalizedLabel.includes('pagina web') || normalizedLabel.includes('carpeta') || normalizedLabel.includes('links foto') || normalizedLabel.includes('ruta drive')) {
+        return urlLinks(value);
+      }
       return escapeHtml(asText(value) || 'Sin informar');
     }
 
     function pdfCard(label, value) {
-      return '<article class="summary-card"><span class="summary-label">' + escapeHtml(label) + '</span><strong>' + pdfValue(value) + '</strong></article>';
+      return '<article class="summary-card"><span class="summary-label">' + escapeHtml(label) + '</span><strong>' + pdfValue(value, label) + '</strong></article>';
     }
 
     function pdfRow(label, value) {
-      return '<tr><th>' + escapeHtml(label) + '</th><td>' + pdfValue(value) + '</td></tr>';
+      const rendered = label === 'Cuentas por red social' ? socialAccountsTable(value) : pdfValue(value, label);
+      return '<tr><th>' + escapeHtml(label) + '</th><td>' + rendered + '</td></tr>';
     }
 
     function pdfSection(title, rows) {
@@ -661,7 +761,7 @@
       const classification = [record.categoria, record.tipoRecurso, record.subtipoRecurso].map(asText).filter(Boolean).join(' / ') || 'Sin informar';
       const coordinates = record.hasGeo ? record.lat.toFixed(6) + ', ' + record.lng.toFixed(6) : 'Sin informar';
       const photos = (record.photoLinks || []).length
-        ? '<div class="photos">' + record.photoLinks.map((url, index) => '<div class="photo-card"><img src="' + escapeHtml(driveThumbUrl(url)) + '" alt="Foto ' + (index + 1) + '"><p><strong>Foto ' + (index + 1) + '</strong><br><a href="' + escapeHtml(url) + '">Abrir imagen en Drive</a></p></div>').join('') + '</div>'
+        ? '<div class="photos">' + record.photoLinks.map((url, index) => '<div class="photo-card"><img src="' + escapeHtml(driveThumbUrl(url)) + '" alt="Foto ' + (index + 1) + '"><p><strong>Foto ' + (index + 1) + '</strong><br><a class="value-link" href="' + escapeHtml(url) + '" target="_blank" rel="noopener noreferrer">Abrir imagen en Drive</a></p></div>').join('') + '</div>'
         : '<p class="empty">No hay fotografías enlazadas en Google Sheet.</p>';
 
       const summary = '<section class="summary-grid">' +
@@ -679,13 +779,13 @@
         ['1. Datos generales', [['ID único', record.id_unico], ['Código región', record.codigo_region], ['Código provincia', record.codigo_provincia], ['Código comuna', record.codigo_comuna], ['Código atractivo', record.codigo_atractivo], ['Nombre del recurso', record.nombreRecurso], ['ID interno', record.idInterno], ['Fecha de registro', record.fechaRegistro], ['Responsable', record.responsable], ['Institución', record.institucion], ['Correo responsable', record.correoResponsable], ['Teléfono responsable', record.telefonoResponsable]]],
         ['2. Localización territorial', [['Región', record.region], ['Provincia', record.provincia], ['Comuna', record.comuna], ['Localidad', record.localidad], ['Coordenadas', coordinates], ['Latitud', record.latitud], ['Longitud', record.longitud], ['X UTM', record.coordX], ['Y UTM', record.coordY]]],
         ['3. Clasificación del recurso', [['Categoría', record.categoria], ['Tipo', record.tipoRecurso], ['Subtipo', record.subtipoRecurso], ['Descripción', record.descripcion]]],
-        ['4. Propiedad y administración', [['Propiedad', record.propiedad], ['Nombre propietario', record.nombrePropietario], ['Tipo organización propietario', record.tipoOrgPropietario], ['Correo propietario', record.correoPropietario], ['Teléfono propietario', record.telefonoPropietario], ['Administración', record.administracion], ['Nombre administrador', record.nombreAdministrador], ['Tipo organización administrador', record.tipoOrgAdministrador], ['Sitio web', record.sitioWeb], ['Alcance actuación', record.alcanceActuacion], ['Operación o concesión', record.operacionConcesion], ['Patrocinio evento', record.patrocinioEvento]]],
+        ['4. Propiedad y administración', [['Propiedad', record.propiedad], ['Nombre propietario', record.nombrePropietario], ['Tipo organización propietario', record.tipoOrgPropietario], ['Correo propietario', record.correoPropietario], ['Teléfono propietario', record.telefonoPropietario], ['Administración', record.administracion], ['Nombre administrador', record.nombreAdministrador], ['Tipo organización administrador', record.tipoOrgAdministrador], ['Correo administrador', record.correoAdministrador], ['Teléfono administrador', record.telefonoAdministrador], ['Sitio web', record.sitioWeb], ['Alcance actuación', record.alcanceActuacion], ['Operación o concesión', record.operacionConcesion], ['Patrocinio evento', record.patrocinioEvento]]],
         ['5. Acceso y conectividad', [['Tipo de acceso', record.tipoAcceso], ['Distancia capital regional', record.distanciaCapitalRegional], ['Distancia capital comunal', record.distanciaCapitalComunal]]],
         ['6. Instalaciones y capital humano', [['Tiene instalaciones', record.tieneInstalaciones], ['N° administración', record.nAdmin], ['N° operación', record.nOperacion], ['N° turismo', record.nTurismo], ['N° idiomas', record.nIdiomas], ['Idiomas', record.idiomas], ['Lenguas originarias', record.lenguasOriginarias]]],
         ['7. Operación y visitas', [['Tipo ingreso', record.tipoIngreso], ['Tipo pago', record.tipoPago], ['Medio pago', record.medioPago], ['Reserva', record.reserva], ['Tipo reserva', record.tipoReserva], ['Ingreso mascotas', record.ingresoMascotas], ['Continuidad', record.continuidad], ['Sistema visitas', record.sistemaVisitas], ['Tipo registro visitas', record.tipoRegistro], ['Último año registro', record.ultimoAnoRegistro], ['Reportes visita', record.reportesVisita], ['Frecuencia reportes', record.frecuenciaReportes], ['Visitantes nacionales', record.visitantesNacionales], ['Visitantes extranjeros', record.visitantesExtranjeros]]],
         ['8. Servicios, accesibilidad y seguridad', [['Servicios turísticos', record.tieneServiciosTuristicos], ['Servicios básicos', record.tieneServiciosBasicos], ['Seguridad', record.tieneSeguridad], ['Accesibilidad universal', record.accesibilidadUniversal], ['Ficha IDAT', record.fichaIdat], ['Perros guía', record.perrosGuia], ['Apoyo emocional', record.apoyoEmocional]]],
         ['9. Reconocimientos y gestión territorial', [['Tiene reconocimiento', record.tieneReconocimiento], ['Alcance reconocimiento', record.alcanceReconocimiento], ['Institución reconocimiento', record.institucionReconocimiento], ['Denominación reconocimiento', record.denominacionReconocimiento], ['Fecha reconocimiento', record.fechaReconocimiento], ['Plan RRD', record.planRRD], ['Plan emergencia', record.planEmergencia], ['En planificación', record.enPlanificacion], ['Capacidad de carga', record.capacidadCarga], ['Resolución sanitaria', record.resolucionSanitaria]]],
-        ['10. Promoción y comercialización', [['Se promociona', record.sePromociona], ['Escala promoción', record.escalaPromocion], ['Instrumento promoción', record.instrumentoPromocion], ['Escala comercialización', record.escalaComercializacion], ['Canales comercialización', record.canalesComercializacion], ['Tiene web', record.tieneWeb], ['URL web', record.urlWeb], ['Periodicidad web', record.periodicidadWeb], ['Tiene redes', record.tieneRedes], ['Nombre cuenta', record.nombreCuenta], ['Periodicidad redes', record.periodicidadRedes], ['Medios comunicación', record.mediosComunicacion], ['Ferias eventos', record.feriasEventos], ['Nombre feria', record.nombreFeria], ['Folletería', record.folleteria], ['Tipo folletería', record.tipoFolleteria], ['Otros medios', record.otrosMedios]]],
+        ['10. Promoción y comercialización', [['Se promociona', record.sePromociona], ['Escala promoción', record.escalaPromocion], ['Instrumento promoción', record.instrumentoPromocion], ['Escala comercialización', record.escalaComercializacion], ['Canales comercialización', record.canalesComercializacion], ['Tiene web', record.tieneWeb], ['URL web', record.urlWeb], ['Periodicidad web', record.periodicidadWeb], ['Tiene redes', record.tieneRedes], ['Cuentas por red social', record], ['Periodicidad redes', record.periodicidadRedes], ['Medios comunicación', record.mediosComunicacion], ['Ferias eventos', record.feriasEventos], ['Nombre feria', record.nombreFeria], ['Folletería', record.folleteria], ['Tipo folletería', record.tipoFolleteria], ['Otros medios', record.otrosMedios]]],
         ['11. Respaldo online', [['Estado', record.estado], ['Fecha creación', record.fecha_creacion], ['Fecha actualización', record.fecha_actualizacion], ['Fecha sincronización', record.fecha_sincronizacion], ['Fecha subida fotos', record.fecha_subida_fotos], ['Cantidad fotos', record.fotos_cantidad], ['Ruta Drive', record.fotos_ruta_drive], ['Carpeta Drive', record.fotos_carpeta_drive], ['Links fotos', record.fotos_links]]],
         ['12. Observaciones', [['Observaciones', record.observaciones]]]
       ];
@@ -693,7 +793,7 @@
       const sections = groups.map(group => pdfSection(group[0], group[1])).join('');
       const mapSection = '<section class="section"><div class="section-header"><h2>Mapa de referencia</h2><p>Ubicación del recurso o atractivo turístico según las coordenadas registradas.</p></div><div class="section-body"><div class="map-box">' + (record.hasGeo ? '<iframe title="Mapa" src="https://www.openstreetmap.org/export/embed.html?bbox=' + encodeURIComponent((record.lng - 0.01) + ',' + (record.lat - 0.01) + ',' + (record.lng + 0.01) + ',' + (record.lat + 0.01)) + '&layer=mapnik&marker=' + encodeURIComponent(record.lat + ',' + record.lng) + '"></iframe>' : '<p class="empty">No hay coordenadas suficientes para generar mapa de referencia.</p>') + '</div></div></section>';
 
-      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + escapeHtml(title) + ' - PDF</title><style>:root{--line:#d7deea;--text:#17324d;--muted:#5b7087;--ink:#0f2940}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--text);background:#eef3f8}.page{max-width:1080px;margin:0 auto;padding:26px}.hero{position:relative;background:linear-gradient(135deg,#11324f 0%,#1a456b 100%);color:#fff;border-radius:18px;padding:26px 28px;box-shadow:0 10px 28px rgba(16,52,85,.18);margin-bottom:18px}.top-copy{padding-right:118px}.top-brand{position:absolute;top:24px;right:28px;width:92px}.top-brand img{max-width:92px;width:100%;height:auto;display:block}.eyebrow{display:inline-flex;background:rgba(255,255,255,.12);padding:7px 12px;border-radius:999px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}.top h1{margin:0;font-size:30px;line-height:1.15}.top p{margin:8px 0 0;color:rgba(255,255,255,.82);max-width:760px}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.meta-card{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;min-height:76px}.meta-card strong{display:block;font-size:12px;color:rgba(255,255,255,.72);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}.meta-card span{font-size:15px;font-weight:700}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.summary-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-height:96px}.summary-label{display:block;color:#58708a;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}.summary-card strong{font-size:16px;color:#001f3e;word-break:break-word}.section{background:#fff;border:1px solid var(--line);border-radius:16px;margin:16px 0;overflow:hidden}.section-header{padding:16px 18px;background:#f7fafc;border-bottom:1px solid var(--line)}.section-header h2{margin:0;font-size:18px;color:#0f2940}.section-header p{margin:6px 0 0;color:#5b7087}.section-body{padding:0}.data-table{width:100%;border-collapse:collapse}.data-table th,.data-table td{padding:12px 14px;border-bottom:1px solid #e8eef6;vertical-align:top}.data-table th{width:32%;text-align:left;color:#58708a;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.data-table td{font-weight:650;color:#0f2940;white-space:pre-wrap;word-break:break-word}.map-box{padding:16px}.map-box iframe{width:100%;height:360px;border:1px solid var(--line);border-radius:14px}.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px}.photo-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.photo-card img{width:100%;height:220px;object-fit:cover;background:#e9f0f7}.photo-card p{margin:0;padding:10px 12px}.empty{color:#5b7087;padding:16px}.print-note,.footer-note{font-size:12px;color:#5b7087;text-align:center;margin:14px 0}@media print{body{background:#fff}.page{max-width:none;padding:12mm}.hero,.section,.summary-card,.photo-card{break-inside:avoid}.summary-grid{grid-template-columns:repeat(2,1fr)}.top h1{font-size:28px}.map-box iframe{height:300px}}</style></head><body><div class="page"><section class="hero"><div class="top"><div class="top-copy"><span class="eyebrow">Catastro Nacional de Recursos Turísticos</span><h1>' + escapeHtml(title) + '</h1><p>Resumen ordenado para revisión, validación territorial y respaldo en PDF del recurso o atractivo registrado.</p></div><div class="top-brand">' + (GOV_LOGO_DATA ? '<img src="' + GOV_LOGO_DATA + '" alt="Logo institucional">' : '') + '</div></div><div class="meta"><div class="meta-card"><strong>Fecha de exportación</strong><span>' + escapeHtml(generatedAt) + '</span></div><div class="meta-card"><strong>Región / Provincia / Comuna</strong><span>' + escapeHtml(territory) + '</span></div><div class="meta-card"><strong>Responsable</strong><span>' + pdfValue(record.responsable) + '</span></div></div></section>' + summary + mapSection + sections + '<section class="section"><div class="section-header"><h2>Anexo fotográfico</h2></div>' + photos + '</section><div class="print-note">La exportación se presenta en una versión optimizada para impresión y guardado como PDF.</div><div class="footer-note">Catastro Nacional de Recursos Turísticos · Exportación preliminar</div></div></body></html>';
+      return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + escapeHtml(title) + ' - PDF</title><style>:root{--line:#d7deea;--text:#17324d;--muted:#5b7087;--ink:#0f2940}*{box-sizing:border-box}body{margin:0;font-family:Inter,Arial,sans-serif;color:var(--text);background:#eef3f8}.page{max-width:1080px;margin:0 auto;padding:26px}.hero{position:relative;background:linear-gradient(135deg,#11324f 0%,#1a456b 100%);color:#fff;border-radius:18px;padding:26px 28px;box-shadow:0 10px 28px rgba(16,52,85,.18);margin-bottom:18px}.top-copy{padding-right:118px}.top-brand{position:absolute;top:24px;right:28px;width:92px}.top-brand img{max-width:92px;width:100%;height:auto;display:block}.eyebrow{display:inline-flex;background:rgba(255,255,255,.12);padding:7px 12px;border-radius:999px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:12px}.top h1{margin:0;font-size:30px;line-height:1.15}.top p{margin:8px 0 0;color:rgba(255,255,255,.82);max-width:760px}.meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.meta-card{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;min-height:76px}.meta-card strong{display:block;font-size:12px;color:rgba(255,255,255,.72);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}.meta-card span{font-size:15px;font-weight:700}.summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.summary-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;min-height:96px}.summary-label{display:block;color:#58708a;font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}.summary-card strong{font-size:16px;color:#001f3e;word-break:break-word}.section{background:#fff;border:1px solid var(--line);border-radius:16px;margin:16px 0;overflow:hidden}.section-header{padding:16px 18px;background:#f7fafc;border-bottom:1px solid var(--line)}.section-header h2{margin:0;font-size:18px;color:#0f2940}.section-header p{margin:6px 0 0;color:#5b7087}.section-body{padding:0}.data-table{width:100%;border-collapse:collapse}.data-table th,.data-table td{padding:12px 14px;border-bottom:1px solid #e8eef6;vertical-align:top}.data-table th{width:32%;text-align:left;color:#58708a;font-size:12px;text-transform:uppercase;letter-spacing:.04em}.data-table td{font-weight:650;color:#0f2940;white-space:pre-wrap;word-break:break-word}.value-link{color:#0b57d0;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}.social-links{display:grid;gap:8px}.social-link-row{display:grid;grid-template-columns:minmax(110px,.35fr) minmax(0,1fr);gap:10px;align-items:start}.social-link-row span{color:#58708a;font-size:12px;text-transform:uppercase}.social-link-row strong{font-size:14px}.map-box{padding:16px}.map-box iframe{width:100%;height:360px;border:1px solid var(--line);border-radius:14px}.photos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:16px}.photo-card{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff}.photo-card img{width:100%;height:220px;object-fit:cover;background:#e9f0f7}.photo-card p{margin:0;padding:10px 12px}.empty{color:#5b7087;padding:16px}.print-note,.footer-note{font-size:12px;color:#5b7087;text-align:center;margin:14px 0}@media print{body{background:#fff}.page{max-width:none;padding:12mm}.hero,.section,.summary-card,.photo-card{break-inside:avoid}.summary-grid{grid-template-columns:repeat(2,1fr)}.top h1{font-size:28px}.map-box iframe{height:300px}.value-link{color:#0b57d0;text-decoration:underline}}</style></head><body><div class="page"><section class="hero"><div class="top"><div class="top-copy"><span class="eyebrow">Catastro Nacional de Recursos Turísticos</span><h1>' + escapeHtml(title) + '</h1><p>Resumen ordenado para revisión, validación territorial y respaldo en PDF del recurso o atractivo registrado.</p></div><div class="top-brand">' + (GOV_LOGO_DATA ? '<img src="' + GOV_LOGO_DATA + '" alt="Logo institucional">' : '') + '</div></div><div class="meta"><div class="meta-card"><strong>Fecha de exportación</strong><span>' + escapeHtml(generatedAt) + '</span></div><div class="meta-card"><strong>Región / Provincia / Comuna</strong><span>' + escapeHtml(territory) + '</span></div><div class="meta-card"><strong>Responsable</strong><span>' + pdfValue(record.responsable) + '</span></div></div></section>' + summary + mapSection + sections + '<section class="section"><div class="section-header"><h2>Anexo fotográfico</h2></div>' + photos + '</section><div class="print-note">La exportación se presenta en una versión optimizada para impresión y guardado como PDF.</div><div class="footer-note">Catastro Nacional de Recursos Turísticos · Exportación preliminar</div></div></body></html>';
     }
 
 
