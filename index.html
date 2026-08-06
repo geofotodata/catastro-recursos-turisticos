@@ -1578,7 +1578,6 @@
       .sidebar { position: static; max-height: none; }
       .top-grid { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 800px) {
       .status-cards { grid-template-columns: 1fr; }
       .grid { grid-template-columns: minmax(0, 1fr); }
@@ -5306,10 +5305,128 @@
       return value === undefined || value === null ? '' : String(value);
     }
 
+    function printableText(value) {
+      return value === undefined || value === null ? '' : String(value).trim();
+    }
+
+    function normalizePrintableKey(value) {
+      return printableText(value)
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '');
+    }
+
+    function safePrintableUrl(value) {
+      const text = printableText(value);
+      if (!text) return '';
+      const candidate = /^https?:\/\//i.test(text)
+        ? text
+        : (/^(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(text) ? `https://${text}` : '');
+      if (!candidate) return '';
+      try {
+        const url = new URL(candidate);
+        return ['http:', 'https:'].includes(url.protocol) ? url.toString() : '';
+      } catch (error) {
+        return '';
+      }
+    }
+
+    function printableExternalLink(value, label = '') {
+      const url = safePrintableUrl(value);
+      if (!url) return escapeHtml(printableText(value) || '—');
+      return `<a class="print-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label || printableText(value))}</a>`;
+    }
+
+    function printableEmailLinks(value) {
+      const raw = printableText(value);
+      if (!raw) return '<span class="empty">—</span>';
+      const emails = raw
+        .split(/[\s,;|]+/)
+        .map(item => item.trim())
+        .filter(item => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item));
+      if (!emails.length) return escapeHtml(raw);
+      return emails
+        .map(emailAddress => `<a class="print-link" href="mailto:${escapeHtml(emailAddress)}">${escapeHtml(emailAddress)}</a>`)
+        .join('<br>');
+    }
+
+    function printableUrlLinks(value) {
+      const raw = printableText(value);
+      if (!raw) return '<span class="empty">—</span>';
+      const parts = raw
+        .split(/\n|\s*\|\s*|\s*;\s*|\s*,\s*/)
+        .map(item => item.trim())
+        .filter(Boolean);
+      return parts.map(item => printableExternalLink(item)).join('<br>');
+    }
+
+    function printableSocialProfileUrl(network, account) {
+      const accountText = printableText(account);
+      const directUrl = safePrintableUrl(accountText);
+      if (directUrl) return directUrl;
+      const handle = accountText.replace(/^@/, '').trim();
+      if (!handle || /\s/.test(handle)) return '';
+      const builders = {
+        instagram: value => `https://www.instagram.com/${encodeURIComponent(value)}`,
+        facebook: value => `https://www.facebook.com/${encodeURIComponent(value)}`,
+        snapchat: value => `https://www.snapchat.com/add/${encodeURIComponent(value)}`,
+        telegram: value => `https://t.me/${encodeURIComponent(value)}`,
+        tiktok: value => `https://www.tiktok.com/@${encodeURIComponent(value)}`,
+        x: value => `https://x.com/${encodeURIComponent(value)}`,
+        xantestwitter: value => `https://x.com/${encodeURIComponent(value)}`,
+        twitter: value => `https://x.com/${encodeURIComponent(value)}`,
+        youtube: value => `https://www.youtube.com/@${encodeURIComponent(value)}`
+      };
+      const builder = builders[normalizePrintableKey(network)];
+      return builder ? builder(handle) : '';
+    }
+
+    function getPrintablePhotoLinks() {
+      const raw = state.values.fotos_links;
+      if (Array.isArray(raw)) return raw.map(printableText).filter(Boolean);
+      if (raw && typeof raw === 'object') return Object.values(raw).map(printableText).filter(Boolean);
+      const text = printableText(raw);
+      if (!text) return [];
+      try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed)) return parsed.map(printableText).filter(Boolean);
+        if (parsed && typeof parsed === 'object') return Object.values(parsed).map(printableText).filter(Boolean);
+      } catch (error) {}
+      return text.split(/\n|\s*\|\s*|\s*;\s*|\s*,\s*/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function getPrintableDriveFileId(value) {
+      const url = printableText(value);
+      let match = url.match(/\/d\/([^/?#]+)/);
+      if (match) return match[1];
+      match = url.match(/[?&]id=([^&#]+)/);
+      return match ? match[1] : '';
+    }
+
+    function printablePhotoPreviewUrl(value) {
+      const url = safePrintableUrl(value);
+      if (!url) return '';
+      const driveFileId = getPrintableDriveFileId(url);
+      return driveFileId
+        ? `https://drive.google.com/thumbnail?id=${encodeURIComponent(driveFileId)}&sz=w1000`
+        : url;
+    }
+
+    function renderPrintableDriveLinks() {
+      const folderUrl = safePrintableUrl(state.values.fotos_carpeta_drive);
+      if (!folderUrl) return '';
+      return `
+        <div class="online-photo-links">
+          <strong>Respaldo fotográfico online</strong>
+          <div>${printableExternalLink(folderUrl, 'Abrir carpeta de fotografías en Drive')}</div>
+        </div>
+      `;
+    }
+
     function renderPrintableSummary() {
       const classification = [state.values.categoria, state.values.tipoRecurso, state.values.subtipoRecurso].filter(Boolean).join(' / ');
       const coordinates = [state.values.latitud, state.values.longitud].filter(Boolean).join(', ');
-      const utmParts = [state.values.coordX ? `X ${state.values.coordX}` : '', state.values.coordY ? `Y ${state.values.coordY}` : '', state.values.utmZona ? `Zona ${state.values.utmZona}` : ''].filter(Boolean).join(' · ');
       const cards = [
         { label: 'Nombre del recurso', value: getPrintableSimpleValue('nombreRecurso') || 'Sin informar' },
         { label: 'Territorio', value: formatInlineTerritory() },
@@ -5317,15 +5434,15 @@
         { label: 'Responsable del registro', value: getPrintableSimpleValue('responsable') || 'Sin informar' },
         { label: 'Fecha de registro', value: getPrintableSimpleValue('fechaRegistro') || 'Sin informar' },
         { label: 'Coordenadas', value: coordinates || 'Sin informar' },
-        { label: 'UTM', value: utmParts || 'Sin informar' },
-        { label: 'Localidad o referencia', value: getPrintableSimpleValue('localidad') || 'Sin informar' }
+        { label: 'ID único', value: getPrintableSimpleValue('id_unico') || 'Sin informar' },
+        { label: 'Carpeta de fotos', value: getPrintableSimpleValue('fotos_carpeta_drive') || 'Sin informar', type: 'url' }
       ];
 
       return `
         <section class="summary-grid">${cards.map(card => `
           <article class="summary-card">
             <span class="summary-label">${escapeHtml(card.label)}</span>
-            <strong>${escapeHtml(card.value)}</strong>
+            <strong>${card.type === 'url' ? printableExternalLink(card.value) : escapeHtml(card.value)}</strong>
           </article>
         `).join('')}</section>
       `;
@@ -5335,14 +5452,9 @@
       const lat = parseCoordinate(state.values.latitud);
       const lng = parseCoordinate(state.values.longitud);
       const hasPoint = Number.isFinite(lat) && Number.isFinite(lng);
-      const detailRows = [
-        ['Latitud', state.values.latitud || '—'],
-        ['Longitud', state.values.longitud || '—'],
-        ['X (UTM WGS84)', state.values.coordX || '—'],
-        ['Y (UTM WGS84)', state.values.coordY || '—'],
-        ['Zona UTM', state.values.utmZona || '—'],
-        ['Localidad o referencia', getPrintableSimpleValue('localidad') || '—']
-      ];
+      const mapUrl = hasPoint
+        ? `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}`)}&layer=mapnik&marker=${encodeURIComponent(`${lat},${lng}`)}`
+        : '';
 
       return `
         <section class="section map-section">
@@ -5351,23 +5463,10 @@
             <p>Ubicación del recurso o atractivo turístico según el punto geográfico registrado en el formulario.</p>
           </div>
           <div class="section-body">
-            <div class="map-grid">
-              <div class="map-panel">
-                ${hasPoint ? '<div id="printMap"></div><div class="map-caption">Referencia cartográfica preliminar para impresión.</div>' : '<div class="map-empty">No hay coordenadas suficientes para generar el mapa de referencia.</div>'}
-              </div>
-              <div class="map-sidecard">
-                <h3>Detalle de ubicación</h3>
-                <table class="compact-table">
-                  <tbody>
-                    ${detailRows.map(([label, value]) => `
-                      <tr>
-                        <th>${escapeHtml(label)}</th>
-                        <td>${escapeHtml(value)}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
-              </div>
+            <div class="map-box">
+              ${hasPoint
+                ? `<iframe title="Mapa" src="${escapeHtml(mapUrl)}"></iframe>`
+                : '<p class="empty">No hay coordenadas suficientes para generar mapa de referencia.</p>'}
             </div>
           </div>
         </section>
@@ -5380,18 +5479,12 @@
       const summarySection = renderPrintableSummary();
       const mapSection = renderPrintableMapSection();
       const photosSection = renderPrintablePhotosSection();
-      const mapConfig = {
-        lat: parseCoordinate(state.values.latitud),
-        lng: parseCoordinate(state.values.longitud),
-        title: state.values.nombreRecurso || 'Recurso turístico'
-      };
       return `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escapeHtml(title)} - PDF</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <style>
     :root { --line:#d7deea; --line-strong:#bdd0e4; --text:#17324d; --muted:#5b7087; --accent:#0f766e; --accent-soft:#eef6f5; --panel:#ffffff; --panel-soft:#f7fafc; --ink:#0f2940; }
     * { box-sizing:border-box; }
@@ -5409,40 +5502,38 @@
     .meta-card { background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:12px 14px; min-height:76px; }
     .meta-card strong { display:block; font-size:12px; color:rgba(255,255,255,.72); margin-bottom:6px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
     .meta-card span { display:block; font-size:14px; color:#fff; }
-    .summary-grid { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap:14px; margin:18px 0 22px; }
-    .summary-card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:0 4px 16px rgba(16,52,85,.05); min-height:92px; }
-    .summary-label { display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
-    .summary-card strong { display:block; font-size:14px; line-height:1.45; color:var(--ink); }
-    .section { margin-bottom:20px; page-break-inside: avoid; background:var(--panel); border:1px solid var(--line); border-radius:16px; overflow:hidden; box-shadow:0 4px 16px rgba(16,52,85,.05); }
-    .section-header { padding:16px 18px; background:linear-gradient(180deg, #f7fafc 0%, #f2f7fb 100%); border-bottom:1px solid var(--line); }
+    .summary-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; margin:18px 0; }
+    .summary-card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px 18px; min-height:96px; }
+    .summary-label { display:block; color:#58708a; font-size:12px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; }
+    .summary-card strong { display:block; font-size:16px; color:#001f3e; word-break:break-word; }
+    .section { background:#fff; border:1px solid var(--line); border-radius:16px; margin:16px 0; overflow:hidden; page-break-inside:avoid; }
+    .section-header { padding:16px 18px; background:#f7fafc; border-bottom:1px solid var(--line); }
     .section-header h2 { margin:0; font-size:18px; color:var(--ink); }
     .section-header p { margin:6px 0 0; color:var(--muted); font-size:13px; }
-    .section-body { padding:16px 18px 18px; }
+    .section-body { padding:0; }
     table { width:100%; border-collapse:separate; border-spacing:0; }
-    .data-table { border:1px solid var(--line); border-radius:12px; overflow:hidden; }
-    th, td { border-bottom:1px solid var(--line); padding:9px 11px; vertical-align:top; text-align:left; font-size:13px; }
+    .data-table { border:0; border-radius:0; overflow:hidden; border-collapse:collapse; }
+    th, td { border-bottom:1px solid #e8eef6; padding:12px 14px; vertical-align:top; text-align:left; font-size:13px; }
     .data-table tr:last-child th, .data-table tr:last-child td, .compact-table tr:last-child th, .compact-table tr:last-child td { border-bottom:none; }
-    .data-table th { width:32%; background:#f8fbfe; color:#24425c; font-weight:600; }
-    .data-table td { background:#fff; }
+    .data-table th { width:32%; background:#fff; color:#58708a; font-size:12px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+    .data-table td { background:#fff; font-weight:650; color:#0f2940; white-space:pre-wrap; word-break:break-word; }
     .data-table tbody tr:nth-child(even) td { background:#fcfdff; }
     .print-social-table { width:100%; border:1px solid var(--line); border-radius:10px; overflow:hidden; border-spacing:0; }
     .print-social-table th { width:auto; background:#f8fbfe; color:#24425c; font-weight:600; font-size:12px; }
     .print-social-table td { background:#fff; font-size:12px; word-break:break-word; }
+    .print-link { color:#0b57d0; text-decoration:underline; text-underline-offset:2px; overflow-wrap:anywhere; }
+    .online-photo-links { display:grid; gap:8px; margin:0 16px 16px; padding:13px 14px; border:1px solid var(--line); border-radius:10px; background:#f8fbfe; }
+    .online-photo-links > strong { color:var(--ink); font-size:13px; }
     .muted { color:var(--muted); }
-    .map-grid { display:grid; grid-template-columns: 1.55fr .95fr; gap:16px; align-items:start; }
-    .map-panel { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#f4f8fc; min-height:350px; }
-    #printMap { height:350px; width:100%; }
-    .map-caption { padding:10px 12px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); background:#fff; }
-    .map-empty { min-height:350px; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:var(--muted); background:repeating-linear-gradient(45deg, #f6f9fc, #f6f9fc 12px, #f1f6fb 12px, #f1f6fb 24px); }
-    .map-sidecard { border:1px solid var(--line); border-radius:14px; background:#fff; overflow:hidden; }
-    .map-sidecard h3 { margin:0; padding:14px 16px; font-size:15px; background:#f8fbfe; border-bottom:1px solid var(--line); }
-    .compact-table th { width:42%; background:#fbfdff; color:#24425c; font-weight:600; }
-    .compact-table td { background:#fff; }
-    .photos { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:16px; }
-    .photo-card { border:1px solid var(--line); border-radius:12px; padding:10px; background:#fff; }
-    .photo-card img { width:100%; height:260px; object-fit:cover; border-radius:8px; display:block; }
-    .photo-card p { margin:8px 0 0; font-size:12px; color:var(--muted); word-break:break-word; }
-    .empty { color:var(--muted); font-style:italic; }
+    .map-box { padding:16px; }
+    .map-box iframe { width:100%; height:360px; border:1px solid var(--line); border-radius:14px; }
+    .photos { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:16px; }
+    .photo-card { border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff; }
+    .photo-preview { position:relative; min-height:220px; background:#e9f0f7; }
+    .photo-card img { width:100%; height:220px; object-fit:cover; background:#e9f0f7; display:block; }
+    .photo-preview-fallback { display:none; min-height:220px; align-items:center; justify-content:center; padding:20px; text-align:center; color:var(--muted); }
+    .photo-card p { margin:0; padding:10px 12px; font-size:12px; color:var(--muted); word-break:break-word; }
+    .empty { color:var(--muted); font-style:italic; padding:16px; }
     .print-note { margin-top:16px; padding:12px 14px; border:1px dashed var(--line-strong); border-radius:12px; background:#fbfdff; color:var(--muted); font-size:12px; }
     .footer-note { margin-top:12px; text-align:right; font-size:11px; color:var(--muted); }
     @page { size: A4; margin: 12mm; }
@@ -5453,10 +5544,11 @@
       .summary-card, .section { box-shadow:none; }
       .print-note { display:none; }
       .section, .summary-card, .map-panel, .map-sidecard, .photo-card { break-inside: avoid; }
+      .print-link { color:#0b57d0; text-decoration:underline; }
       a[href]:after { content:none !important; }
     }
     @media (max-width: 960px) {
-      .summary-grid, .meta, .map-grid { grid-template-columns: 1fr 1fr; }
+      .summary-grid, .meta { grid-template-columns: 1fr 1fr; }
       .top-copy { padding-right:112px; }
       .top-brand { top:22px; right:24px; width:86px; }
       .top-brand img { max-width:86px; }
@@ -5470,7 +5562,7 @@
         <div class="top-copy">
           <div class="eyebrow">Catastro Nacional de Recursos Turísticos</div>
           <h1>${escapeHtml(title)}</h1>
-          <p>Resumen ordenado para revisión, validación territorial y respaldo en PDF del recurso o atractivo registrado en el formulario.</p>
+          <p>Resumen ordenado para revisión, validación territorial y respaldo en PDF del recurso o atractivo registrado.</p>
           <div class="meta">
             <div class="meta-card"><strong>Fecha de exportación</strong><span>${escapeHtml(generatedAt)}</span></div>
             <div class="meta-card"><strong>Región / Provincia / Comuna</strong><span>${escapeHtml(formatInlineTerritory())}</span></div>
@@ -5491,74 +5583,6 @@
     <div class="print-note">La exportación se presenta en una versión optimizada para impresión y guardado como PDF. El mapa de referencia utiliza el punto geográfico registrado en el formulario.</div>
     <div class="footer-note">Catastro Nacional de Recursos Turísticos · Exportación preliminar</div>
   </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""><\/script>
-  <script>
-    const printMapConfig = ${JSON.stringify(mapConfig)};
-    let printTriggered = false;
-
-    function triggerPrint() {
-      if (printTriggered) return;
-      printTriggered = true;
-      setTimeout(() => window.print(), 220);
-    }
-
-    function initPrintableMap() {
-      const mapEl = document.getElementById('printMap');
-      const hasPoint = Number.isFinite(printMapConfig.lat) && Number.isFinite(printMapConfig.lng);
-      if (!mapEl || !hasPoint || typeof L === 'undefined') {
-        setTimeout(triggerPrint, 500);
-        return;
-      }
-
-      const map = L.map(mapEl, {
-        zoomControl: false,
-        attributionControl: false,
-        dragging: false,
-        scrollWheelZoom: false,
-        doubleClickZoom: false,
-        boxZoom: false,
-        keyboard: false,
-        tap: false,
-        touchZoom: false
-      }).setView([printMapConfig.lat, printMapConfig.lng], 14);
-
-      const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
-      L.circleMarker([printMapConfig.lat, printMapConfig.lng], {
-        radius: 8,
-        color: '#b42318',
-        weight: 2,
-        fillColor: '#ef4444',
-        fillOpacity: 0.9
-      }).addTo(map);
-      L.circle([printMapConfig.lat, printMapConfig.lng], {
-        radius: 180,
-        color: '#b42318',
-        weight: 1,
-        fillColor: '#ef4444',
-        fillOpacity: 0.08
-      }).addTo(map);
-
-      let printScheduled = false;
-      const schedulePrint = () => {
-        if (printScheduled) return;
-        printScheduled = true;
-        setTimeout(() => {
-          map.invalidateSize();
-          triggerPrint();
-        }, 550);
-      };
-
-      tiles.on('load', schedulePrint);
-      map.whenReady(() => {
-        setTimeout(() => map.invalidateSize(), 120);
-        setTimeout(schedulePrint, 1600);
-      });
-      setTimeout(schedulePrint, 2600);
-    }
-
-    window.addEventListener('load', () => setTimeout(initPrintableMap, 120));
-  <\/script>
 </body>
 </html>`;
     }
@@ -5606,13 +5630,18 @@
               </tr>
             </thead>
             <tbody>
-              ${details.map(item => `
-                <tr>
-                  <td>${escapeHtml(item.red || '—')}</td>
-                  <td>${escapeHtml(item.cuenta || '—')}</td>
-                  <td>${item.url ? `<a href="${escapeHtml(item.url)}">${escapeHtml(item.url)}</a>` : '<span class="empty">—</span>'}</td>
-                </tr>
-              `).join('')}
+              ${details.map(item => {
+                const network = printableText(item.red) || 'Red social';
+                const account = printableText(item.cuenta) || printableText(item.url) || 'Abrir cuenta';
+                const profileUrl = safePrintableUrl(item.url) || printableSocialProfileUrl(network, account);
+                return `
+                  <tr>
+                    <td>${escapeHtml(network)}</td>
+                    <td>${profileUrl ? printableExternalLink(profileUrl, account) : escapeHtml(account)}</td>
+                    <td>${profileUrl ? printableExternalLink(profileUrl, 'Abrir perfil') : '<span class="empty">—</span>'}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
         `;
@@ -5624,6 +5653,12 @@
       if (value === undefined || value === null || value === '') {
         return '<span class="empty">—</span>';
       }
+      if (field.type === 'email' || /^correo/i.test(field.name || '')) {
+        return printableEmailLinks(value);
+      }
+      if (['sitioWeb', 'urlWeb'].includes(field.name) || /url/i.test(field.name || '')) {
+        return printableUrlLinks(value);
+      }
       if (field.type === 'textarea') {
         return escapeHtml(value).replace(/\n/g, '<br>');
       }
@@ -5631,37 +5666,64 @@
     }
 
     function renderPrintablePhotosSection() {
-      if (!state.photos || !state.photos.length) {
+      const driveLinks = renderPrintableDriveLinks();
+      const localPhotos = Array.isArray(state.photos) ? state.photos : [];
+      const onlinePhotos = getPrintablePhotoLinks()
+        .map(url => ({ url: safePrintableUrl(url), previewUrl: printablePhotoPreviewUrl(url) }))
+        .filter(photo => photo.url && photo.previewUrl);
+      const hasLocalPreviews = localPhotos.some(photo => printableText(photo.dataUrl));
+
+      if (!localPhotos.length && !onlinePhotos.length) {
         return `
           <section class="section">
             <div class="section-header">
               <h2>Anexo fotografico</h2>
-              <p>Previsualizacion de las fotografias adjuntas al borrador antes de exportar.</p>
+              <p>Previsualizacion de las fotografias adjuntas o almacenadas en Google Drive.</p>
             </div>
             <div class="section-body">
-              <p class="empty">No hay fotografias adjuntas en este borrador.</p>
+              <p class="empty">No hay fotografias disponibles para previsualizar.</p>
+              ${driveLinks}
             </div>
           </section>
         `;
       }
 
-      const cards = state.photos.map((photo, index) => `
-        <div class="photo-card">
-          ${photo.dataUrl
-            ? `<img src="${photo.dataUrl}" alt="${escapeHtml(photo.name || `Fotografia ${index + 1}`)}">`
-            : '<div class="map-empty">Vista previa no disponible para esta fotografia.</div>'}
-          <p><strong>Foto ${index + 1}. ${escapeHtml(photo.name || 'Fotografia adjunta')}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
-        </div>
-      `).join('');
+      const useLocalPhotos = hasLocalPreviews || !onlinePhotos.length;
+      const cards = useLocalPhotos
+        ? localPhotos.map((photo, index) => {
+            const photoName = printableText(photo.name) || `Fotografia ${index + 1}`;
+            return `
+              <div class="photo-card">
+                <div class="photo-preview">
+                  ${photo.dataUrl
+                    ? `<img src="${photo.dataUrl}" alt="${escapeHtml(photoName)}">`
+                    : '<div class="photo-preview-fallback" style="display:flex">Vista previa no disponible para esta fotografia.</div>'}
+                </div>
+                <p><strong>Foto ${index + 1}. ${escapeHtml(photoName)}</strong><br>${escapeHtml(formatBytes(photo.size))}</p>
+              </div>
+            `;
+          }).join('')
+        : onlinePhotos.map((photo, index) => `
+            <div class="photo-card">
+              <div class="photo-preview">
+                <img src="${escapeHtml(photo.previewUrl)}" alt="Fotografia ${index + 1}" loading="eager" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div class="photo-preview-fallback">La miniatura no esta disponible. Puedes abrir la fotografia mediante el enlace.</div>
+              </div>
+              <p><strong>Foto ${index + 1}</strong><br>${printableExternalLink(photo.url, 'Abrir imagen en Drive')}</p>
+            </div>
+          `).join('');
+      const photoCount = useLocalPhotos ? localPhotos.length : onlinePhotos.length;
+      const photoSource = useLocalPhotos ? 'adjunta(s) al formulario' : 'almacenada(s) en Google Drive';
 
       return `
         <section class="section">
           <div class="section-header">
             <h2>Anexo fotografico</h2>
-            <p>${state.photos.length} fotografia(s) adjunta(s) al formulario para respaldo visual del recurso.</p>
+            <p>${photoCount} fotografia(s) ${photoSource} para respaldo visual del recurso.</p>
           </div>
           <div class="section-body">
             <div class="photos">${cards}</div>
+            ${driveLinks}
           </div>
         </section>
       `;
