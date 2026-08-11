@@ -1,56 +1,69 @@
-# Catastro de Recursos Turisticos
+# Catastro Nacional de Recursos Turisticos
 
-Proyecto web orientado al levantamiento, revision y gestion de informacion territorial sobre recursos y atractivos turisticos. Su objetivo es apoyar procesos de catastro, actualizacion y validacion de datos comunales, provinciales y regionales en una plataforma simple de usar.
+Plataforma web para levantar, actualizar, revisar y consultar informacion territorial de recursos y atractivos turisticos de Chile.
 
-La herramienta permite registrar informacion descriptiva, territorial, fotografica y de ubicacion de cada recurso turistico, facilitando su posterior revision, consulta y respaldo institucional.
+El proyecto busca facilitar el trabajo de equipos tecnicos, municipios y organismos vinculados al turismo mediante una estructura comun de registro. Cada ficha permite reunir antecedentes territoriales, descriptivos, operativos, fotograficos y de gestion, manteniendo una relacion clara entre el recurso y su ubicacion regional, provincial y comunal.
 
-## Proposito del proyecto
+## Proposito
 
-El sistema busca ordenar la captura de informacion turistica en terreno y gabinete, reduciendo la dispersion de datos y entregando una estructura comun para documentar atractivos naturales, culturales, servicios asociados, condiciones de acceso, equipamiento, amenazas, observaciones y antecedentes complementarios.
+La plataforma apoya la elaboracion y mantencion de un catastro turistico ordenado, comparable y georreferenciado. Su finalidad es reducir la dispersion de informacion, mejorar la revision de los registros y facilitar su respaldo para procesos de planificacion, validacion y toma de decisiones.
 
-Tambien busca facilitar que distintos equipos puedan trabajar con una misma base metodologica, manteniendo criterios comunes para el registro y revision de informacion.
+## Funciones principales
 
-## Componentes principales
+- Formulario guiado organizado en 18 secciones tematicas.
+- Identificacion territorial mediante region, provincia y comuna.
+- Generacion de un ID unico para cada recurso turistico.
+- Georreferenciacion mediante mapa, coordenadas geograficas y coordenadas UTM.
+- Proteccion de la ubicacion confirmada para evitar cambios accidentales.
+- Estados de avance por seccion: pendiente, con avance y finalizado.
+- Chequeo de admisibilidad antes del cierre de la ficha.
+- Borradores locales y respaldos en formato JSON.
+- Almacenamiento y previsualizacion de fotografias del recurso.
+- Exportacion de una ficha completa y ordenada en PDF.
+- Enlaces clickeables para correos, sitios web, redes sociales y fotografias.
+- Dashboard territorial con mapa, indicadores, filtros y ordenamiento de registros.
+- Edicion de registros existentes conservando la identidad propia del atractivo.
+- Carga masiva para crear registros iniciales desde archivos Excel y continuar su edicion en el formulario.
+- Consulta integrada del manual metodologico del catastro.
 
-- Formulario de catastro para ingresar y actualizar recursos turisticos.
-- Mapa para registrar la ubicacion geografica del recurso.
-- Borradores locales para continuar el trabajo desde el mismo navegador.
-- Dashboard de consulta para revisar registros existentes.
-- Visualizador del manual tecnico de apoyo.
-- Exportacion de fichas para respaldo o revision.
+## Componentes
 
-## Archivos del proyecto
+### Formulario
 
-- `index.html`: formulario principal de registro.
-- `dashboard.html`: vista de consulta y revision de registros.
-- `manual.html`: acceso al manual tecnico del catastro.
-- `manual-catastro-recursos-turisticos.pdf`: documento de referencia metodologica.
-- `index-copia-respaldo.html`: copia de trabajo usada para pruebas antes de actualizar la version principal.
+Permite crear una ficha nueva o editar un registro existente. Incluye validaciones, condiciones de avance, clasificacion del recurso, localizacion, administracion, accesibilidad, servicios, riesgos, promocion, fotografias y observaciones.
 
-## Uso esperado
+### Dashboard
 
-La plataforma esta pensada para equipos tecnicos que necesiten levantar o revisar informacion de recursos turisticos en diferentes territorios. Cada ficha se organiza a partir de datos basicos del recurso, su clasificacion, localizacion, estado, servicios disponibles, fotografias y observaciones finales.
+Presenta una vision general de los registros disponibles. Permite buscar, filtrar, ordenar, revisar su distribucion territorial, abrir la ficha de un recurso y acceder al formulario para editarlo.
 
-El formulario inicia limpio cada vez que se abre, de modo que el ingreso de informacion parte como una nueva ficha. Cuando se requiere continuar un trabajo anterior, se pueden usar borradores locales o cargar registros existentes desde la base de respaldo.
+### Carga masiva
 
-## Alcance
+Facilita la incorporacion inicial de varios recursos desde una planilla. El usuario puede relacionar las columnas del archivo con los campos principales del catastro, validar el lote y generar registros que posteriormente deben completarse y revisarse individualmente.
 
-Este repositorio corresponde a un prototipo funcional en HTML, CSS y JavaScript. Esta version permite operar de forma local y conectarse con servicios externos para respaldo y consulta de informacion.
+### Manual
 
-El proyecto puede seguir evolucionando hacia una plataforma con control de usuarios, permisos por comuna, validacion avanzada de datos, carga masiva de registros y reportes territoriales mas completos.
+Entrega acceso al documento metodologico que orienta la clasificacion, digitalizacion y registro de los recursos turisticos.
 
-## Estado actual
+## Flujo de trabajo
 
-La version actual considera:
+1. Crear un nuevo recurso o cargar un registro existente.
+2. Completar sus datos generales y clasificacion.
+3. Seleccionar manualmente el territorio y confirmar su ubicacion en el mapa.
+4. Avanzar por las secciones del formulario y revisar la admisibilidad.
+5. Incorporar fotografias y antecedentes complementarios.
+6. Guardar el registro, revisar su ficha o exportarlo como PDF o JSON.
+7. Consultar y editar posteriormente el recurso desde el dashboard.
 
-- Registro estructurado de recursos turisticos.
-- Georreferenciacion manual mediante mapa.
-- Resguardo de la seleccion territorial ingresada manualmente.
-- Trabajo con borradores locales.
-- Consulta de registros mediante dashboard.
-- Apoyo mediante manual tecnico integrado.
+## Archivos principales
 
-## Objetivo futuro
+- `index.html`: formulario principal del catastro.
+- `dashboard.html`: consulta territorial y revision de registros.
+- `carga-masiva.html`: importacion y validacion inicial de lotes.
+- `manual.html`: visualizador del manual metodologico.
+- `manual-catastro-recursos-turisticos.pdf`: documento de referencia.
 
-El objetivo de desarrollo futuro es transformar este prototipo en una herramienta colaborativa para municipios y administradores regionales, permitiendo que cada usuario gestione informacion de su territorio con mayores niveles de seguridad, trazabilidad y control de cambios.
-# catastro-recursos-turisticos
+## Estado del proyecto
+
+El repositorio corresponde a un prototipo funcional en evolucion. Puede utilizarse localmente y tambien integrarse con servicios externos para sincronizar registros y respaldar fotografias.
+
+Las futuras etapas consideran fortalecer la administracion de usuarios, los permisos territoriales, la trazabilidad de cambios, la calidad de datos y la generacion de reportes para distintos niveles de gestion.
