@@ -1,6 +1,18 @@
 var SHEET_NAME = 'registros';
+var HISTORY_SHEET_NAME = 'registros_historico';
 var TIMEZONE = 'America/Santiago';
 var DRIVE_ROOT_FOLDER_ID = '1kGhyvjtAeepzigR3uymWsW4zN2rKYl8U';
+var VISIT_COUNTER_KEY = 'catastro_site_visit_count_v1';
+var VISIT_COUNTER_UPDATED_KEY = 'catastro_site_visit_updated_v1';
+var HISTORY_BASELINE_KEY = 'catastro_history_baseline_v1';
+var HISTORY_METADATA_HEADERS = [
+  'historial_id',
+  'historial_fecha',
+  'historial_accion',
+  'historial_id_unico_anterior',
+  'historial_fila_registros',
+  'historial_motivo'
+];
 
 var HEADERS = [
   'id_unico',
@@ -162,6 +174,11 @@ function doGet(e) {
   try {
     var action = e && e.parameter && e.parameter.action ? String(e.parameter.action) : '';
 
+    if (action === 'visit') {
+      var shouldIncrement = !e.parameter || String(e.parameter.increment || '1') !== '0';
+      return jsonResponse_(getSiteVisitCount_(shouldIncrement));
+    }
+
     if (action === 'get') {
       var id = e.parameter && e.parameter.id_unico ? String(e.parameter.id_unico).trim() : '';
       var record = getRecordById_(id);
@@ -199,7 +216,8 @@ function doGet(e) {
         schema_version: 2,
         features: {
           territory_migration: true,
-          drive_folder_migration: true
+          drive_folder_migration: true,
+          site_visit_counter: true
         },
         timestamp: now_()
       });
@@ -212,7 +230,7 @@ function doGet(e) {
     return jsonResponse_({
       ok: true,
       message: 'API del Catastro funcionando',
-      actions: ['list', 'get', 'schema', 'capabilities', 'authCheck', 'repairHeaders'],
+      actions: ['list', 'get', 'visit', 'schema', 'capabilities', 'authCheck', 'repairHeaders'],
       timestamp: now_()
     });
   } catch (error) {
@@ -222,6 +240,37 @@ function doGet(e) {
       timestamp: now_()
     });
   }
+}
+
+function getSiteVisitCount_(shouldIncrement) {
+  var properties = PropertiesService.getScriptProperties();
+  var count = Number(properties.getProperty(VISIT_COUNTER_KEY) || 0);
+  if (!isFinite(count) || count < 0) count = 0;
+  count = Math.floor(count);
+
+  if (shouldIncrement) {
+    var lock = LockService.getScriptLock();
+    lock.waitLock(10000);
+    try {
+      count = Number(properties.getProperty(VISIT_COUNTER_KEY) || 0);
+      if (!isFinite(count) || count < 0) count = 0;
+      count = Math.floor(count) + 1;
+      var updates = {};
+      updates[VISIT_COUNTER_KEY] = String(count);
+      updates[VISIT_COUNTER_UPDATED_KEY] = now_();
+      properties.setProperties(updates, false);
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  return {
+    ok: true,
+    count: count,
+    updated_at: properties.getProperty(VISIT_COUNTER_UPDATED_KEY) || '',
+    privacy: 'No se almacenan direcciones IP ni datos personales.',
+    timestamp: now_()
+  };
 }
 
 function doPost(e) {
@@ -284,6 +333,7 @@ function saveRecord_(payload) {
   try {
     var sheet = getSheet_();
     var headers = ensureHeaders_(sheet);
+    ensureInitialHistoryBackup_(sheet, headers);
     var values = Object.assign({}, payload.values || {});
     var id = normalizeId_(payload.id_unico || values.id_unico);
     var previousId = normalizeId_(payload.id_unico_anterior || values.id_unico_anterior);
@@ -317,6 +367,15 @@ function saveRecord_(payload) {
       var updateRow = mergeRow_(headers, existing, values);
       applyTextFormatsToRows_(sheet, headers, foundRow, 1);
       sheet.getRange(foundRow, 1, 1, headers.length).setValues([updateRow]);
+      try {
+        appendHistorySnapshot_(sheet, headers, updateRow, {
+          action: payload.action === 'uploadPhotos' ? 'fotos_actualizadas' : 'actualizado',
+          sourceRow: foundRow
+        });
+      } catch (historyError) {
+        sheet.getRange(foundRow, 1, 1, headers.length).setValues([existing]);
+        throw new Error('No se pudo respaldar la actualización en registro_historico. El registro vigente fue restaurado. Detalle: ' + historyError.message);
+      }
       return {
         mode: foundRows.length > 1 ? 'updated_with_duplicate_warning' : 'updated',
         row: foundRow,
@@ -331,6 +390,15 @@ function saveRecord_(payload) {
     var targetRow = sheet.getLastRow() + 1;
     applyTextFormatsToRows_(sheet, headers, targetRow, 1);
     sheet.getRange(targetRow, 1, 1, headers.length).setValues([newRow]);
+    try {
+      appendHistorySnapshot_(sheet, headers, newRow, {
+        action: payload.action === 'uploadPhotos' ? 'creado_con_fotos' : 'creado',
+        sourceRow: targetRow
+      });
+    } catch (historyError) {
+      sheet.deleteRow(targetRow);
+      throw new Error('No se pudo respaldar la creación en registro_historico. No se creó el registro vigente. Detalle: ' + historyError.message);
+    }
     return { mode: 'created', row: targetRow, id_unico: id };
   } finally {
     lock.releaseLock();
@@ -382,7 +450,13 @@ function migrateRecordTerritory_(sheet, headers, values, previousId, newId) {
   try {
     applyTextFormatsToRows_(sheet, headers, targetRow, 1);
     sheet.getRange(targetRow, 1, 1, headers.length).setValues([updateRow]);
+    appendHistorySnapshot_(sheet, headers, updateRow, {
+      action: 'territorio_migrado',
+      previousId: previousId,
+      sourceRow: targetRow
+    });
   } catch (error) {
+    sheet.getRange(targetRow, 1, 1, headers.length).setValues([existing]);
     rollbackPhotoFolderMigration_(folderMigration);
     throw error;
   }
@@ -396,6 +470,230 @@ function migrateRecordTerritory_(sheet, headers, values, previousId, newId) {
     carpeta_drive_movida: Boolean(folderMigration && folderMigration.changed),
     carpeta_drive_ruta: folderMigration && folderMigration.folderPath ? folderMigration.folderPath : ''
   };
+}
+
+function ensureHistorySheet_(sourceSheet, sourceHeaders) {
+  var spreadsheet = sourceSheet.getParent();
+  var historySheet = spreadsheet.getSheetByName(HISTORY_SHEET_NAME);
+  var requiredHeaders = HISTORY_METADATA_HEADERS.concat(sourceHeaders);
+
+  if (!historySheet) {
+    historySheet = spreadsheet.insertSheet(HISTORY_SHEET_NAME);
+    historySheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+    historySheet.setFrozenRows(1);
+    historySheet.setTabColor('#64748b');
+    historySheet.protect()
+      .setDescription('Historial automático del catastro. Editar solo mediante Apps Script.')
+      .setWarningOnly(true);
+    return { sheet: historySheet, headers: requiredHeaders };
+  }
+
+  if (historySheet.getLastRow() === 0 || historySheet.getLastColumn() === 0) {
+    historySheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+    historySheet.setFrozenRows(1);
+    return { sheet: historySheet, headers: requiredHeaders };
+  }
+
+  var historyHeaders = historySheet.getRange(1, 1, 1, historySheet.getLastColumn()).getValues()[0].map(function(value) {
+    return String(value || '').trim();
+  });
+  var missing = requiredHeaders.filter(function(header) {
+    return historyHeaders.indexOf(header) === -1;
+  });
+
+  if (missing.length) {
+    historySheet.getRange(1, historyHeaders.length + 1, 1, missing.length).setValues([missing]);
+    historyHeaders = historyHeaders.concat(missing);
+  }
+
+  historySheet.setFrozenRows(1);
+  return { sheet: historySheet, headers: historyHeaders };
+}
+
+function buildHistoryRow_(historyHeaders, sourceHeaders, sourceValues, metadata) {
+  var record = {};
+  for (var i = 0; i < sourceHeaders.length; i++) record[sourceHeaders[i]] = sourceValues[i];
+
+  var historyValues = {
+    historial_id: Utilities.getUuid(),
+    historial_fecha: metadata.timestamp || now_(),
+    historial_accion: metadata.action || 'actualizado',
+    historial_id_unico_anterior: metadata.previousId || '',
+    historial_fila_registros: metadata.sourceRow || '',
+    historial_motivo: metadata.reason || ''
+  };
+
+  return historyHeaders.map(function(header) {
+    if (Object.prototype.hasOwnProperty.call(historyValues, header)) return historyValues[header];
+    return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : '';
+  });
+}
+
+function applyHistoryTextFormats_(historySheet, historyHeaders, targetRow, rowCount) {
+  var textHeaders = HISTORY_METADATA_HEADERS.concat(TEXT_HEADERS);
+  for (var i = 0; i < textHeaders.length; i++) {
+    var columnIndex = historyHeaders.indexOf(textHeaders[i]);
+    if (columnIndex >= 0) historySheet.getRange(targetRow, columnIndex + 1, rowCount, 1).setNumberFormat('@');
+  }
+}
+
+function appendHistorySnapshot_(sourceSheet, sourceHeaders, sourceValues, metadata) {
+  var history = ensureHistorySheet_(sourceSheet, sourceHeaders);
+  var targetRow = history.sheet.getLastRow() + 1;
+  var historyRow = buildHistoryRow_(history.headers, sourceHeaders, sourceValues, metadata || {});
+  applyHistoryTextFormats_(history.sheet, history.headers, targetRow, 1);
+  history.sheet.getRange(targetRow, 1, 1, history.headers.length).setValues([historyRow]);
+  return targetRow;
+}
+
+function ensureInitialHistoryBackup_(sourceSheet, sourceHeaders) {
+  var properties = PropertiesService.getScriptProperties();
+  var history = ensureHistorySheet_(sourceSheet, sourceHeaders);
+  if (properties.getProperty(HISTORY_BASELINE_KEY) === 'done' && history.sheet.getLastRow() > 1) return 0;
+
+  var lastRow = sourceSheet.getLastRow();
+  if (lastRow < 2) {
+    properties.setProperty(HISTORY_BASELINE_KEY, 'done');
+    return 0;
+  }
+
+  var sourceRows = sourceSheet.getRange(2, 1, lastRow - 1, sourceHeaders.length).getValues();
+  var timestamp = now_();
+  var historyRows = [];
+  sourceRows.forEach(function(row, index) {
+    var hasData = row.some(function(value) {
+      return value !== '' && value !== null && value !== undefined;
+    });
+    if (!hasData) return;
+    historyRows.push(buildHistoryRow_(history.headers, sourceHeaders, row, {
+      action: 'respaldo_inicial',
+      sourceRow: index + 2,
+      timestamp: timestamp
+    }));
+  });
+  if (!historyRows.length) {
+    properties.setProperty(HISTORY_BASELINE_KEY, 'done');
+    return 0;
+  }
+  var targetRow = history.sheet.getLastRow() + 1;
+  applyHistoryTextFormats_(history.sheet, history.headers, targetRow, historyRows.length);
+  history.sheet.getRange(targetRow, 1, historyRows.length, history.headers.length).setValues(historyRows);
+  properties.setProperty(HISTORY_BASELINE_KEY, 'done');
+  return historyRows.length;
+}
+
+function crearRespaldoHistoricoInicial() {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheet_();
+    var headers = ensureHeaders_(sheet);
+    var copied = ensureInitialHistoryBackup_(sheet, headers);
+    return {
+      ok: true,
+      hoja_vigente: SHEET_NAME,
+      hoja_historica: HISTORY_SHEET_NAME,
+      registros_respaldados: copied,
+      message: copied > 0
+        ? 'Respaldo inicial creado correctamente.'
+        : 'El respaldo inicial ya existía o no había registros para copiar.'
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function eliminarRegistroConRespaldo(id, motivo) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var normalizedId = normalizeId_(id);
+    if (!normalizedId) throw new Error('Debes indicar un ID único válido.');
+
+    var sheet = getSheet_();
+    var headers = ensureHeaders_(sheet);
+    ensureInitialHistoryBackup_(sheet, headers);
+    var rows = findRowsById_(sheet, headers, normalizedId);
+    if (!rows.length) throw new Error('No se encontró el registro ' + normalizedId + '.');
+    if (rows.length > 1) {
+      throw new Error('El ID ' + normalizedId + ' está duplicado en las filas ' + rows.join(', ') + '. Corrige el conflicto antes de eliminar.');
+    }
+
+    var sourceRow = rows[0];
+    var currentValues = sheet.getRange(sourceRow, 1, 1, headers.length).getValues()[0];
+    var historyRow = appendHistorySnapshot_(sheet, headers, currentValues, {
+      action: 'eliminado',
+      sourceRow: sourceRow,
+      reason: String(motivo || '').trim() || 'Sin motivo informado'
+    });
+
+    try {
+      sheet.deleteRow(sourceRow);
+    } catch (deleteError) {
+      var historySheet = sheet.getParent().getSheetByName(HISTORY_SHEET_NAME);
+      if (historySheet && historyRow > 1 && historyRow <= historySheet.getLastRow()) {
+        historySheet.deleteRow(historyRow);
+      }
+      throw new Error('No fue posible eliminar la fila vigente. El movimiento al historial fue revertido. Detalle: ' + deleteError.message);
+    }
+
+    return {
+      ok: true,
+      id_unico: normalizedId,
+      hoja_vigente: SHEET_NAME,
+      hoja_historica: HISTORY_SHEET_NAME,
+      historial_fila: historyRow,
+      message: 'Registro eliminado de registros y conservado en registros_historico.'
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function eliminarRegistroDesdeMenu() {
+  var ui = SpreadsheetApp.getUi();
+  var idResponse = ui.prompt(
+    'Eliminar registro con respaldo',
+    'Ingresa el ID único del atractivo que deseas retirar de registros:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (idResponse.getSelectedButton() !== ui.Button.OK) return;
+
+  var id = String(idResponse.getResponseText() || '').trim();
+  if (!id) {
+    ui.alert('Debes ingresar un ID único.');
+    return;
+  }
+
+  var reasonResponse = ui.prompt(
+    'Motivo de eliminación',
+    'Describe brevemente por qué se elimina este registro:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (reasonResponse.getSelectedButton() !== ui.Button.OK) return;
+
+  var confirmation = ui.alert(
+    'Confirmar eliminación',
+    'El registro ' + id + ' desaparecerá de registros y del dashboard, pero quedará respaldado en registros_historico. ¿Deseas continuar?',
+    ui.ButtonSet.YES_NO
+  );
+  if (confirmation !== ui.Button.YES) return;
+
+  try {
+    var result = eliminarRegistroConRespaldo(id, reasonResponse.getResponseText());
+    ui.alert(result.message);
+  } catch (error) {
+    ui.alert('No se realizó la eliminación. ' + error.message);
+  }
+}
+
+function onOpen() {
+  SpreadsheetApp.getUi()
+    .createMenu('Catastro')
+    .addItem('Crear respaldo histórico inicial', 'crearRespaldoHistoricoInicial')
+    .addSeparator()
+    .addItem('Eliminar registro con respaldo', 'eliminarRegistroDesdeMenu')
+    .addToUi();
 }
 
 function getRecordById_(id) {

@@ -142,7 +142,7 @@ const dateFixture = new Date("2026-07-28T12:00:00.000Z");
 const dateRow = helpers.buildRow_(headers, { fecha_creacion: dateFixture });
 
 const saveRecordBody = appScript.match(/function saveRecord_\(payload\) \{([\s\S]*?)\n\}/)?.[1] || "";
-const territoryMigrationBody = appScript.match(/function migrateRecordTerritory_\([\s\S]*?(?=\nfunction getRecordById_)/)?.[0] || "";
+const territoryMigrationBody = appScript.match(/function migrateRecordTerritory_\([\s\S]*?(?=\nfunction ensureHistorySheet_)/)?.[0] || "";
 const loadRecordBody = indexHtml.match(/async function loadRecordByUniqueId\(idOverride = ''\) \{([\s\S]*?)\n    \}/)?.[1] || "";
 const syncDraftBody = indexHtml.match(/async function syncDraftOnline\(\) \{([\s\S]*?)(?=\n    function sameSavedVersion)/)?.[1] || "";
 const photoUploadBody = indexHtml.match(/async function uploadPhotosToDrive\(\) \{([\s\S]*?)(?=\n    async function submitPayloadToGoogleSheet)/)?.[1] || "";
