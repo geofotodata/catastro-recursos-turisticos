@@ -86,11 +86,36 @@ const context = vm.createContext({
   encodeURIComponent,
   setTimeout,
   clearTimeout,
-  fetch: async () => ({ json: async () => ({ ok: true, records: [] }) })
+  fetch: async () => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ ok: true, records: [] })
+  })
 });
 context.window = context;
 
 new vm.Script(inlineScript, { filename: 'dashboard-inline.js' }).runInContext(context);
+
+let fallbackCall = 0;
+context.fetch = async () => {
+  fallbackCall += 1;
+  if (fallbackCall === 1) {
+    return {
+      ok: true,
+      status: 200,
+      text: async () => '<!DOCTYPE html><html><body>Archivo no encontrado</body></html>'
+    };
+  }
+  return {
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ ok: true, records: [{ id_unico: 'RESPALDO-1' }] })
+  };
+};
+await vm.runInContext('loadData()', context);
+assert.equal(fallbackCall, 2, 'Debe intentar el segundo endpoint cuando el primero devuelve HTML.');
+assert.equal(vm.runInContext('records.length', context), 1);
+assert.match(elements.get('statusBox').textContent, /conexión de respaldo/);
 
 const sample = Object.fromEntries(headers.map(header => [header, 'Valor ' + header]));
 Object.assign(sample, {
