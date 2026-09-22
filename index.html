@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prototipo Catastro de Recursos Turísticos</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+  <link rel="stylesheet" href="site-footer.css" />
   <style>
     :root {
       --bg: #f5f7fb;
@@ -2014,6 +2015,13 @@
         <div id="sectionsContainer"></div>
       </form>
     </main>
+    <footer class="site-footer" aria-label="Créditos y visitas del sitio">
+      <span>Desarrollado por Luis Bravo</span>
+      <span aria-hidden="true">·</span>
+      <a href="https://geofoto.cl" target="_blank" rel="noopener noreferrer">geofoto.cl</a>
+      <span class="site-footer-separator" aria-hidden="true">·</span>
+      <span class="site-visit-counter">Visitas al sitio: <strong data-site-visit-count aria-live="polite">cargando...</strong></span>
+    </footer>
   </div>
 
   <template id="sectionTemplate">
@@ -2088,6 +2096,7 @@
     </button>
   </div>
 
+  <script src="site-footer.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.19.10/proj4.js"></script>
   <script>
