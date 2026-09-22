@@ -1,6 +1,6 @@
 var SHEET_NAME = 'registros';
 var TIMEZONE = 'America/Santiago';
-var DRIVE_ROOT_FOLDER_ID = '1kGhyvjtAeepzigR3uymWsW4zN2rKYl8U';
+var DRIVE_ROOT_FOLDER_ID = '1dVPXMWlTDUizDOfLRDslimhbxMeQ3y-U';
 
 var HEADERS = [
   'id_unico',
